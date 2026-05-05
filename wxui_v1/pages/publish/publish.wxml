@@ -1,0 +1,66 @@
+<view class="publish-page">
+  <view class="top-bar">
+    <text class="top-title">提交信息</text>
+  </view>
+
+  <view class="photo-section">
+    <view class="photo-grid {{errors.photos ? 'photo-error' : ''}}">
+      <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
+        <image src="{{item.url}}" mode="aspectFill" />
+        <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">×</view>
+        <view wx:if="{{index === 0}}" class="cover-label">封面</view>
+      </view>
+      <view wx:if="{{form.photos.length < 9}}" class="photo-add" bindtap="chooseImages">
+        <text class="add-icon">+</text>
+      </view>
+    </view>
+    <text wx:if="{{errors.photos}}" class="field-error">{{errors.photos}}</text>
+  </view>
+
+  <view class="form-section">
+    <view class="form-row price-row">
+      <text class="label">价格</text>
+      <view class="price-input">
+        <text class="yen">￥</text>
+        <input type="digit" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
+      </view>
+    </view>
+    <text wx:if="{{errors.price}}" class="field-error">{{errors.price}}</text>
+
+    <view class="form-row">
+      <text class="label">分类</text>
+    </view>
+    <view class="picker-panel">
+      <view wx:for="{{categories}}" wx:key="id" class="picker-item {{form.categoryId === item.id ? 'active' : ''}}" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="chooseCategory">
+        {{item.name}}
+      </view>
+    </view>
+
+    <!-- 成色 固定选项 保留 -->
+    <view class="form-row">
+      <text class="label">成色</text>
+    </view>
+    <view class="picker-panel">
+      <view wx:for="{{conditionOptions}}" wx:key="*this" class="picker-item {{form.conditionLevel === item ? 'active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
+        {{item}}
+      </view>
+    </view>
+
+    <!-- 地点 固定选项 保留 -->
+    <view class="form-row">
+      <text class="label">地点</text>
+    </view>
+    <view class="chip-group">
+      <view wx:for="{{locationOptions}}" wx:key="*this" class="chip {{form.campusLocation === item ? 'active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <text class="msg {{info ? 'err' : ''}}">{{info}}</text>
+    <button class="publish-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">
+      发布
+    </button>
+  </view>
+</view>

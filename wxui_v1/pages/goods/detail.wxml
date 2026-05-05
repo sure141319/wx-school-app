@@ -1,0 +1,69 @@
+<view wx:if="{{loading}}" class="loading">
+  <view class="loading-spinner"></view>
+  <text>加载中...</text>
+</view>
+
+<view wx:elif="{{goods}}" class="detail-page">
+  <!-- 图片轮播 -->
+  <view class="hero-section">
+    <swiper
+      class="hero-swiper"
+      autoplay="{{false}}"
+      bindchange="onSwiperChange"
+    >
+      <swiper-item wx:for="{{goods.imageUrls}}" wx:key="*this">
+        <image src="{{item}}" mode="aspectFill" bindtap="previewImage" data-index="{{index}}" />
+      </swiper-item>
+    </swiper>
+    <view wx:if="{{goods.imageUrls.length > 1}}" class="img-counter">
+      {{currentImgIndex + 1}}/{{goods.imageUrls.length}}
+    </view>
+  </view>
+
+  <!-- 价格和标题 -->
+  <view class="info-section">
+    <view class="price-row">
+      <text class="price-symbol">¥</text>
+      <text class="price-value">{{goods.price}}</text>
+    </view>
+    <text class="goods-title">{{goods.title}}</text>
+    <view class="tag-row">
+      <view class="tag condition-tag">{{goods.conditionLevel || '成色未知'}}</view>
+      <view class="tag location-tag">{{goods.campusLocation || '校内交易'}}</view>
+      <view wx:if="{{goods.category}}" class="tag category-tag">{{goods.category.name}}</view>
+    </view>
+  </view>
+
+  <!-- 商品描述 -->
+  <view class="section-card">
+    <text class="section-label">商品描述</text>
+    <text class="section-desc">{{goods.description || '暂无描述'}}</text>
+  </view>
+
+  <!-- 卖家信息 -->
+  <view class="section-card seller-card">
+    <text class="section-label">卖家信息</text>
+    <view class="seller-row">
+      <view class="seller-avatar">
+        <image wx:if="{{goods.seller.avatarUrl}}" class="avatar-img" src="{{goods.seller.avatarUrl}}" mode="aspectFill" />
+        <text wx:else class="avatar-text">{{goods.seller.nickname[0]}}</text>
+      </view>
+      <view class="seller-info">
+        <text class="seller-name">{{goods.seller.nickname}}</text>
+        <text class="seller-tip">平台认证用户</text>
+      </view>
+    </view>
+    <view wx:if="{{goods.seller.qq}}" class="seller-qq-row">
+      <text class="qq-label">QQ：</text>
+      <text class="qq-value">{{goods.seller.qq}}</text>
+      <button class="copy-qq-btn" data-qq="{{goods.seller.qq}}" bindtap="copyQQ">复制</button>
+    </view>
+  </view>
+
+</view>
+
+<view wx:else class="empty-state">
+  <text class="empty-icon">📦</text>
+  <text class="empty-text">{{info || '商品不存在或已下架'}}</text>
+  <button class="back-home-btn" bindtap="goHome">返回首页</button>
+</view>

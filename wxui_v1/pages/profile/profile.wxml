@@ -1,0 +1,96 @@
+<view class="profile-page">
+  <view class="paper profile-card">
+    <view class="profile-hero">
+      <view class="avatar-btn" bindtap="chooseAvatar">
+        <image wx:if="{{profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
+        <text wx:else>{{profile.nickname[0] || '我'}}</text>
+      </view>
+      <text class="avatar-tip">点击头像可更换</text>
+    </view>
+
+    <view class="nick-section">
+      <text class="nick-label">昵称</text>
+      <input value="{{profile.nickname}}" class="nick-input" placeholder="请输入昵称" maxlength="64" bindinput="onNicknameInput" />
+    </view>
+
+    <button class="btn primary save-btn" bindtap="saveProfile">保存资料</button>
+  </view>
+
+  <view class="paper goods-card">
+    <view class="card-head">
+      <text class="section-title">我发布的商品</text>
+      <view class="chip">
+        <text>{{goodsItems.length}} 件</text>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="loading">
+      <text>加载中...</text>
+    </view>
+    <view wx:elif="{{!goodsItems.length}}" class="empty-state">
+      <text class="empty-icon">📦</text>
+      <text class="empty-text">还没有发布商品</text>
+      <navigator url="/pages/publish/publish" class="btn primary empty-btn">去发布</navigator>
+    </view>
+
+    <view wx:for="{{goodsItems}}" wx:key="id" class="goods-line">
+      <view class="goods-info">
+        <text class="goods-title">{{item.title}}</text>
+        <view class="meta-row">
+          <text class="muted goods-meta">¥{{item.price}}</text>
+          <text class="status-tag {{item.status}}">{{item.status === 'ON_SALE' ? '在售中' : item.status === 'OFF_SHELF' ? '已下架' : item.status === 'PENDING_REVIEW' ? '审核中' : '被驳回'}}</text>
+        </view>
+        <text wx:if="{{item.status === 'REJECTED' && item.auditRemark}}" class="reject-reason">原因：{{item.auditRemark}}</text>
+      </view>
+      <view class="actions">
+        <view class="btn small" bindtap="editGoods" data-id="{{item.id}}">编辑</view>
+        <view wx:if="{{item.status === 'ON_SALE' || item.status === 'OFF_SHELF'}}" class="btn small" bindtap="toggleStatus" data-item="{{item}}">
+          {{item.status === 'ON_SALE' ? '下架' : '上架'}}
+        </view>
+        <view class="btn small danger" bindtap="removeGoods" data-id="{{item.id}}">删除</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loadingMore}}" class="loading-more">
+      <text>正在加载更多...</text>
+    </view>
+    <view wx:elif="{{!hasMore && goodsItems.length > 0}}" class="loading-more">
+      <text>没有更多了</text>
+    </view>
+  </view>
+
+  <view class="paper settings-card">
+    <view class="settings-item" bindtap="showFeedback">
+      <view class="settings-left">
+        <text class="settings-icon">💬</text>
+        <text class="settings-label">意见反馈</text>
+      </view>
+      <text class="settings-arrow">›</text>
+    </view>
+  </view>
+
+  <button class="btn logout-btn" bindtap="logout">退出登录</button>
+
+  <!-- 自定义意见反馈弹窗 -->
+  <view class="modal-mask" wx:if="{{showFeedbackModal}}" bindtap="closeFeedback"></view>
+  <view class="feedback-modal" wx:if="{{showFeedbackModal}}">
+    <view class="modal-title">意见反馈</view>
+    <view class="modal-body">
+      <text class="modal-text">本小程序由学生独立开发，专注打造校园二手信息平台，主要助力同学们交易二手书籍及各类闲置物品，提升物品使用效率～</text>
+      <text class="modal-text">小程序刚上线，部分功能可能存在 BUG，特此创建 QQ 交流群：</text>
+      <view class="qq-row">
+        <text class="qq-number">1078739008</text>
+        <text class="copy-btn" bindtap="copyQQ">复制</text>
+      </view>
+      <text class="modal-text">欢迎大家反馈问题、提出建议，也可进群交流技术、互相学习！</text>
+      <view class="notice-box">
+        <text class="notice-title">注意事项</text>
+        <text class="notice-item">1. 发布内容需审核，通过后展示</text>
+        <text class="notice-item">2. 低质 / 无效内容将自动删除，误删可加平台 QQ 群联系管理员</text>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn" bindtap="closeFeedback">知道了</button>
+    </view>
+  </view>
+</view>

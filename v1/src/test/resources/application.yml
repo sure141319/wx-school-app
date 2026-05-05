@@ -1,0 +1,37 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+  datasource:
+    url: jdbc:h2:mem:campus_trade_test;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  jwt-secret: test-secret-that-is-definitely-long-enough-and-not-base64!!!
+  api-base-url: http://localhost:8080
+  minio:
+    endpoint: http://127.0.0.1:9000
+    access-key: test-access
+    secret-key: test-secret
+    bucket: test-bucket
+    public-base-url: http://127.0.0.1:9000/test-bucket
+    secure: false
+    auto-create-bucket: true
+  image-audit:
+    pending-placeholder-url: http://localhost:8080/placeholders/image-under-review.svg
+    reviewer-user-ids: 1
+  redis:
+    required: false
+  verification-code:
+    expire-minutes: 5
+    resend-cooldown-seconds: 60
+    hourly-limit: 8

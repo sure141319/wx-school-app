@@ -1,0 +1,263 @@
+.publish-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: calc(240rpx + env(safe-area-inset-bottom));
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 32rpx;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.top-title {
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.photo-section {
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  margin-top: 16rpx;
+}
+
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.photo-item {
+  position: relative;
+  width: calc(33.33% - 12rpx);
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.photo-item::before {
+  content: '';
+  display: block;
+  padding-bottom: 100%;
+}
+
+.photo-item image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.del-btn {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+}
+
+.cover-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-color: #ff6b3d;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 0 12rpx 0 0;
+}
+
+.photo-add {
+  position: relative;
+  width: calc(33.33% - 12rpx);
+  border: 4rpx dashed #ddd;
+  border-radius: 16rpx;
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-add::before {
+  content: '';
+  display: block;
+  padding-bottom: 100%;
+}
+
+.add-icon {
+  font-size: 52rpx;
+  color: #bbb;
+}
+
+.form-section {
+  background-color: #fff;
+  margin-top: 16rpx;
+  padding: 0 32rpx;
+}
+
+.form-row {
+  padding: 28rpx 0;
+  border-bottom: 2rpx solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.form-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 28rpx;
+  color: #333;
+  flex-shrink: 0;
+}
+
+.form-row input {
+  flex: 1;
+  border: none;
+  font-size: 30rpx;
+  padding: 0;
+  background-color: transparent;
+  height: 60rpx;
+  line-height: 60rpx;
+  min-height: 60rpx;
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  min-height: 120rpx;
+  padding: 20rpx 0;
+}
+
+.price-input {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.yen {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #ff4444;
+  margin-right: 8rpx;
+}
+
+.price-input input {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #ff4444;
+  height: 80rpx;
+  line-height: 80rpx;
+  min-height: 80rpx;
+}
+
+.picker-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 24rpx 0;
+}
+
+.picker-item {
+  padding: 20rpx 16rpx;
+  border: 2rpx solid #eee;
+  border-radius: 16rpx;
+  background-color: #fff;
+  font-size: 26rpx;
+  color: #666;
+  width: calc(33.33% - 12rpx);
+  text-align: center;
+}
+
+.picker-item.active {
+  background-color: #1e5ea6;
+  border-color: #1e5ea6;
+  color: #fff;
+}
+
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 24rpx 0;
+}
+
+.chip {
+  padding: 16rpx 32rpx;
+  border: 2rpx solid #eee;
+  border-radius: 40rpx;
+  background-color: #fff;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.chip.active {
+  background-color: #1e5ea6;
+  border-color: #1e5ea6;
+  color: #fff;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-top: 2rpx solid #f0f0f0;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  z-index: 20;
+}
+
+.msg {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 24rpx;
+  color: #999;
+  text-align: center;
+}
+
+.msg.err {
+  color: #ff4444;
+}
+
+.publish-btn {
+  width: 100%;
+  height: 96rpx;
+  border: none;
+  border-radius: 48rpx;
+  background: linear-gradient(135deg, #2b72bc, #1e5ea6);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.publish-btn[disabled] {
+  background: #ccc;
+}
+
+.field-error {
+  display: block;
+  font-size: 24rpx;
+  color: #ff4444;
+  padding: 8rpx 0 16rpx;
+}
+
+.photo-error {
+  border-color: #ff4444;
+  background-color: #fff5f5;
+}

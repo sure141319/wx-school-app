@@ -1,0 +1,92 @@
+<view class="home-page">
+  <view class="paper home-hero">
+    <view class="hero-top">
+      <view class="search-input">
+        <text class="search-icon">⌕</text>
+        <input placeholder="搜索你想买的闲置" bindinput="onSearchInput" bindconfirm="onSearch" />
+      </view>
+      <view class="hero-actions">
+        <view class="icon-btn" bindtap="loadGoods">
+          <text class="refresh-icon">↻</text>
+        </view>
+      </view>
+    </view>
+    <text class="hero-title">校园闲置集市</text>
+    <text class="hero-sub">发现同校在售物品，面对面更安心</text>
+  </view>
+
+  <scroll-view class="category-strip" scroll-x>
+    <view
+      wx:for="{{categoryItems}}"
+      wx:key="id"
+      class="category-pill {{categoryId === item.id ? 'active' : ''}}"
+      bindtap="chooseCategory"
+      data-id="{{item.id}}"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <text wx:if="{{statusText}}" class="status-line">{{statusText}}</text>
+
+  <view wx:if="{{loading}}" class="loading">
+    <text>正在加载商品...</text>
+  </view>
+
+  <view wx:elif="{{goodsItems.length}}" class="waterfall">
+    <view class="waterfall-col">
+      <view
+        wx:for="{{goodsItems}}"
+        wx:for-index="idx"
+        wx:key="id"
+        wx:if="{{idx % 2 === 0}}"
+      >
+        <view class="goods-card" bindtap="openGoods" data-id="{{item.id}}">
+          <view class="cover">
+            <image wx:if="{{item.imageUrls.length}}" src="{{item.imageUrls[0]}}" mode="aspectFill" lazy-load />
+            <view wx:else class="cover-empty">暂无图片</view>
+            <view class="price-tag">¥{{item.price}}</view>
+            <view class="cond-tag">{{item.conditionLevel || '成色未知'}}</view>
+          </view>
+          <view class="meta">
+            <text class="title">{{item.title}}</text>
+            <text class="location">{{item.campusLocation || '校内交易'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="waterfall-col">
+      <view
+        wx:for="{{goodsItems}}"
+        wx:for-index="idx"
+        wx:key="id"
+        wx:if="{{idx % 2 === 1}}"
+      >
+        <view class="goods-card" bindtap="openGoods" data-id="{{item.id}}">
+          <view class="cover">
+            <image wx:if="{{item.imageUrls.length}}" src="{{item.imageUrls[0]}}" mode="aspectFill" lazy-load />
+            <view wx:else class="cover-empty">暂无图片</view>
+            <view class="price-tag">¥{{item.price}}</view>
+            <view class="cond-tag">{{item.conditionLevel || '成色未知'}}</view>
+          </view>
+          <view class="meta">
+            <text class="title">{{item.title}}</text>
+            <text class="location">{{item.campusLocation || '校内交易'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="empty-state paper">
+    <text class="empty-title">暂时没有匹配的商品</text>
+    <text class="empty-desc">换个关键词或分类试试</text>
+  </view>
+
+  <view wx:if="{{loadingMore}}" class="loading-more">
+    <text>正在加载更多...</text>
+  </view>
+  <view wx:elif="{{!hasMore && goodsItems.length > 0}}" class="loading-more">
+    <text>没有更多了</text>
+  </view>
+</view>

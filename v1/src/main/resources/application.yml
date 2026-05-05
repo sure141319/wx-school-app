@@ -1,0 +1,77 @@
+server:
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    max-swallow-size: 50MB
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 3s
+
+mybatis:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.campustrade.platform
+  configuration:
+    map-underscore-to-camel-case: true
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+app:
+  jwt-secret: ${JWT_SECRET}
+  jwt-expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+  api-base-url: ${API_BASE_URL:http://localhost:8080}
+  redis:
+    required: ${REDIS_REQUIRED:true}
+  cache:
+    category-ttl-minutes: ${CACHE_CATEGORY_TTL_MINUTES:30}
+    goods-list-ttl-minutes: ${CACHE_GOODS_LIST_TTL_MINUTES:2}
+  verification-code:
+    expire-minutes: ${VERIFICATION_CODE_EXPIRE_MINUTES:5}
+    resend-cooldown-seconds: ${VERIFICATION_CODE_RESEND_COOLDOWN:60}
+    hourly-limit: ${VERIFICATION_CODE_HOURLY_LIMIT:8}
+    key-prefix: "auth:code:"
+    limit-prefix: "auth:code:limit:"
+  auth:
+    max-login-failures: ${AUTH_MAX_LOGIN_FAILURES:5}
+    lock-minutes: ${AUTH_LOCK_MINUTES:15}
+  mail:
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    from: ${MAIL_FROM:}
+    ssl-enabled: true
+    auth: true
+    starttls-enabled: false
+    debug: false
+  minio:
+    endpoint: ${MINIO_ENDPOINT:}
+    access-key: ${MINIO_ACCESS_KEY:}
+    secret-key: ${MINIO_SECRET_KEY:}
+    bucket: ${MINIO_BUCKET:}
+    public-base-url: ${MINIO_PUBLIC_BASE_URL:}
+    secure: ${MINIO_SECURE:false}
+    auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
+    presign-expiry-days: ${MINIO_PRESIGN_EXPIRY_DAYS:7}
+  image-audit:
+    pending-placeholder-url: ${IMAGE_AUDIT_PENDING_PLACEHOLDER_URL:https://www.ahut-campus.site/campus-trade/images/2026/04/auditing.webp}
+    reviewer-user-ids: ${IMAGE_AUDIT_REVIEWER_USER_IDS:1}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}

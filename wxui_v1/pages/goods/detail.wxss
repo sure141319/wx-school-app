@@ -1,0 +1,262 @@
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+  padding: 200rpx 0;
+  color: #8c97aa;
+  font-size: 28rpx;
+}
+
+.loading-spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border: 4rpx solid #e8ecf1;
+  border-top-color: #1e5ea6;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.detail-page {
+  background-color: #f5f5f8;
+  min-height: 100vh;
+}
+
+/* ===== 图片轮播 ===== */
+.hero-section {
+  position: relative;
+  width: 100%;
+  background-color: #f0f3f8;
+}
+
+.hero-swiper {
+  width: 100%;
+  height: 750rpx;
+}
+
+.hero-swiper image {
+  width: 100%;
+  height: 100%;
+}
+
+.img-counter {
+  position: absolute;
+  bottom: 24rpx;
+  right: 28rpx;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  backdrop-filter: blur(6px);
+}
+
+/* ===== 价格和标题 ===== */
+.info-section {
+  background-color: #fff;
+  padding: 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 16rpx;
+}
+
+.price-symbol {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #e8433a;
+  margin-right: 4rpx;
+}
+
+.price-value {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #e8433a;
+  letter-spacing: -1rpx;
+}
+
+.goods-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1a1f2d;
+  line-height: 1.5;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+}
+
+.condition-tag {
+  background-color: #fff3e6;
+  color: #d48806;
+}
+
+.location-tag {
+  background-color: #e8f4fd;
+  color: #1e5ea6;
+}
+
+.category-tag {
+  background-color: #f0edf8;
+  color: #6b52a8;
+}
+
+/* ===== 通用卡片 ===== */
+.section-card {
+  background-color: #fff;
+  padding: 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1f2d;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.section-desc {
+  font-size: 28rpx;
+  color: #4a5060;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: block;
+}
+
+/* ===== 卖家信息 ===== */
+.seller-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.seller-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2b72bc, #1e5ea6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+}
+
+.avatar-text {
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.seller-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.seller-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1f2d;
+}
+
+.seller-tip {
+  font-size: 24rpx;
+  color: #8c97aa;
+}
+
+/* ===== 卖家 QQ ===== */
+.seller-qq-row {
+  display: flex;
+  align-items: center;
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #e8ecf1;
+  gap: 12rpx;
+}
+
+.qq-label {
+  font-size: 28rpx;
+  color: #6b7a8d;
+}
+
+.qq-value {
+  font-size: 28rpx;
+  color: #1a1f2d;
+  font-weight: 500;
+  flex: 1;
+}
+
+.copy-qq-btn {
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+  background-color: #e8f4fd;
+  color: #1e5ea6;
+  font-size: 24rpx;
+  border: none;
+  line-height: 1.5;
+}
+
+.copy-qq-btn::after {
+  border: none;
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 60rpx;
+  gap: 24rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #8c97aa;
+}
+
+.back-home-btn {
+  margin-top: 20rpx;
+  padding: 16rpx 48rpx;
+  border-radius: 999rpx;
+  background-color: #1e5ea6;
+  color: #fff;
+  font-size: 28rpx;
+  border: none;
+}
+
+.back-home-btn::after {
+  border: none;
+}

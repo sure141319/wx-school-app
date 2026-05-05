@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campustrade.platform.user.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.campustrade.platform.user.dataobject.UserDO">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="failedLoginCount" column="failed_login_count"/>
+        <result property="lockedUntil" column="locked_until"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="ProfileResultMap" type="com.campustrade.platform.user.dataobject.UserDO">
+        <id property="id" column="id"/>
+        <result property="email" column="email"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="avatarAuditStatus" column="avatar_audit_status"/>
+        <result property="avatarAuditRemark" column="avatar_audit_remark"/>
+        <result property="avatarAuditedBy" column="avatar_audited_by"/>
+        <result property="avatarAuditedAt" column="avatar_audited_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByEmail" resultMap="UserResultMap">
+        SELECT id, email, password_hash, nickname, avatar_url, failed_login_count, locked_until, created_at, updated_at
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <select id="findById" resultMap="ProfileResultMap">
+        SELECT id, email, nickname, avatar_url, avatar_audit_status, avatar_audit_remark, avatar_audited_by, avatar_audited_at, created_at, updated_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(1)
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <insert id="insert" parameterType="com.campustrade.platform.user.dataobject.UserDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (email, password_hash, nickname, avatar_url, failed_login_count, locked_until, created_at, updated_at)
+        VALUES (#{email}, #{passwordHash}, #{nickname}, #{avatarUrl}, #{failedLoginCount}, #{lockedUntil}, NOW(), NOW())
+    </insert>
+
+    <update id="updateAuthState">
+        UPDATE users
+        SET failed_login_count = #{failedLoginCount},
+            locked_until = #{lockedUntil},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePasswordAndUnlock">
+        UPDATE users
+        SET password_hash = #{passwordHash},
+            failed_login_count = #{failedLoginCount},
+            locked_until = #{lockedUntil},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateProfile">
+        UPDATE users
+        SET nickname = #{nickname},
+            avatar_url = #{avatarUrl},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAvatarAuditStatus">
+        UPDATE users
+        SET avatar_audit_status = #{avatarAuditStatus},
+            avatar_audit_remark = #{avatarAuditRemark},
+            avatar_audited_by = #{avatarAuditedBy},
+            avatar_audited_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

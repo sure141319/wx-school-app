@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campustrade.platform.audit.mapper.AuditImageMapper">
+
+    <resultMap id="AuditImageRecordMap" type="com.campustrade.platform.audit.dataobject.AuditImageRecordDO">
+        <id property="imageId" column="image_id"/>
+        <result property="goodsId" column="goods_id"/>
+        <result property="goodsTitle" column="goods_title"/>
+        <result property="goodsDescription" column="goods_description"/>
+        <result property="sellerId" column="seller_id"/>
+        <result property="sellerNickname" column="seller_nickname"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="auditRemark" column="audit_remark"/>
+        <result property="auditedBy" column="audited_by"/>
+        <result property="auditedAt" column="audited_at"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="AuditImageBaseColumns">
+        gi.id AS image_id,
+        gi.goods_id AS goods_id,
+        g.title AS goods_title,
+        g.description AS goods_description,
+        u.id AS seller_id,
+        u.nickname AS seller_nickname,
+        gi.image_url AS image_url,
+        gi.sort_order AS sort_order,
+        gi.audit_status AS audit_status,
+        gi.audit_remark AS audit_remark,
+        gi.audited_by AS audited_by,
+        gi.audited_at AS audited_at,
+        gi.created_at AS created_at
+    </sql>
+
+    <select id="search" resultMap="AuditImageRecordMap">
+        SELECT
+        <include refid="AuditImageBaseColumns"/>
+        FROM goods_image_do gi
+        JOIN goods_do g ON g.id = gi.goods_id
+        JOIN users u ON u.id = g.seller_id
+        WHERE (#{status} IS NULL OR gi.audit_status = #{status})
+        ORDER BY gi.created_at ASC, gi.id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearch" resultType="long">
+        SELECT COUNT(1)
+        FROM goods_image_do gi
+        WHERE (#{status} IS NULL OR gi.audit_status = #{status})
+    </select>
+
+    <select id="findByImageId" resultMap="AuditImageRecordMap">
+        SELECT
+        <include refid="AuditImageBaseColumns"/>
+        FROM goods_image_do gi
+        JOIN goods_do g ON g.id = gi.goods_id
+        JOIN users u ON u.id = g.seller_id
+        WHERE gi.id = #{imageId}
+    </select>
+
+    <!-- ==================== 头像审核 ==================== -->
+
+    <resultMap id="AvatarAuditRecordMap" type="com.campustrade.platform.audit.dataobject.AvatarAuditRecordDO">
+        <id property="userId" column="user_id"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="avatarAuditStatus" column="avatar_audit_status"/>
+        <result property="avatarAuditRemark" column="avatar_audit_remark"/>
+        <result property="avatarAuditedBy" column="avatar_audited_by"/>
+        <result property="avatarAuditedAt" column="avatar_audited_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="searchAvatars" resultMap="AvatarAuditRecordMap">
+        SELECT
+            id AS user_id,
+            nickname,
+            avatar_url,
+            avatar_audit_status,
+            avatar_audit_remark,
+            avatar_audited_by,
+            avatar_audited_at,
+            updated_at
+        FROM users
+        WHERE (#{status} IS NULL OR avatar_audit_status = #{status})
+        ORDER BY updated_at ASC, id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countSearchAvatars" resultType="long">
+        SELECT COUNT(1)
+        FROM users
+        WHERE (#{status} IS NULL OR avatar_audit_status = #{status})
+    </select>
+
+    <select id="findAvatarByUserId" resultMap="AvatarAuditRecordMap">
+        SELECT
+            id AS user_id,
+            nickname,
+            avatar_url,
+            avatar_audit_status,
+            avatar_audit_remark,
+            avatar_audited_by,
+            avatar_audited_at,
+            updated_at
+        FROM users
+        WHERE id = #{userId}
+    </select>
+
+</mapper>
