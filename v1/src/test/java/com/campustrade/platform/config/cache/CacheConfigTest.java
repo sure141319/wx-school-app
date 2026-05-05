@@ -44,6 +44,7 @@ class CacheConfigTest {
                         null,
                         null,
                         List.of("/static/auditing.png"),
+                        List.of("images/2026/04/auditing.png"),
                         null,
                         LocalDateTime.of(2026, 4, 2, 18, 0),
                         LocalDateTime.of(2026, 4, 2, 18, 5)

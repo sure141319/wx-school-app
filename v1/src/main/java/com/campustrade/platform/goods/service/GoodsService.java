@@ -208,6 +208,8 @@ public class GoodsService {
         return userId != null && appProperties.getImageAudit().getReviewerUserIds().contains(userId);
     }
 
+    private static final String PLACEHOLDER_IMAGE_KEY = "images/2026/04/auditing.webp";
+
     private void replaceImages(Long goodsId, List<String> imageUrls) {
         List<GoodsImageDO> oldImages = goodsMapper.findImagesByGoodsId(goodsId);
 
@@ -215,7 +217,7 @@ public class GoodsService {
         if (imageUrls != null) {
             for (String url : imageUrls) {
                 String key = uploadService.extractObjectKey(url.trim());
-                if (StringUtils.hasText(key)) {
+                if (StringUtils.hasText(key) && !PLACEHOLDER_IMAGE_KEY.equals(key)) {
                     newKeys.add(key);
                 }
             }

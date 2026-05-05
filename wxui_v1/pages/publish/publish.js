@@ -73,9 +73,9 @@ Page({
           conditionLevel: goods.conditionLevel || CONDITION_OPTIONS[1],
           campusLocation: goods.campusLocation || LOCATION_OPTIONS[0],
           categoryId: goods.category?.id || '',
-          photos: (goods.imageUrls || []).map((url) => ({
+          photos: (goods.imageUrls || []).map((url, i) => ({
             url,
-            filename: url
+            filename: (goods.imageKeys || [])[i] || url
           }))
         }
       })

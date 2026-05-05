@@ -18,6 +18,7 @@ public record GoodsResponseDTO(
         CategoryResponseDTO category,
         UserProfileResponseDTO seller,
         List<String> imageUrls,
+        List<String> imageKeys,
         String auditRemark,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

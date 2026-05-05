@@ -47,6 +47,10 @@ public class GoodsAssembler {
                         .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
                         .map(this::toVisibleImageUrl)
                         .toList(),
+                goods.getImages().stream()
+                        .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                        .map(GoodsImageDO::getImageUrl)
+                        .toList(),
                 goods.getAuditRemark(),
                 goods.getCreatedAt(),
                 goods.getUpdatedAt()

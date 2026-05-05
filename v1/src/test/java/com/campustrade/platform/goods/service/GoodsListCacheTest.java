@@ -105,7 +105,8 @@ class GoodsListCacheTest {
                 null,
                 null,
                 List.of("/static/auditing.png"),
-                null,
+                        List.of("images/2026/04/auditing.png"),
+                        null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

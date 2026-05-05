@@ -4,7 +4,7 @@ const STORAGE_KEYS = {
   reviewer: 'checkui:reviewer'
 }
 
-const DEFAULT_API_BASE_URL = 'http://YOUR_SERVER_IP/api/v1'
+const DEFAULT_API_BASE_URL = 'https://www.ahut-campus.site/api/v1'
 
 const state = {
   apiBaseUrl: normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || DEFAULT_API_BASE_URL),
