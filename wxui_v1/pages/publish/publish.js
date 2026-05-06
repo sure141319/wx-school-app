@@ -28,6 +28,10 @@ Page({
   },
 
   onLoad(options) {
+    if (!wx.getStorageSync('token')) {
+      wx.redirectTo({ url: '/pages/auth/auth' })
+      return
+    }
     this.setData({ goodsId: options.id || '' })
     this.loadCategories()
     if (options.id) {
@@ -36,6 +40,10 @@ Page({
   },
 
   onShow() {
+    if (!wx.getStorageSync('token')) {
+      wx.redirectTo({ url: '/pages/auth/auth' })
+      return
+    }
     const editId = wx.getStorageSync('editGoodsId')
     if (editId) {
       wx.removeStorageSync('editGoodsId')
