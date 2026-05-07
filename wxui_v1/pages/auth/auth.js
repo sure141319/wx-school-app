@@ -29,13 +29,17 @@ Page({
     isRegisterFormValid: false,
     isResetFormValid: false,
     redirect: '',
-    showFeedbackModal: false
+    showFeedbackModal: false,
+    savedEmails: [],
+    showEmailHistory: false
   },
 
   onLoad(options) {
     if (options.redirect) {
       this.setData({ redirect: options.redirect })
     }
+    const savedEmails = wx.getStorageSync('savedEmails') || []
+    this.setData({ savedEmails: Array.isArray(savedEmails) ? savedEmails : [] })
   },
 
   onUnload() {
@@ -97,12 +101,32 @@ Page({
   },
 
   goToLogin() {
-    this.setData({ 
-      mode: 'login', 
+    this.setData({
+      mode: 'login',
       message: '',
       loginEmailValid: true,
       loginPasswordValid: true
     })
+  },
+
+  showEmailHistory() {
+    if (this.data.savedEmails.length) {
+      this.setData({ showEmailHistory: true })
+    }
+  },
+
+  hideEmailHistory() {
+    this.setData({ showEmailHistory: false })
+  },
+
+  selectSavedEmail(e) {
+    const email = e.currentTarget.dataset.email
+    this.setData({
+      'loginForm.email': email,
+      showEmailHistory: false,
+      loginEmailValid: EMAIL_REGEX.test(email)
+    })
+    this.checkLoginFormValid()
   },
 
   onLoginEmailInput(e) {
@@ -262,6 +286,15 @@ Page({
         if (res.data?.data) {
           wx.setStorageSync('token', res.data.data.token)
           wx.setStorageSync('user', JSON.stringify(res.data.data.user))
+          const email = this.data.loginForm.email
+          if (email) {
+            let saved = wx.getStorageSync('savedEmails') || []
+            if (!Array.isArray(saved)) saved = []
+            saved = saved.filter(e => e !== email)
+            saved.unshift(email)
+            if (saved.length > 5) saved = saved.slice(0, 5)
+            wx.setStorageSync('savedEmails', saved)
+          }
           wx.showToast({ title: '登录成功', icon: 'success' })
           setTimeout(() => {
             if (this.data.redirect) {

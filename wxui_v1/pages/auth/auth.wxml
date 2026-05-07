@@ -18,9 +18,18 @@
 
   <!-- 登录表单 -->
   <view wx:if="{{mode === 'login'}}" class="auth-form">
-    <view class="form-row">
+    <view class="form-row email-row">
       <text class="label">邮箱</text>
-      <input value="{{loginForm.email}}" placeholder="请输入QQ邮箱 (xxx@qq.com)" bindinput="onLoginEmailInput" />
+      <input value="{{loginForm.email}}" placeholder="请输入QQ邮箱 (xxx@qq.com)" bindinput="onLoginEmailInput" bindfocus="showEmailHistory" bindblur="hideEmailHistory" />
+      <view wx:if="{{showEmailHistory && savedEmails.length}}" class="email-history">
+        <view class="email-history-header">
+          <text class="email-history-header-text">最近使用</text>
+        </view>
+        <view wx:for="{{savedEmails}}" wx:key="*this" class="email-history-item" catchtap="selectSavedEmail" data-email="{{item}}">
+          <text class="email-history-text">{{item}}</text>
+          <text class="email-history-arrow">›</text>
+        </view>
+      </view>
       <text wx:if="{{loginForm.email && !loginEmailValid}}" class="field-error">请输入正确的QQ邮箱格式 (xxx@qq.com)</text>
     </view>
     <view class="form-row">

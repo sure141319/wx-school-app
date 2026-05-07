@@ -30,7 +30,7 @@
     <view wx:elif="{{!goodsItems.length}}" class="empty-state">
       <text class="empty-icon">📦</text>
       <text class="empty-text">还没有发布商品</text>
-      <navigator url="/pages/publish/publish" class="btn primary empty-btn">去发布</navigator>
+      <navigator url="/pages/publish/publish" open-type="switchTab" class="btn primary empty-btn">去发布</navigator>
     </view>
 
     <view wx:for="{{goodsItems}}" wx:key="id" class="goods-line">
