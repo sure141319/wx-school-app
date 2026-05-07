@@ -53,8 +53,6 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar   # 运行打包好的 JAR
 
 使用微信开发者工具打开 `wxui_v1/` 目录。无需构建步骤，原生小程序项目直接运行。
 
-AppID: `wx537786b933b65c95`
-
 环境切换：编辑 `config/env.js`，修改 `ENV.current` 为 `'dev'` 或 `'prod'`。
 
 ### 管理后台 (checkui/)
