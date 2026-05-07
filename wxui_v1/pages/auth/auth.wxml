@@ -11,7 +11,7 @@
   </view>
 
   <view class="hero">
-    <text class="hero-sub">校园交易平台</text>
+    <text class="hero-sub">校园闲置平台</text>
     <text class="hero-title">{{ mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码' }}</text>
     <text class="hero-tip">安工大专属二手平台</text>
   </view>

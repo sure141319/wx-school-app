@@ -99,6 +99,16 @@ Page({
     this.setData({ 'form.price': e.detail.value })
   },
 
+  // 标题输入
+  onTitleInput(e) {
+    this.setData({ 'form.title': e.detail.value })
+  },
+
+  // 描述输入
+  onDescriptionInput(e) {
+    this.setData({ 'form.description': e.detail.value })
+  },
+
   // 成色选择
   chooseCondition(e) {
     this.setData({ 'form.conditionLevel': e.currentTarget.dataset.value })
@@ -167,6 +177,8 @@ Page({
     if (!form.photos.length) errors.photos = '请至少上传一张图片'
     if (!form.price || Number(form.price) <= 0) errors.price = '请输入正确价格'
     if (!form.categoryId) errors.categoryId = '请选择商品分类'
+    if (!form.title || !form.title.trim()) errors.title = '请输入标题'
+    if (!form.description || !form.description.trim()) errors.description = '请输入描述'
     this.setData({ errors })
     return !Object.keys(errors).length
   },

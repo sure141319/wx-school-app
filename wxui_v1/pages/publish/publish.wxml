@@ -3,7 +3,7 @@
     <text class="top-title">提交信息</text>
   </view>
 
-  <view class="photo-section">
+  <view class="photo-section" wx:if="{{form.categoryId}}">
     <view class="photo-grid {{errors.photos ? 'photo-error' : ''}}">
       <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
         <image src="{{item.url}}" mode="aspectFill" />
@@ -34,6 +34,22 @@
       <view wx:for="{{categories}}" wx:key="id" class="picker-item {{form.categoryId === item.id ? 'active' : ''}}" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="chooseCategory">
         {{item.name}}
       </view>
+    </view>
+
+    <view wx:if="{{form.categoryId}}">
+      <view class="form-row">
+        <text class="label">标题</text>
+        <input type="text" placeholder="请输入标题" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
+        <text class="char-count {{form.title.length >= 10 ? 'char-count-full' : ''}}">{{form.title.length}}/10</text>
+      </view>
+      <text wx:if="{{errors.title}}" class="field-error">{{errors.title}}</text>
+
+      <view class="form-row">
+        <text class="label">描述</text>
+        <input type="text" placeholder="请输入描述" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput" />
+        <text class="char-count {{form.description.length >= 50 ? 'char-count-full' : ''}}">{{form.description.length}}/50</text>
+      </view>
+      <text wx:if="{{errors.description}}" class="field-error">{{errors.description}}</text>
     </view>
 
     <!-- 成色 固定选项 保留 -->

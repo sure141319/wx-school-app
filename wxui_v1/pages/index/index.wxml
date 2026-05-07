@@ -15,7 +15,7 @@
     <text class="hero-sub">发现同校在售物品，面对面更安心</text>
   </view>
 
-  <scroll-view class="category-strip" scroll-x>
+  <scroll-view class="category-strip" scroll-x enable-flex>
     <view
       wx:for="{{categoryItems}}"
       wx:key="id"

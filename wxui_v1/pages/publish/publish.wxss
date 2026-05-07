@@ -250,6 +250,18 @@
   background: #ccc;
 }
 
+.char-count {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.char-count-full {
+  color: #ff4444;
+  font-weight: 600;
+}
+
 .field-error {
   display: block;
   font-size: 24rpx;
