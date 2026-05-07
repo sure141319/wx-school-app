@@ -24,3 +24,7 @@ Thumbs.db
 # Environment
 .env
 .env.*
+
+# md
+CLAUDE.md
+CLAUDE_zh.md
