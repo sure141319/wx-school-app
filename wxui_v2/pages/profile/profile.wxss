@@ -1,0 +1,118 @@
+/* ===== Profile Hero ===== */
+.profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 0;
+}
+
+.avatar-btn {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 999rpx;
+  overflow: hidden;
+  background: linear-gradient(145deg, #7dcba0, #6ebf94);
+  color: #fff;
+  font-size: 72rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-btn image { width: 100%; height: 100%; }
+
+.nick-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 24rpx;
+}
+
+/* ===== Goods List Header ===== */
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.chip-count {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999rpx;
+  border: 2rpx solid #ece7de;
+  background-color: #fff;
+  padding: 8rpx 22rpx;
+  font-size: 24rpx;
+  color: #6b7a8d;
+}
+
+/* ===== Goods Line Item ===== */
+.goods-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 2rpx dashed #dedbe5;
+  padding: 20rpx 0;
+}
+
+.goods-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.goods-title-sm {
+  font-size: 28rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.reject-reason {
+  font-size: 22rpx;
+  color: #f5222d;
+  margin-top: 4rpx;
+}
+
+.actions-row {
+  display: flex;
+  gap: 12rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+/* ===== Settings ===== */
+.settings-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 24rpx;
+}
+
+.settings-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.settings-arrow {
+  font-size: 36rpx;
+  color: #c0c4cc;
+}

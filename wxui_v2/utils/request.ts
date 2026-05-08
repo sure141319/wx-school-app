@@ -1,6 +1,6 @@
 let cachedToken: string | null | undefined
 
-function getToken(): string | undefined {
+export function getToken(): string | undefined {
   if (cachedToken === undefined) {
     cachedToken = wx.getStorageSync('token') || null
   }
@@ -30,11 +30,16 @@ export function request<T = unknown>(options: RequestOptions): Promise<WxRespons
       header,
       success: (res: WechatMiniprogram.RequestSuccessCallbackResult<T>) => {
         if (res.statusCode === 401) {
-          wx.removeStorageSync('token')
-          wx.removeStorageSync('user')
-          clearTokenCache()
-          wx.redirectTo({ url: '/pages/auth/auth' })
-          reject(new Error('未登录'))
+          const isAuthEndpoint = options.url.includes('/auth/')
+          if (isAuthEndpoint) {
+            resolve(res as unknown as WxResponse<T>)
+          } else {
+            wx.removeStorageSync('token')
+            wx.removeStorageSync('user')
+            clearTokenCache()
+            wx.redirectTo({ url: '/pages/auth/auth' })
+            reject(new Error('未登录'))
+          }
           return
         }
         resolve(res as unknown as WxResponse<T>)

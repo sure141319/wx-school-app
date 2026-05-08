@@ -86,6 +86,7 @@ interface ResetForm {
   email: string
   code: string
   newPassword: string
+  confirmPassword: string
 }
 
 interface RequestOptions {

@@ -14,6 +14,7 @@ interface AuthPageData {
   resetCodeCooldown: number
   sendCodeTimer: number | null
   resetCodeTimer: number | null
+  sendingCode: boolean
   registerForm: RegisterForm
   loginForm: AuthForm
   resetForm: ResetForm
@@ -26,6 +27,7 @@ interface AuthPageData {
   resetEmailValid: boolean
   resetCodeValid: boolean
   resetPasswordValid: boolean
+  resetConfirmPasswordValid: boolean
   isLoginFormValid: boolean
   isRegisterFormValid: boolean
   isResetFormValid: boolean
@@ -44,9 +46,10 @@ Component({
     resetCodeCooldown: 0,
     sendCodeTimer: null,
     resetCodeTimer: null,
+    sendingCode: false,
     registerForm: { email: '', code: '', password: '', nickname: '' },
     loginForm: { email: '', password: '' },
-    resetForm: { email: '', code: '', newPassword: '' },
+    resetForm: { email: '', code: '', newPassword: '', confirmPassword: '' },
     loginEmailValid: true,
     loginPasswordValid: true,
     registerEmailValid: true,
@@ -56,6 +59,7 @@ Component({
     resetEmailValid: true,
     resetCodeValid: true,
     resetPasswordValid: true,
+    resetConfirmPasswordValid: true,
     isLoginFormValid: false,
     isRegisterFormValid: false,
     isResetFormValid: false,
@@ -97,11 +101,12 @@ Component({
     },
 
     checkResetFormValid() {
-      const { email, code, newPassword } = this.data.resetForm
-      const valid = !!(email && code && newPassword &&
+      const { email, code, newPassword, confirmPassword } = this.data.resetForm
+      const valid = !!(email && code && newPassword && confirmPassword &&
         EMAIL_REGEX.test(email) &&
         CODE_REGEX.test(code) &&
-        newPassword.length >= MIN_PASSWORD_LENGTH)
+        newPassword.length >= MIN_PASSWORD_LENGTH &&
+        confirmPassword === newPassword)
       this.setData({ isResetFormValid: valid })
     },
 
@@ -128,7 +133,8 @@ Component({
         message: '',
         resetEmailValid: true,
         resetCodeValid: true,
-        resetPasswordValid: true
+        resetPasswordValid: true,
+        resetConfirmPasswordValid: true
       })
     },
 
@@ -242,6 +248,15 @@ Component({
       this.checkResetFormValid()
     },
 
+    onResetConfirmPasswordInput(e: WechatMiniprogram.InputEvent) {
+      const confirmPassword = e.detail.value
+      this.setData({
+        'resetForm.confirmPassword': confirmPassword,
+        resetConfirmPasswordValid: !confirmPassword || confirmPassword === this.data.resetForm.newPassword
+      })
+      this.checkResetFormValid()
+    },
+
     startCooldown(type: 'register' | 'reset') {
       const cooldownKey = type === 'register' ? 'sendCodeCooldown' : 'resetCodeCooldown'
       const timerKey = type === 'register' ? 'sendCodeTimer' : 'resetCodeTimer'
@@ -260,9 +275,10 @@ Component({
     },
 
     handleSendCode(e: WechatMiniprogram.TouchEvent) {
+      if (this.data.sendingCode) return
       const { purpose, type } = e.currentTarget.dataset
       const email = type === 'register' ? this.data.registerForm.email : this.data.resetForm.email
-      this.setData({ message: '' })
+      this.setData({ sendingCode: true, message: '' })
 
       if (!email) {
         this.setData({ message: '请先输入邮箱地址' })
@@ -287,6 +303,8 @@ Component({
         }
       }).catch(() => {
         this.setData({ message: '网络请求失败，请检查网络连接' })
+      }).finally(() => {
+        this.setData({ sendingCode: false })
       })
     },
 
@@ -403,7 +421,7 @@ Component({
 
     handleReset() {
       if (!this.data.isResetFormValid) {
-        const { email, code, newPassword } = this.data.resetForm
+        const { email, code, newPassword, confirmPassword } = this.data.resetForm
         if (!email) {
           this.setData({ message: '请输入邮箱' })
         } else if (!EMAIL_REGEX.test(email)) {
@@ -416,6 +434,10 @@ Component({
           this.setData({ message: '请输入新密码' })
         } else if (newPassword.length < MIN_PASSWORD_LENGTH) {
           this.setData({ message: `密码至少${MIN_PASSWORD_LENGTH}位` })
+        } else if (!confirmPassword) {
+          this.setData({ message: '请再次输入新密码' })
+        } else if (confirmPassword !== newPassword) {
+          this.setData({ message: '两次输入的密码不一致' })
         }
         return
       }

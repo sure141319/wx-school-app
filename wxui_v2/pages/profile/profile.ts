@@ -34,6 +34,10 @@ Component({
 
   methods: {
     onShow() {
+      if (!wx.getStorageSync('token')) {
+        wx.redirectTo({ url: '/pages/auth/auth' })
+        return
+      }
       this.loadProfile()
       this.loadMyGoods(true)
     },

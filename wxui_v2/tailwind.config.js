@@ -22,6 +22,7 @@ module.exports = {
         '84': '84rpx',
         '120': '120rpx',
         '200': '200rpx',
+        '750': '750rpx',
       },
       borderRadius: {
         'sm': '8rpx',
@@ -57,6 +58,15 @@ module.exports = {
         'text-secondary': '#768195',
         'text-muted': '#9ca3af',
         'text-label': '#687488',
+      },
+      lineHeight: {
+        'tight': '1.08',
+        'snug': '1.35',
+        'normal': '1.5',
+        'relaxed': '1.7',
+      },
+      letterSpacing: {
+        'tight': '-1rpx',
       },
       boxShadow: {
         'card': '0 16rpx 36rpx rgba(26,31,45,0.04)',

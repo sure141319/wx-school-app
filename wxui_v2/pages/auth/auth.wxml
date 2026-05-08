@@ -108,6 +108,11 @@
         <input class="input-field" value="{{resetForm.newPassword}}" password placeholder="输入新密码 (至少6位)" bindinput="onResetPasswordInput" />
         <text wx:if="{{resetForm.newPassword && !resetPasswordValid}}" class="field-error">密码至少6位</text>
       </view>
+      <view class="form-row">
+        <text class="form-label">确认密码</text>
+        <input class="input-field" value="{{resetForm.confirmPassword}}" password placeholder="再次输入新密码" bindinput="onResetConfirmPasswordInput" />
+        <text wx:if="{{resetForm.confirmPassword && !resetConfirmPasswordValid}}" class="field-error">两次输入的密码不一致</text>
+      </view>
       <button class="btn btn-primary btn-full" disabled="{{loading || !isResetFormValid}}" bindtap="handleReset">
         {{ loading ? '提交中...' : '重置密码' }}
       </button>
@@ -117,7 +122,7 @@
     </view>
   </block>
 
-  <text class="block mt-28 mb-0 mx-0 text-center text-xs {{message ? 'status-text-error' : ''}}" style="min-height:40rpx;color:#667791">{{ message || ' ' }}</text>
+  <text class="block mt-28 mb-0 mx-0 text-center text-xs {{message ? 'status-text-error' : 'status-text'}}" style="min-height:40rpx">{{ message || ' ' }}</text>
 
   <view class="flex justify-center mt-48 pb-32">
     <text class="text-xs underline" style="color:#2b72bc" bindtap="showFeedback">意见反馈</text>

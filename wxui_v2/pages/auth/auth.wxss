@@ -1,0 +1,89 @@
+/* ===== Auth Page Background ===== */
+.auth-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(560rpx 440rpx at 85% -80rpx, rgba(43,114,188,0.2), transparent 70%),
+    radial-gradient(600rpx 440rpx at -80rpx 260rpx, rgba(255,180,113,0.26), transparent 72%),
+    linear-gradient(180deg, #f5f8fc 0%, #f9f4ea 100%);
+  z-index: -1;
+}
+
+.auth-head-btn {
+  border: 2rpx solid #d8e1ee;
+  background-color: rgba(255,255,255,0.86);
+  color: #4c5a71;
+  border-radius: 24rpx;
+  height: 76rpx;
+  padding: 0 24rpx;
+  font-size: 26rpx;
+  display: flex;
+  align-items: center;
+}
+
+.auth-form {
+  margin-top: 52rpx;
+  padding: 28rpx;
+  border-radius: 40rpx;
+  border: 2rpx solid #e4ebf4;
+  background-color: rgba(255,255,255,0.9);
+  box-shadow: 0 20rpx 48rpx rgba(32,40,57,0.06);
+}
+
+/* ===== Email History Dropdown ===== */
+.email-history {
+  position: absolute;
+  top: calc(100% + 12rpx);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 2rpx solid #c5cdd8;
+  border-radius: 16rpx;
+  box-shadow: 0 24rpx 80rpx rgba(32,40,57,0.22);
+  z-index: 100;
+  max-height: 440rpx;
+  overflow-y: auto;
+}
+
+.email-history::before {
+  content: '';
+  position: absolute;
+  top: -16rpx;
+  left: 40rpx;
+  border-left: 16rpx solid transparent;
+  border-right: 16rpx solid transparent;
+  border-bottom: 16rpx solid #c5cdd8;
+}
+
+.email-history::after {
+  content: '';
+  position: absolute;
+  top: -14rpx;
+  left: 40rpx;
+  border-left: 16rpx solid transparent;
+  border-right: 16rpx solid transparent;
+  border-bottom: 16rpx solid #fff;
+}
+
+.email-history-header {
+  padding: 16rpx 24rpx;
+  background: #f7f9fc;
+  border-bottom: 2rpx solid #e8ecf2;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.email-history-item {
+  padding: 28rpx 24rpx;
+  border-bottom: 2rpx solid #f0f2f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.email-history-item:last-child { border-bottom: none; }
+.email-history-item:active { background-color: #f0f4f9; }
