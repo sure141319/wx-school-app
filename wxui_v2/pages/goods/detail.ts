@@ -1,0 +1,87 @@
+import { request } from '../../utils/request'
+
+const app = getApp<{ globalData: { baseUrl: string } }>()
+const PLACEHOLDER_IMAGE = '/static/auditing.webp'
+
+interface DetailPageData {
+  goods: GoodsItem | null
+  loading: boolean
+  info: string
+  goodsId: string
+  currentImgIndex: number
+}
+
+Component({
+  data: {
+    goods: null,
+    loading: false,
+    info: '',
+    goodsId: '',
+    currentImgIndex: 0
+  } as DetailPageData,
+
+  methods: {
+    onLoad(options: Record<string, string | undefined>) {
+      if (!options.id) {
+        this.setData({ info: '商品不存在或已下架' })
+        return
+      }
+      this.setData({ goodsId: options.id })
+      this.loadGoods()
+    },
+
+    goHome() {
+      wx.reLaunch({ url: '/pages/index/index' })
+    },
+
+    onSwiperChange(e: WechatMiniprogram.SwiperChangeEvent) {
+      this.setData({ currentImgIndex: e.detail.current })
+    },
+
+    async loadGoods() {
+      this.setData({ loading: true, info: '' })
+      try {
+        const res = await request<ApiResponse<GoodsItem>>({
+          url: `${app.globalData.baseUrl}/goods/${this.data.goodsId}`,
+          method: 'GET'
+        })
+        const goods = res.data?.data as unknown as GoodsItem | undefined
+
+        if (goods?.seller?.email) {
+          const email = goods.seller.email
+          if (email.endsWith('@qq.com')) {
+            goods.seller.qq = email.replace('@qq.com', '')
+          }
+        }
+
+        this.setData({ goods: goods || null })
+      } catch (_err) {
+        this.setData({ info: '商品详情加载失败' })
+      } finally {
+        this.setData({ loading: false })
+      }
+    },
+
+    previewImage(e: WechatMiniprogram.TouchEvent) {
+      if (!this.data.goods?.imageUrls?.length) return
+      const index = (e.currentTarget.dataset.index as number) || 0
+      const realImages = this.data.goods.imageUrls.filter(url => url !== PLACEHOLDER_IMAGE)
+      if (!realImages.length) return
+      wx.previewImage({
+        urls: realImages,
+        current: realImages[Math.min(index, realImages.length - 1)]
+      })
+    },
+
+    copyQQ(e: WechatMiniprogram.TouchEvent) {
+      const qq = e.currentTarget.dataset.qq as string
+      if (!qq) return
+      wx.setClipboardData({
+        data: qq,
+        success() {
+          wx.showToast({ title: 'QQ号已复制', icon: 'success' })
+        }
+      })
+    }
+  }
+})

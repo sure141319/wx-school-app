@@ -1,0 +1,11 @@
+{
+  "name": "campus-trade-wxui",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i styles/global.css -o app.wxss --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

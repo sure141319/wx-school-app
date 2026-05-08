@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "校园闲置集市",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 100,
+  "styleIsolation": "apply-shared"
+}

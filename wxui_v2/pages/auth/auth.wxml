@@ -1,0 +1,143 @@
+<view class="relative min-h-screen p-40 overflow-hidden">
+  <view class="auth-gradient"></view>
+
+  <view class="flex justify-between items-center">
+    <view class="auth-head-btn" bindtap="goBack">
+      <text>← 返回</text>
+    </view>
+    <view class="auth-head-btn" bindtap="switchMode">
+      <text>{{ mode === 'login' ? '去注册' : '去登录' }}</text>
+    </view>
+  </view>
+
+  <view class="mt-84">
+    <text class="hero-subtitle">校园闲置平台</text>
+    <text class="block mt-16 mb-16 text-hero font-bold leading-tight">{{ mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码' }}</text>
+    <text class="hero-tip">安工大专属二手平台</text>
+  </view>
+
+  <!-- 登录表单 -->
+  <block wx:if="{{mode === 'login'}}">
+    <view class="auth-form">
+      <view class="form-row relative">
+        <text class="form-label">邮箱</text>
+        <input class="input-field" value="{{loginForm.email}}" placeholder="请输入QQ邮箱 (xxx@qq.com)" bindinput="onLoginEmailInput" bindfocus="showEmailHistory" bindblur="hideEmailHistory" />
+        <view wx:if="{{showEmailHistory && savedEmails.length}}" class="email-history">
+          <view class="email-history-header">
+            <text class="text-2xs" style="color:#8a95a8">最近使用</text>
+          </view>
+          <view wx:for="{{savedEmails}}" wx:key="*this" class="email-history-item" catchtap="selectSavedEmail" data-email="{{item}}">
+            <text class="text-base flex-1" style="color:#253247">{{item}}</text>
+            <text class="text-2xs" style="color:#b0b8c8">›</text>
+          </view>
+        </view>
+        <text wx:if="{{loginForm.email && !loginEmailValid}}" class="field-error">请输入正确的QQ邮箱格式 (xxx@qq.com)</text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">密码</text>
+        <input class="input-field" value="{{loginForm.password}}" password placeholder="请输入密码" bindinput="onLoginPasswordInput" />
+        <text wx:if="{{loginForm.password && !loginPasswordValid}}" class="field-error">密码至少6位</text>
+      </view>
+      <button class="btn btn-primary btn-full" disabled="{{loading || !isLoginFormValid}}" bindtap="handleLogin">
+        {{ loading ? '登录中...' : '登录' }}
+      </button>
+      <view class="text-link" bindtap="goToReset">
+        <text>忘记密码？</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 注册表单 -->
+  <block wx:elif="{{mode === 'register'}}">
+    <view class="auth-form">
+      <view class="form-row">
+        <text class="form-label">邮箱</text>
+        <view class="inline-row">
+          <input class="input-field" value="{{registerForm.email}}" placeholder="请输入QQ邮箱" bindinput="onRegisterEmailInput" />
+          <button class="send-code-btn" disabled="{{sendCodeCooldown > 0 || !registerEmailValid || !registerForm.email}}" bindtap="handleSendCode" data-purpose="REGISTER" data-type="register">
+            {{ sendCodeCooldown > 0 ? sendCodeCooldown + 's' : '发送验证码' }}
+          </button>
+        </view>
+        <text wx:if="{{registerForm.email && !registerEmailValid}}" class="field-error">请输入正确的QQ邮箱格式 (xxx@qq.com)</text>
+        <text wx:if="{{registerEmailValid && registerForm.email}}" class="field-hint">验证码将发送到此邮箱</text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">验证码</text>
+        <input class="input-field" value="{{registerForm.code}}" type="number" maxlength="6" placeholder="请输入6位验证码" bindinput="onRegisterCodeInput" />
+        <text wx:if="{{registerForm.code && !registerCodeValid}}" class="field-error">验证码为6位数字</text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">昵称</text>
+        <input class="input-field" value="{{registerForm.nickname}}" placeholder="给自己起个昵称 (2-20字符)" bindinput="onRegisterNicknameInput" maxlength="20" />
+        <text wx:if="{{registerForm.nickname && !registerNicknameValid}}" class="field-error">昵称需2-20个字符</text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">密码</text>
+        <input class="input-field" value="{{registerForm.password}}" password placeholder="设置登录密码 (至少6位)" bindinput="onRegisterPasswordInput" />
+        <text wx:if="{{registerForm.password && !registerPasswordValid}}" class="field-error">密码至少6位</text>
+      </view>
+      <button class="btn btn-primary btn-full" disabled="{{loading || !isRegisterFormValid}}" bindtap="handleRegister">
+        {{ loading ? '提交中...' : '完成注册' }}
+      </button>
+      <view class="text-link" bindtap="switchMode">
+        <text>已有账号，去登录</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 重置密码表单 -->
+  <block wx:else>
+    <view class="auth-form">
+      <view class="form-row">
+        <text class="form-label">邮箱</text>
+        <view class="inline-row">
+          <input class="input-field" value="{{resetForm.email}}" placeholder="请输入注册时的QQ邮箱" bindinput="onResetEmailInput" />
+          <button class="send-code-btn" disabled="{{resetCodeCooldown > 0 || !resetEmailValid || !resetForm.email}}" bindtap="handleSendCode" data-purpose="RESET_PASSWORD" data-type="reset">
+            {{ resetCodeCooldown > 0 ? resetCodeCooldown + 's' : '发送验证码' }}
+          </button>
+        </view>
+        <text wx:if="{{resetForm.email && !resetEmailValid}}" class="field-error">请输入正确的QQ邮箱格式 (xxx@qq.com)</text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">验证码</text>
+        <input class="input-field" value="{{resetForm.code}}" type="number" maxlength="6" placeholder="请输入6位验证码" bindinput="onResetCodeInput" />
+        <text wx:if="{{resetForm.code && !resetCodeValid}}" class="field-error">验证码为6位数字</text>
+      </view>
+      <view class="form-row">
+        <text class="form-label">新密码</text>
+        <input class="input-field" value="{{resetForm.newPassword}}" password placeholder="输入新密码 (至少6位)" bindinput="onResetPasswordInput" />
+        <text wx:if="{{resetForm.newPassword && !resetPasswordValid}}" class="field-error">密码至少6位</text>
+      </view>
+      <button class="btn btn-primary btn-full" disabled="{{loading || !isResetFormValid}}" bindtap="handleReset">
+        {{ loading ? '提交中...' : '重置密码' }}
+      </button>
+      <view class="text-link" bindtap="goToLogin">
+        <text>返回登录</text>
+      </view>
+    </view>
+  </block>
+
+  <text class="block mt-28 mb-0 mx-0 text-center text-xs {{message ? 'status-text-error' : ''}}" style="min-height:40rpx;color:#667791">{{ message || ' ' }}</text>
+
+  <view class="flex justify-center mt-48 pb-32">
+    <text class="text-xs underline" style="color:#2b72bc" bindtap="showFeedback">意见反馈</text>
+  </view>
+
+  <!-- 意见反馈弹窗 -->
+  <view class="modal-mask" wx:if="{{showFeedbackModal}}" bindtap="closeFeedback"></view>
+  <view class="modal-dialog" wx:if="{{showFeedbackModal}}">
+    <view class="modal-title">意见反馈</view>
+    <view class="modal-body">
+      <text class="modal-text">本小程序由学生独立开发，专注打造校园二手信息平台，主要助力同学们交易二手书籍及各类闲置物品，提升物品使用效率～</text>
+      <text class="modal-text">小程序刚上线，部分功能可能存在 BUG，特此创建 QQ 交流群：</text>
+      <view class="modal-qq-row">
+        <text class="modal-qq-number">1078739008</text>
+        <text class="btn-copy" bindtap="copyQQ">复制</text>
+      </view>
+      <text class="modal-text">欢迎大家反馈问题、提出建议，也可进群交流技术、互相学习！</text>
+    </view>
+    <view class="modal-footer">
+      <button class="btn-modal" bindtap="closeFeedback">知道了</button>
+    </view>
+  </view>
+</view>

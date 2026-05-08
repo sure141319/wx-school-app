@@ -1,0 +1,80 @@
+<view class="relative flex flex-col min-h-screen bg-publish" style="padding-bottom:calc(240rpx + env(safe-area-inset-bottom))">
+  <view class="top-bar">
+    <text class="text-lg font-semibold">提交信息</text>
+  </view>
+
+  <view class="bg-white p-24 px-32 mt-16" wx:if="{{form.categoryId}}">
+    <view class="photo-grid {{errors.photos ? '' : ''}}" style="{{errors.photos ? 'border-color:#ff4444;background-color:#fff5f5' : ''}}">
+      <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
+        <image src="{{item.url}}" mode="aspectFill" />
+        <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">×</view>
+        <view wx:if="{{index === 0}}" class="cover-label">封面</view>
+      </view>
+      <view wx:if="{{form.photos.length < 9}}" class="photo-add" bindtap="chooseImages">
+        <text style="font-size:52rpx;color:#bbb">+</text>
+      </view>
+    </view>
+    <text wx:if="{{errors.photos}}" class="field-error" style="padding:8rpx 0 16rpx">{{errors.photos}}</text>
+  </view>
+
+  <view class="bg-white mt-16 px-32">
+    <view class="flex items-center gap-24 py-20 border-b" style="border-bottom:2rpx solid #f0f0f0;min-height:120rpx">
+      <text class="text-sm flex-shrink-0" style="color:#333">价格</text>
+      <view class="flex items-center flex-1">
+        <text class="text-price font-bold mr-8" style="color:#ff4444">￥</text>
+        <input class="input-field-price" type="digit" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
+      </view>
+    </view>
+    <text wx:if="{{errors.price}}" class="field-error" style="padding:8rpx 0 16rpx">{{errors.price}}</text>
+
+    <view class="flex items-center py-28 gap-16">
+      <text class="text-sm flex-shrink-0" style="color:#333">分类</text>
+    </view>
+    <view class="picker-grid">
+      <view wx:for="{{categories}}" wx:key="id" class="picker-item {{form.categoryId === item.id ? 'picker-item-active' : ''}}" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="chooseCategory">
+        {{item.name}}
+      </view>
+    </view>
+
+    <block wx:if="{{form.categoryId}}">
+      <view class="flex items-center py-28 gap-16" style="border-bottom:2rpx solid #f0f0f0">
+        <text class="text-sm flex-shrink-0" style="color:#333">标题</text>
+        <input class="input-field-text" type="text" placeholder="请输入标题" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
+        <text class="char-count {{form.title.length >= 10 ? 'char-count-full' : ''}}">{{form.title.length}}/10</text>
+      </view>
+      <text wx:if="{{errors.title}}" class="field-error" style="padding:8rpx 0 16rpx">{{errors.title}}</text>
+
+      <view class="flex items-center py-28 gap-16" style="border-bottom:2rpx solid #f0f0f0">
+        <text class="text-sm flex-shrink-0" style="color:#333">描述</text>
+        <input class="input-field-text" type="text" placeholder="请输入描述" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput" />
+        <text class="char-count {{form.description.length >= 50 ? 'char-count-full' : ''}}">{{form.description.length}}/50</text>
+      </view>
+      <text wx:if="{{errors.description}}" class="field-error" style="padding:8rpx 0 16rpx">{{errors.description}}</text>
+    </block>
+
+    <view class="flex items-center py-28 gap-16">
+      <text class="text-sm flex-shrink-0" style="color:#333">成色</text>
+    </view>
+    <view class="picker-grid">
+      <view wx:for="{{conditionOptions}}" wx:key="*this" class="picker-item {{form.conditionLevel === item ? 'picker-item-active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
+        {{item}}
+      </view>
+    </view>
+
+    <view class="flex items-center py-28 gap-16">
+      <text class="text-sm flex-shrink-0" style="color:#333">地点</text>
+    </view>
+    <view class="flex flex-wrap gap-16 py-24">
+      <view wx:for="{{locationOptions}}" wx:key="*this" class="chip {{form.campusLocation === item ? 'chip-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <text class="block mb-16 text-2xs text-center {{info ? '' : ''}}" style="{{info ? 'color:#ff4444' : 'color:#999'}}">{{info}}</text>
+    <button class="btn-publish" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">
+      发布
+    </button>
+  </view>
+</view>
