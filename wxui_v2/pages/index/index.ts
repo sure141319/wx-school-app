@@ -63,7 +63,7 @@ Component({
     },
 
     chooseCategory(e: WechatMiniprogram.TouchEvent) {
-      const id = e.currentTarget.dataset.id as string || ''
+      const id = (e.currentTarget.dataset.id as string) || ''
       this.setData({ categoryId: id })
       this.loadGoods(true)
     },
@@ -79,7 +79,7 @@ Component({
         wx.navigateTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
         return
       }
-      wx.navigateTo({ url: '/pages/publish/publish' })
+      wx.switchTab({ url: '/pages/publish/publish' })
     },
 
     async loadData() {
@@ -98,7 +98,7 @@ Component({
           categoryItems: [{ id: '', name: '推荐' }, ...categories]
         })
       } catch (_err) {
-        this.setData({ statusText: '分类加载失败' })
+        this.setData({ statusText: '分类加载失败，请稍后重试' })
       }
     },
 
@@ -119,7 +119,7 @@ Component({
           page: nextPage,
           size: this.data.size
         }
-        if (this.data.keyword) params.keyword = this.data.keyword
+        if (this.data.keyword.trim()) params.keyword = this.data.keyword.trim()
         if (this.data.categoryId) params.categoryId = this.data.categoryId
 
         const res = await request<ApiResponse<PageInfo>>({
@@ -129,7 +129,10 @@ Component({
         })
 
         const pageData = res.data?.data as unknown as PageInfo | undefined
-        const items = (pageData?.items || []) as unknown as GoodsItem[]
+        const items = ((pageData?.items || []) as unknown as GoodsItem[]).map(item => ({
+          ...item,
+          imageUrls: item.imageUrls || []
+        }))
         const total = pageData?.total || 0
         const hasMore = items.length === this.data.size && (nextPage + 1) * this.data.size < total
 
@@ -137,7 +140,6 @@ Component({
           ? [...this.data.goodsItems, ...items]
           : items
 
-        // Single-pass partition into left/right columns
         const leftGoods: GoodsItem[] = []
         const rightGoods: GoodsItem[] = []
         allItems.forEach((item, i) => {

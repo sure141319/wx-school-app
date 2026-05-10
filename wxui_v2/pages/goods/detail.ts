@@ -31,7 +31,7 @@ Component({
     },
 
     goHome() {
-      wx.reLaunch({ url: '/pages/index/index' })
+      wx.switchTab({ url: '/pages/index/index' })
     },
 
     onSwiperChange(e: WechatMiniprogram.SwiperChangeEvent) {
@@ -47,11 +47,18 @@ Component({
         })
         const goods = res.data?.data as unknown as GoodsItem | undefined
 
-        if (goods?.seller?.email) {
-          const email = goods.seller.email
-          if (email.endsWith('@qq.com')) {
-            goods.seller.qq = email.replace('@qq.com', '')
+        if (goods && !goods.seller) {
+          goods.seller = {
+            nickname: goods.sellerName || '同校卖家',
+            avatarUrl: goods.sellerAvatar || ''
           }
+        }
+        if (goods && !goods.imageUrls) {
+          goods.imageUrls = []
+        }
+
+        if (goods?.seller?.email?.endsWith('@qq.com')) {
+          goods.seller.qq = goods.seller.email.replace('@qq.com', '')
         }
 
         this.setData({ goods: goods || null })
@@ -79,7 +86,7 @@ Component({
       wx.setClipboardData({
         data: qq,
         success() {
-          wx.showToast({ title: 'QQ号已复制', icon: 'success' })
+          wx.showToast({ title: 'QQ 号已复制', icon: 'success' })
         }
       })
     }

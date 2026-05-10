@@ -1,26 +1,32 @@
-<view class="flex flex-col gap-24 p-28 pb-120">
-  <!-- 个人资料卡片 -->
-  <view class="card p-24">
+<view class="page-shell flex flex-col gap-24">
+  <view class="card p-28">
     <view class="profile-hero">
       <view class="avatar-btn" bindtap="chooseAvatar">
         <image wx:if="{{profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill" />
         <text wx:else>{{profile.nickname[0] || '我'}}</text>
       </view>
-      <text class="text-2xs text-muted">点击头像可更换</text>
+      <text class="helper-text">点击头像可更换，保存后生效</text>
     </view>
 
     <view class="nick-section">
-      <text class="text-xs font-medium" style="color:#4c5f79">昵称</text>
-      <input value="{{profile.nickname}}" class="input-field-nick" placeholder="请输入昵称" maxlength="64" bindinput="onNicknameInput" />
+      <text class="form-label">昵称</text>
+      <view class="input-field flex items-center">
+        <input value="{{profile.nickname}}" class="input-field-nick" placeholder="请输入昵称" maxlength="64" bindinput="onNicknameInput" />
+      </view>
     </view>
 
-    <button class="btn btn-primary btn-full" bindtap="saveProfile">保存资料</button>
+    <text wx:if="{{info}}" class="block mt-16 text-center text-2xs status-text-error">{{info}}</text>
+    <button class="btn btn-primary btn-full mt-20" loading="{{saving}}" disabled="{{saving}}" bindtap="saveProfile">
+      {{saving ? '保存中...' : '保存资料'}}
+    </button>
   </view>
 
-  <!-- 我的商品 -->
-  <view class="card p-24">
+  <view class="card p-28">
     <view class="card-head">
-      <text class="section-title" style="margin:0">我发布的商品</text>
+      <view>
+        <text class="section-title">我发布的商品</text>
+        <text class="helper-text mt-8">管理上下架、编辑和删除</text>
+      </view>
       <view class="chip-count">
         <text>{{goodsItems.length}} 件</text>
       </view>
@@ -31,9 +37,10 @@
     </view>
 
     <view wx:elif="{{!goodsItems.length}}" class="empty-list">
-      <text class="empty-icon-sm">📦</text>
-      <text class="text-sm text-muted">还没有发布商品</text>
-      <navigator url="/pages/publish/publish" open-type="switchTab" class="btn btn-primary empty-btn">去发布</navigator>
+      <view class="empty-icon-sm">+</view>
+      <text class="empty-title">还没有发布商品</text>
+      <text class="empty-desc">把闲置书本、数码配件或生活用品发布给同校同学。</text>
+      <navigator url="/pages/publish/publish" open-type="switchTab" class="btn btn-primary btn-sm mt-16">去发布</navigator>
     </view>
 
     <block wx:for="{{goodsItems}}" wx:key="id">
@@ -41,14 +48,16 @@
         <view class="goods-info">
           <text class="goods-title-sm">{{item.title}}</text>
           <view class="meta-row">
-            <text class="text-2xs" style="color:#7d8796">¥{{item.price}}</text>
-            <text class="status-tag status-{{item.status}}">{{item.status === 'ON_SALE' ? '在售中' : item.status === 'OFF_SHELF' ? '已下架' : item.status === 'PENDING_REVIEW' ? '审核中' : '被驳回'}}</text>
+            <text class="text-2xs text-price font-semibold">¥{{item.price}}</text>
+            <view class="status-tag status-{{item.status}}">
+              {{item.status === 'ON_SALE' ? '在售' : item.status === 'OFF_SHELF' ? '已下架' : item.status === 'PENDING_REVIEW' ? '审核中' : '已驳回'}}
+            </view>
           </view>
           <text wx:if="{{item.status === 'REJECTED' && item.auditRemark}}" class="reject-reason">原因：{{item.auditRemark}}</text>
         </view>
         <view class="actions-row">
-          <view class="btn btn-sm" bindtap="editGoods" data-id="{{item.id}}">编辑</view>
-          <view wx:if="{{item.status === 'ON_SALE' || item.status === 'OFF_SHELF'}}" class="btn btn-sm" bindtap="toggleStatus" data-item="{{item}}">
+          <view class="btn btn-sm btn-secondary" bindtap="editGoods" data-id="{{item.id}}">编辑</view>
+          <view wx:if="{{item.status === 'ON_SALE' || item.status === 'OFF_SHELF'}}" class="btn btn-sm" bindtap="toggleStatus" data-id="{{item.id}}" data-status="{{item.status}}">
             {{item.status === 'ON_SALE' ? '下架' : '上架'}}
           </view>
           <view class="btn btn-sm btn-danger" bindtap="removeGoods" data-id="{{item.id}}">删除</view>
@@ -60,43 +69,40 @@
       <text>正在加载更多...</text>
     </view>
     <view wx:elif="{{!hasMore && goodsItems.length > 0}}" class="loading-more">
-      <text>没有更多了</text>
+      <text>已经到底了</text>
     </view>
   </view>
 
-  <!-- 设置 -->
   <view class="card settings-card">
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
-        <text style="font-size:36rpx">💬</text>
-        <text class="text-base" style="color:#1a1a1a">意见反馈</text>
+        <text class="text-lg text-primary">?</text>
+        <text class="text-base text-text-main">意见反馈</text>
       </view>
       <text class="settings-arrow">›</text>
     </view>
   </view>
 
-  <button class="btn btn-logout" bindtap="logout">退出登录</button>
+  <button class="btn btn-ghost btn-full" bindtap="logout">退出登录</button>
 
-  <!-- 意见反馈弹窗 -->
   <view class="modal-mask" wx:if="{{showFeedbackModal}}" bindtap="closeFeedback"></view>
   <view class="modal-dialog" wx:if="{{showFeedbackModal}}">
     <view class="modal-title">意见反馈</view>
     <view class="modal-body">
-      <text class="modal-text">本小程序由学生独立开发，专注打造校园二手信息平台，主要助力同学们交易二手书籍及各类闲置物品，提升物品使用效率～</text>
-      <text class="modal-text">小程序刚上线，部分功能可能存在 BUG，特此创建 QQ 交流群：</text>
+      <text class="modal-text">这是由学生独立开发的校园二手信息平台，欢迎反馈问题和建议。</text>
+      <text class="modal-text">反馈 QQ 群：</text>
       <view class="modal-qq-row">
         <text class="modal-qq-number">1078739008</text>
         <text class="btn-copy" bindtap="copyQQ">复制</text>
       </view>
-      <text class="modal-text">欢迎大家反馈问题、提出建议，也可进群交流技术、互相学习！</text>
       <view class="notice-box">
         <text class="notice-title">注意事项</text>
-        <text class="notice-item">1. 发布内容需审核，通过后展示</text>
-        <text class="notice-item">2. 低质 / 无效内容将自动删除，误删可加平台 QQ 群联系管理员</text>
+        <text class="notice-item">1. 发布内容需要审核，通过后才会展示。</text>
+        <text class="notice-item">2. 低质或无效内容可能被删除，可通过反馈群联系管理员。</text>
       </view>
     </view>
     <view class="modal-footer">
-      <button class="btn-modal" bindtap="closeFeedback">知道了</button>
+      <button class="btn btn-primary btn-full" bindtap="closeFeedback">知道了</button>
     </view>
   </view>
 </view>

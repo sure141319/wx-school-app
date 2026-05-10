@@ -1,8 +1,5 @@
-// 环境配置 - 根据实际情况修改
-// 模拟器调试：用局域网 IP 或 localhost
-// 真机调试：用手机和电脑同一局域网下的电脑 IP
-// 上线部署：用公网 IP 或域名
-
+// Environment config. Use a LAN IP for real-device debugging and the public
+// domain for production/release builds.
 interface EnvConfig {
   baseUrl: string
 }

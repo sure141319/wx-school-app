@@ -1,67 +1,70 @@
 <view wx:if="{{loading}}" class="loading-wrap">
   <view class="loading-spinner"></view>
-  <text>加载中...</text>
+  <text>加载商品详情...</text>
 </view>
 
 <block wx:elif="{{goods}}">
-<view class="flex flex-col min-h-screen" style="background-color:#f5f5f8">
-  <!-- 图片轮播 -->
-  <view class="relative w-full" style="background-color:#f0f3f8">
-    <swiper class="w-full h-750" autoplay="{{false}}" bindchange="onSwiperChange">
-      <swiper-item wx:for="{{goods.imageUrls}}" wx:key="*this">
-        <image class="w-full h-full" src="{{item}}" mode="aspectFit" bindtap="previewImage" data-index="{{index}}" />
-      </swiper-item>
-    </swiper>
-    <view wx:if="{{goods.imageUrls.length > 1}}" class="img-counter">
-      {{currentImgIndex + 1}}/{{goods.imageUrls.length}}
-    </view>
-  </view>
-
-  <!-- 价格和标题 -->
-  <view class="bg-white p-32 mb-16">
-    <view class="flex items-baseline mb-16">
-      <text class="text-base font-bold mr-4" style="color:#e8433a">¥</text>
-      <text class="text-4xl font-bold tracking-tight" style="color:#e8433a">{{goods.price}}</text>
-    </view>
-    <text class="block text-lg font-semibold mb-20 leading-normal" style="color:#1a1f2d">{{goods.title}}</text>
-    <view class="flex flex-wrap gap-12">
-      <view class="tag tag-cond">{{goods.conditionLevel || '成色未知'}}</view>
-      <view class="tag tag-loc">{{goods.campusLocation || '校内交易'}}</view>
-      <view wx:if="{{goods.category}}" class="tag tag-cat">{{goods.category.name}}</view>
-    </view>
-  </view>
-
-  <!-- 商品描述 -->
-  <view class="card-section">
-    <text class="section-label">商品描述</text>
-    <text class="section-body">{{goods.description || '暂无描述'}}</text>
-  </view>
-
-  <!-- 卖家信息 -->
-  <view class="card-section">
-    <text class="section-label">卖家信息</text>
-    <view class="flex items-center gap-20">
-      <view class="seller-avatar">
-        <image wx:if="{{goods.seller.avatarUrl}}" class="seller-avatar-img" src="{{goods.seller.avatarUrl}}" mode="aspectFill" />
-        <text wx:else class="seller-avatar-text">{{goods.seller.nickname[0]}}</text>
-      </view>
-      <view class="flex flex-col gap-6">
-        <text class="text-base font-semibold" style="color:#1a1f2d">{{goods.seller.nickname}}</text>
-        <text class="text-2xs text-muted">平台认证用户</text>
+  <view class="page-shell-plain safe-bottom">
+    <view class="relative w-full">
+      <swiper class="detail-swiper" autoplay="{{false}}" bindchange="onSwiperChange">
+        <swiper-item wx:for="{{goods.imageUrls}}" wx:key="*this">
+          <image class="w-full h-full" src="{{item}}" mode="aspectFit" bindtap="previewImage" data-index="{{index}}" />
+        </swiper-item>
+        <swiper-item wx:if="{{!goods.imageUrls.length}}">
+          <view class="cover-empty">暂无图片</view>
+        </swiper-item>
+      </swiper>
+      <view wx:if="{{goods.imageUrls.length > 1}}" class="img-counter">
+        {{currentImgIndex + 1}}/{{goods.imageUrls.length}}
       </view>
     </view>
-    <view wx:if="{{goods.seller.qq}}" class="seller-qq-row">
-      <text class="text-sm" style="color:#6b7a8d">QQ：</text>
-      <text class="text-sm font-medium flex-1" style="color:#1a1f2d">{{goods.seller.qq}}</text>
-      <button class="btn-copy" data-qq="{{goods.seller.qq}}" bindtap="copyQQ" style="padding:8rpx 24rpx;border-radius:999rpx;background-color:#e8f4fd;color:#1e5ea6;font-size:24rpx;border:none">复制</button>
+
+    <view class="section-card">
+      <view class="flex items-baseline mb-16">
+        <text class="text-base font-bold mr-4 text-price">¥</text>
+        <text class="text-4xl font-bold text-price">{{goods.price}}</text>
+      </view>
+      <text class="block text-lg font-semibold mb-20 leading-normal text-text-main">{{goods.title}}</text>
+      <view class="flex flex-wrap gap-12">
+        <view class="tag tag-cond">{{goods.conditionLevel || '成色未知'}}</view>
+        <view class="tag tag-loc">{{goods.campusLocation || '校内交易'}}</view>
+        <view wx:if="{{goods.category}}" class="tag tag-cat">{{goods.category.name}}</view>
+        <view wx:if="{{goods.status !== 'ON_SALE'}}" class="status-tag status-{{goods.status}}">
+          {{goods.status === 'OFF_SHELF' ? '已下架' : goods.status === 'PENDING_REVIEW' ? '审核中' : goods.status === 'REJECTED' ? '已驳回' : goods.status}}
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <text class="section-label">商品描述</text>
+      <text class="section-body">{{goods.description || '暂无描述'}}</text>
+    </view>
+
+    <view class="section-card">
+      <text class="section-label">卖家信息</text>
+      <view class="flex items-center gap-20">
+        <view class="seller-avatar">
+          <image wx:if="{{goods.seller.avatarUrl}}" class="seller-avatar-img" src="{{goods.seller.avatarUrl}}" mode="aspectFill" />
+          <text wx:else class="seller-avatar-text">{{goods.seller.nickname[0]}}</text>
+        </view>
+        <view class="flex flex-col gap-6">
+          <text class="text-base font-semibold text-text-main">{{goods.seller.nickname}}</text>
+          <text class="text-2xs text-text-muted">平台认证用户，建议校内当面交易</text>
+        </view>
+      </view>
+
+      <view wx:if="{{goods.seller.qq}}" class="seller-qq-row">
+        <text class="text-sm text-text-muted">QQ</text>
+        <text class="text-sm font-medium flex-1 text-text-main">{{goods.seller.qq}}</text>
+        <button class="btn-copy" data-qq="{{goods.seller.qq}}" bindtap="copyQQ">复制</button>
+      </view>
     </view>
   </view>
-
-</view>
 </block>
 
 <view wx:else class="empty-wrap">
-  <text class="empty-icon">📦</text>
-  <text class="empty-text">{{info || '商品不存在或已下架'}}</text>
-  <button class="btn-back-home" bindtap="goHome">返回首页</button>
+  <view class="empty-icon">!</view>
+  <text class="empty-title">{{info || '商品不存在或已下架'}}</text>
+  <text class="empty-desc">回到首页看看其他同校好物。</text>
+  <button class="btn btn-primary btn-sm" bindtap="goHome">返回首页</button>
 </view>

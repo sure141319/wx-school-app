@@ -42,7 +42,7 @@ Component({
   methods: {
     onLoad(options: Record<string, string | undefined>) {
       if (!wx.getStorageSync('token')) {
-        wx.redirectTo({ url: '/pages/auth/auth' })
+        wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
         return
       }
       this.setData({ goodsId: options.id || '' })
@@ -54,7 +54,7 @@ Component({
 
     onShow() {
       if (!wx.getStorageSync('token')) {
-        wx.redirectTo({ url: '/pages/auth/auth' })
+        wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
         return
       }
       const editId = wx.getStorageSync('editGoodsId')
@@ -74,7 +74,7 @@ Component({
         const categories = (res.data?.data as unknown as Category[]) || []
         this.setData({ categories })
       } catch (_err) {
-        this.setData({ info: '分类加载失败，请下拉刷新重试' })
+        this.setData({ info: '分类加载失败，请重新登录后再试' })
       }
     },
 
@@ -109,15 +109,15 @@ Component({
     },
 
     onPriceInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'form.price': e.detail.value })
+      this.setData({ 'form.price': e.detail.value, 'errors.price': '' })
     },
 
     onTitleInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'form.title': e.detail.value })
+      this.setData({ 'form.title': e.detail.value, 'errors.title': '' })
     },
 
     onDescriptionInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'form.description': e.detail.value })
+      this.setData({ 'form.description': e.detail.value, 'errors.description': '' })
     },
 
     chooseCondition(e: WechatMiniprogram.TouchEvent) {
@@ -129,12 +129,15 @@ Component({
     },
 
     chooseCategory(e: WechatMiniprogram.TouchEvent) {
-      const id = e.currentTarget.dataset.id as string
-      const name = e.currentTarget.dataset.name as string || ''
+      const id = String(e.currentTarget.dataset.id || '')
+      if (this.data.form.categoryId === id) return
+      const cat = (this.data.categories as Category[]).find(c => String(c.id) === id)
+      const catName = cat?.name || ''
       this.setData({
-        'form.categoryId': id || '',
-        'form.title': name,
-        'form.description': name
+        'form.categoryId': id,
+        'form.title': catName,
+        'form.description': catName,
+        'errors.categoryId': ''
       })
     },
 
@@ -153,9 +156,9 @@ Component({
               files.map(file => uploadImage(file.tempFilePath))
             )
             const photos = this.data.form.photos.concat(results)
-            this.setData({ 'form.photos': photos, info: '' })
+            this.setData({ 'form.photos': photos, 'errors.photos': '', info: '' })
           } catch (_err) {
-            this.setData({ info: '图片上传失败' })
+            this.setData({ info: '图片上传失败，请稍后重试' })
           } finally {
             wx.hideLoading()
           }
@@ -175,7 +178,7 @@ Component({
       const errors: Record<string, string> = {}
       if (!form.photos.length) errors.photos = '请至少上传一张图片'
       const priceNum = Number(form.price)
-      if (!form.price || isNaN(priceNum) || priceNum <= 0) errors.price = '请输入正确价格'
+      if (!form.price || Number.isNaN(priceNum) || priceNum <= 0) errors.price = '请输入正确价格'
       if (!form.categoryId) errors.categoryId = '请选择商品分类'
       if (!form.title || !form.title.trim()) errors.title = '请输入标题'
       if (!form.description || !form.description.trim()) errors.description = '请输入描述'
@@ -206,8 +209,8 @@ Component({
 
       const form = this.data.form
       const payload = {
-        title: form.title,
-        description: form.description,
+        title: form.title.trim(),
+        description: form.description.trim(),
         price: Number(form.price),
         conditionLevel: form.conditionLevel,
         campusLocation: form.campusLocation,
@@ -230,13 +233,16 @@ Component({
             data: payload
           })
         }
-        wx.showToast({ title: this.data.goodsId ? '更新成功，等待审核' : '提交成功，等待审核', icon: 'success' })
+        wx.showToast({
+          title: this.data.goodsId ? '已更新，等待审核' : '已提交，等待审核',
+          icon: 'success'
+        })
         this.resetForm()
         setTimeout(() => {
           wx.switchTab({ url: '/pages/profile/profile' })
-        }, 1500)
+        }, 1200)
       } catch (_err) {
-        this.setData({ info: '提交失败' })
+        this.setData({ info: '提交失败，请稍后重试' })
       } finally {
         this.setData({ submitting: false })
       }

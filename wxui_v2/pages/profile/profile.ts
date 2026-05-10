@@ -35,7 +35,7 @@ Component({
   methods: {
     onShow() {
       if (!wx.getStorageSync('token')) {
-        wx.redirectTo({ url: '/pages/auth/auth' })
+        wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/profile/profile' })
         return
       }
       this.loadProfile()
@@ -82,7 +82,10 @@ Component({
         })
 
         const pageData = res.data?.data as unknown as PageInfo | undefined
-        const items = (pageData?.items || []) as unknown as GoodsItem[]
+        const items = ((pageData?.items || []) as unknown as GoodsItem[]).map(item => ({
+          ...item,
+          imageUrls: item.imageUrls || []
+        }))
         const total = pageData?.total || 0
         const hasMore = items.length === this.data.size && (nextPage + 1) * this.data.size < total
 
@@ -105,7 +108,7 @@ Component({
     },
 
     onNicknameInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'profile.nickname': e.detail.value })
+      this.setData({ 'profile.nickname': e.detail.value, info: '' })
     },
 
     chooseAvatar() {
@@ -116,14 +119,18 @@ Component({
         success: async (res) => {
           const filePath = res.tempFiles?.[0]?.tempFilePath
           if (!filePath) return
+          wx.showLoading({ title: '上传头像...', mask: true })
           try {
             const upload = await uploadImage(filePath)
             this.setData({
               'profile.avatarUrl': upload.url,
-              avatarValue: upload.filename
+              avatarValue: upload.filename,
+              info: '头像已上传，保存后生效'
             })
           } catch (_err) {
             this.setData({ info: '头像上传失败' })
+          } finally {
+            wx.hideLoading()
           }
         }
       })
@@ -161,7 +168,7 @@ Component({
         })
         wx.showToast({ title: '保存成功', icon: 'success' })
       } catch (_err) {
-        this.setData({ info: '保存失败' })
+        this.setData({ info: '保存失败，请稍后重试' })
       } finally {
         this.setData({ saving: false })
       }
@@ -174,19 +181,21 @@ Component({
     },
 
     async toggleStatus(e: WechatMiniprogram.TouchEvent) {
-      const item = e.currentTarget.dataset.item as GoodsItem
-      if (!item?.id) return
-      if (item.status === 'PENDING_REVIEW' || item.status === 'REJECTED') {
-        wx.showToast({ title: '审核中或被驳回的商品不能上下架', icon: 'none' })
+      const id = e.currentTarget.dataset.id as number
+      const status = e.currentTarget.dataset.status as string
+      if (!id) return
+      if (status === 'PENDING_REVIEW' || status === 'REJECTED') {
+        wx.showToast({ title: '审核中或已驳回的商品不能上下架', icon: 'none' })
         return
       }
-      const nextStatus = item.status === 'ON_SALE' ? 'OFF_SHELF' : 'ON_SALE'
+      const nextStatus = status === 'ON_SALE' ? 'OFF_SHELF' : 'ON_SALE'
       try {
         await request({
-          url: `${app.globalData.baseUrl}/goods/${item.id}/status`,
+          url: `${app.globalData.baseUrl}/goods/${id}/status`,
           method: 'PATCH',
           data: { status: nextStatus }
         })
+        wx.showToast({ title: nextStatus === 'ON_SALE' ? '已上架' : '已下架', icon: 'success' })
         this.loadMyGoods(true)
       } catch (_err) {
         this.setData({ info: '状态更新失败' })
@@ -197,8 +206,10 @@ Component({
       const id = e.currentTarget.dataset.id as number
       if (!id) return
       wx.showModal({
-        title: '提示',
-        content: '确认删除这个商品吗？',
+        title: '确认删除',
+        content: '删除后无法恢复，确认删除这个商品吗？',
+        confirmText: '删除',
+        confirmColor: '#D92D20',
         success: async (res) => {
           if (!res.confirm) return
           try {
@@ -206,6 +217,7 @@ Component({
               url: `${app.globalData.baseUrl}/goods/${id}`,
               method: 'DELETE'
             })
+            wx.showToast({ title: '已删除', icon: 'success' })
             this.loadMyGoods(true)
           } catch (_err) {
             this.setData({ info: '删除失败' })
@@ -218,8 +230,8 @@ Component({
       const hasUnsavedAvatar = this.data.avatarValue && this.data.avatarValue !== this.data.profile.avatarUrl
       if (hasUnsavedAvatar) {
         wx.showModal({
-          title: '提示',
-          content: '您上传了头像但未保存，是否保存？',
+          title: '保存头像',
+          content: '你上传了头像但还没有保存，是否现在保存？',
           confirmText: '保存',
           cancelText: '不保存',
           success: (res) => {

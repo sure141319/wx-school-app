@@ -1,18 +1,26 @@
-<view class="flex flex-col gap-28 p-28 pb-120">
-  <view class="card p-28" style="background:linear-gradient(150deg,#fff7e6 0%,#f8f3ea 45%,#edf5ff 100%)">
-    <view class="flex items-center gap-20">
+<view class="page-shell flex flex-col gap-28">
+  <view class="home-hero">
+    <view class="flex items-center gap-16">
       <view class="search-bar">
-        <text style="color:#8894a6;font-size:32rpx;margin-right:16rpx">⌕</text>
-        <input placeholder="搜索你想买的闲置" bindinput="onSearchInput" bindconfirm="onSearch" />
+        <text class="search-icon">⌕</text>
+        <input placeholder="搜索你想买的闲置" value="{{keyword}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" />
       </view>
-      <view class="flex gap-12">
-        <view class="icon-btn" bindtap="loadGoods">
-          <text style="font-size:36rpx;line-height:1">↻</text>
-        </view>
-      </view>
+      <view class="icon-btn" bindtap="loadGoods" aria-label="刷新">↻</view>
     </view>
-    <text class="block mt-28 mb-8 text-3xl tracking-tight">校园闲置集市</text>
-    <text class="block text-xs text-secondary">发现同校在售物品，面对面更安心</text>
+
+    <view class="mt-28">
+      <text class="eyebrow">Campus Trade</text>
+      <text class="display-title mt-8">校园闲置集市</text>
+      <text class="helper-text mt-12">发现同校好物，约在校内交易。</text>
+    </view>
+
+    <view class="hero-footer">
+      <view class="trust-badge">
+        <view class="trust-dot"></view>
+        <text class="helper-text">认证同学发布，图片审核后展示</text>
+      </view>
+      <view class="btn btn-secondary btn-sm" bindtap="goToPublish">去发布</view>
+    </view>
   </view>
 
   <scroll-view class="flex whitespace-nowrap" scroll-x enable-flex>
@@ -50,6 +58,7 @@
         </view>
       </view>
     </view>
+
     <view class="flex-1 flex flex-col">
       <view wx:for="{{rightGoods}}" wx:key="id">
         <view class="goods-card" bindtap="openGoods" data-id="{{item.id}}">
@@ -69,14 +78,18 @@
   </view>
 
   <view wx:else class="card p-40 text-center">
-    <text class="block text-lg mb-16">暂时没有匹配的商品</text>
-    <text class="block text-xs" style="color:#7f8b9f">换个关键词或分类试试</text>
+    <view class="empty-list">
+      <view class="empty-icon-sm">⌕</view>
+      <text class="empty-title">还没有匹配的商品</text>
+      <text class="empty-desc">换个关键词或分类试试，也可以发布你的第一件闲置。</text>
+      <view class="btn btn-primary btn-sm mt-16" bindtap="goToPublish">发布闲置</view>
+    </view>
   </view>
 
   <view wx:if="{{loadingMore}}" class="loading-more">
     <text>正在加载更多...</text>
   </view>
   <view wx:elif="{{!hasMore && goodsItems.length > 0}}" class="loading-more">
-    <text>没有更多了</text>
+    <text>已经到底了</text>
   </view>
 </view>

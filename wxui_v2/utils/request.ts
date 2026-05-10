@@ -20,7 +20,7 @@ export function request<T = unknown>(options: RequestOptions): Promise<WxRespons
     }
 
     if (token) {
-      header['Authorization'] = `Bearer ${token}`
+      header.Authorization = `Bearer ${token}`
     }
 
     wx.request({

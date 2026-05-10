@@ -8,15 +8,15 @@
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarBackgroundColor": "#FFFCF7",
     "navigationBarTitleText": "校园闲置集市",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f4f2ec"
+    "backgroundColor": "#F6F1E7"
   },
   "tabBar": {
-    "color": "#7f8796",
-    "selectedColor": "#1e5ea6",
-    "backgroundColor": "#ffffff",
+    "color": "#64748B",
+    "selectedColor": "#1E5EA6",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
