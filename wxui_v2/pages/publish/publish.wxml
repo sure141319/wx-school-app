@@ -10,7 +10,51 @@
   <view wx:if="{{loading}}" class="loading-text">正在加载商品信息...</view>
 
   <view class="p-28 flex flex-col gap-20">
-    <!-- 第一步：选择分类 -->
+    <!-- 选了分类后才显示：商品图片（在价格上方） -->
+    <block wx:if="{{form.categoryId}}">
+      <view class="card p-28">
+        <view class="card-head">
+          <text class="section-title">商品图片</text>
+          <text class="helper-text">{{form.photos.length}}/3</text>
+        </view>
+        <view class="photo-grid {{errors.photos ? 'photo-grid-error' : ''}}">
+          <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
+            <image src="{{item.url}}" mode="aspectFill" />
+            <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">×</view>
+            <view wx:if="{{index === 0}}" class="cover-label">封面</view>
+          </view>
+          <view wx:if="{{form.photos.length < 3}}" class="photo-add" bindtap="chooseImages">
+            <text>+</text>
+          </view>
+        </view>
+        <text wx:if="{{errors.photos}}" class="field-error">{{errors.photos}}</text>
+        <text wx:else class="field-hint">首图会作为商品封面，建议上传清晰实拍图。</text>
+      </view>
+    </block>
+
+    <!-- 始终显示：价格 -->
+    <view class="card px-32">
+      <view class="field-row">
+        <text class="text-sm flex-shrink-0 text-text-secondary">价格</text>
+        <view class="flex items-center flex-1">
+          <text class="text-2xl font-bold mr-8 text-price">¥</text>
+          <input class="input-field-price" type="digit" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
+        </view>
+      </view>
+      <text wx:if="{{errors.price}}" class="field-error pb-16">{{errors.price}}</text>
+    </view>
+
+    <!-- 始终显示：成色 -->
+    <view class="card p-28">
+      <text class="section-title">成色</text>
+      <view class="picker-grid">
+        <view wx:for="{{conditionOptions}}" wx:key="*this" class="picker-item {{form.conditionLevel === item ? 'picker-item-active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
+          {{item}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 始终显示：选择商品分类（放在成色下方） -->
     <view class="card p-28">
       <view class="card-head">
         <text class="section-title">选择商品分类</text>
@@ -23,70 +67,34 @@
       </view>
     </view>
 
-    <!-- 第二步：选了分类后才显示其余内容 -->
+    <!-- 选了分类后才显示：标题、描述（紧跟分类下方） -->
     <block wx:if="{{form.categoryId}}">
-      <view class="card p-28">
-        <view class="card-head">
-          <text class="section-title">商品图片</text>
-          <text class="helper-text">{{form.photos.length}}/9</text>
-        </view>
-        <view class="photo-grid {{errors.photos ? 'photo-grid-error' : ''}}">
-          <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
-            <image src="{{item.url}}" mode="aspectFill" />
-            <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">×</view>
-            <view wx:if="{{index === 0}}" class="cover-label">封面</view>
-          </view>
-          <view wx:if="{{form.photos.length < 9}}" class="photo-add" bindtap="chooseImages">
-            <text>+</text>
-          </view>
-        </view>
-        <text wx:if="{{errors.photos}}" class="field-error">{{errors.photos}}</text>
-        <text wx:else class="field-hint">首图会作为商品封面，建议上传清晰实拍图。</text>
-      </view>
-
       <view class="card px-32">
         <view class="field-row">
-          <text class="text-sm flex-shrink-0 text-text-secondary">价格</text>
-          <view class="flex items-center flex-1">
-            <text class="text-2xl font-bold mr-8 text-price">¥</text>
-            <input class="input-field-price" type="digit" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
-          </view>
-        </view>
-        <text wx:if="{{errors.price}}" class="field-error pb-16">{{errors.price}}</text>
-
-        <view class="field-row">
           <text class="text-sm flex-shrink-0 text-text-secondary">标题</text>
-          <input class="input-field-text" type="text" placeholder="例如：考研英语真题" value="{{form.title}}" maxlength="20" bindinput="onTitleInput" />
-          <text class="char-count {{form.title.length >= 20 ? 'char-count-full' : ''}}">{{form.title.length}}/20</text>
+          <input class="input-field-text" type="text" placeholder="例如：考研英语真题" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
+          <text class="char-count {{form.title.length >= 10 ? 'char-count-full' : ''}}">{{form.title.length}}/10</text>
         </view>
         <text wx:if="{{errors.title}}" class="field-error pb-16">{{errors.title}}</text>
 
         <view class="field-row">
           <text class="text-sm flex-shrink-0 text-text-secondary">描述</text>
-          <input class="input-field-text" type="text" placeholder="补充成色、配件、取货说明" value="{{form.description}}" maxlength="80" bindinput="onDescriptionInput" />
-          <text class="char-count {{form.description.length >= 80 ? 'char-count-full' : ''}}">{{form.description.length}}/80</text>
+          <input class="input-field-text" type="text" placeholder="补充成色、配件、取货说明" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput" />
+          <text class="char-count {{form.description.length >= 50 ? 'char-count-full' : ''}}">{{form.description.length}}/50</text>
         </view>
         <text wx:if="{{errors.description}}" class="field-error pb-16">{{errors.description}}</text>
       </view>
-
-      <view class="card p-28">
-        <text class="section-title">成色</text>
-        <view class="picker-grid">
-          <view wx:for="{{conditionOptions}}" wx:key="*this" class="picker-item {{form.conditionLevel === item ? 'picker-item-active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
-            {{item}}
-          </view>
-        </view>
-      </view>
-
-      <view class="card p-28">
-        <text class="section-title">交易地点</text>
-        <view class="flex flex-wrap gap-16 py-24">
-          <view wx:for="{{locationOptions}}" wx:key="*this" class="chip {{form.campusLocation === item ? 'chip-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
-            {{item}}
-          </view>
-        </view>
-      </view>
     </block>
+
+    <!-- 始终显示：交易地点 -->
+    <view class="card p-28">
+      <text class="section-title">交易地点</text>
+      <view class="flex flex-wrap gap-16 py-24">
+        <view wx:for="{{locationOptions}}" wx:key="*this" class="chip {{form.campusLocation === item ? 'chip-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
+          {{item}}
+        </view>
+      </view>
+    </view>
   </view>
 
   <view class="bottom-bar" wx:if="{{form.categoryId}}">

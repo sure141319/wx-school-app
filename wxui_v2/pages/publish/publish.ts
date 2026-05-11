@@ -142,7 +142,7 @@ Component({
     },
 
     chooseImages() {
-      const remain = 9 - this.data.form.photos.length
+      const remain = 3 - this.data.form.photos.length
       if (remain <= 0) return
       wx.chooseMedia({
         count: remain,
