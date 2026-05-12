@@ -3,7 +3,7 @@
 校园闲置集市（Campus Trade）— 安徽工业大学学生的二手信息平台。该仓库包含三个组件：
 
 - **`v1/`** — 基于 Spring Boot 3.3.5 / Java 17 的后端（REST API、JWT 认证、MySQL/Redis/MinIO）
-- **`wxui_v1/`** — 微信小程序前端（原生 WXML/WXSS/JS，无 npm）
+- **`wxui_v2/`** — 微信小程序前端
 - **`checkui/`** — 用于商品审核的管理控制台（Vanilla HTML/CSS/JS）
 
 ## 构建与运行命令
@@ -18,8 +18,8 @@ mvn test -Dtest=ClassName      # 运行单个测试类
 java -jar target/backend-0.0.1-SNAPSHOT.jar  # 运行已打包的 JAR
 ```
 
-### 前端（wxui_v1/）
-在微信开发者工具中打开 `wxui_v1/`。无构建步骤 — 原生小程序。
+### 前端（wxui_v2/）
+在微信开发者工具中打开 `wxui_v2/`。无构建步骤 — 原生小程序。
 
 ### 管理界面（checkui/）
 ```bash
@@ -65,12 +65,9 @@ module/
 - **生产环境：** MySQL | **测试环境：** H2（MySQL 兼容模式）
 - **表：** `users`、`category_do`、`goods_do`、`goods_image_do`、`conversation_do`、`messages`
 
-### 前端（wxui_v1/）
+### 前端（wxui_v2/）
 
-- 7 个页面，每个页面包含 `.js/.json/.wxml/.wxss` 四文件模式
-- **状态管理：** 使用 `wx.setStorageSync` 存储跨页面数据（token、用户信息）；每个页面有自己的 `data` 对象
-- **API 客户端：** `utils/request.js` 封装 `wx.request`，自动注入 Bearer token 并处理 401
-- **环境配置：** `config/env.js` — 切换开发/生产 API 基础 URL
+- 
 
 ### 测试设置
 
