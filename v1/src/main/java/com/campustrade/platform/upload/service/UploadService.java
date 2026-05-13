@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class UploadService {
 
-    private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp");
+    private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif");
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UploadService.class);
 
