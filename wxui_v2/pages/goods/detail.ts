@@ -45,6 +45,10 @@ Component({
           url: `${app.globalData.baseUrl}/goods/${this.data.goodsId}`,
           method: 'GET'
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '商品详情加载失败' })
+          return
+        }
         const goods = res.data?.data as unknown as GoodsItem | undefined
 
         if (goods && !goods.seller) {
@@ -63,7 +67,7 @@ Component({
 
         this.setData({ goods: goods || null })
       } catch (_err) {
-        this.setData({ info: '商品详情加载失败' })
+        this.setData({ info: '商品详情加载失败，请检查网络连接' })
       } finally {
         this.setData({ loading: false })
       }

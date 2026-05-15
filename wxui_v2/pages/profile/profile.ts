@@ -54,13 +54,17 @@ Component({
           url: `${app.globalData.baseUrl}/users/me`,
           method: 'GET'
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '个人资料加载失败' })
+          return
+        }
         const profile = (res.data?.data as unknown as UserProfile) || { nickname: '', avatarUrl: '' }
         this.setData({
           profile,
           avatarValue: profile.avatarUrl || ''
         })
       } catch (_err) {
-        this.setData({ info: '个人资料加载失败' })
+        this.setData({ info: '个人资料加载失败，请检查网络连接' })
       }
     },
 
@@ -80,6 +84,10 @@ Component({
           url: `${app.globalData.baseUrl}/goods/mine?page=${nextPage}&size=${this.data.size}`,
           method: 'GET'
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '商品列表加载失败' })
+          return
+        }
 
         const pageData = res.data?.data as unknown as PageInfo | undefined
         const items = ((pageData?.items || []) as unknown as GoodsItem[]).map(item => ({
@@ -100,7 +108,7 @@ Component({
         })
       } catch (_err) {
         if (!append) {
-          this.setData({ info: '商品列表加载失败' })
+          this.setData({ info: '商品列表加载失败，请检查网络连接' })
         }
       } finally {
         this.setData({ loading: false, loadingMore: false })
@@ -154,6 +162,10 @@ Component({
             avatarUrl: this.data.avatarValue || null
           } as unknown as Record<string, unknown>
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '保存失败' })
+          return
+        }
         const profile = (res.data?.data as unknown as UserProfile) || this.data.profile
         const user = JSON.parse(wx.getStorageSync('user') || '{}')
         wx.setStorageSync('user', JSON.stringify({
@@ -168,7 +180,7 @@ Component({
         })
         wx.showToast({ title: '保存成功', icon: 'success' })
       } catch (_err) {
-        this.setData({ info: '保存失败，请稍后重试' })
+        this.setData({ info: '保存失败，请检查网络连接' })
       } finally {
         this.setData({ saving: false })
       }
@@ -190,15 +202,19 @@ Component({
       }
       const nextStatus = status === 'ON_SALE' ? 'OFF_SHELF' : 'ON_SALE'
       try {
-        await request({
+        const res = await request({
           url: `${app.globalData.baseUrl}/goods/${id}/status`,
           method: 'PATCH',
           data: { status: nextStatus }
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '状态更新失败' })
+          return
+        }
         wx.showToast({ title: nextStatus === 'ON_SALE' ? '已上架' : '已下架', icon: 'success' })
         this.loadMyGoods(true)
       } catch (_err) {
-        this.setData({ info: '状态更新失败' })
+        this.setData({ info: '状态更新失败，请检查网络连接' })
       }
     },
 
@@ -213,14 +229,18 @@ Component({
         success: async (res) => {
           if (!res.confirm) return
           try {
-            await request({
+            const deleteRes = await request({
               url: `${app.globalData.baseUrl}/goods/${id}`,
               method: 'DELETE'
             })
+            if (!deleteRes.data?.success) {
+              this.setData({ info: deleteRes.data?.message || '删除失败' })
+              return
+            }
             wx.showToast({ title: '已删除', icon: 'success' })
             this.loadMyGoods(true)
           } catch (_err) {
-            this.setData({ info: '删除失败' })
+            this.setData({ info: '删除失败，请检查网络连接' })
           }
         }
       })

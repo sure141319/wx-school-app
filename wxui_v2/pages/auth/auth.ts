@@ -331,7 +331,7 @@ Component({
         method: 'POST',
         data: this.data.loginForm as unknown as Record<string, unknown>
       }).then((res) => {
-        if (res.data?.data) {
+        if (res.data?.success && res.data?.data) {
           clearTokenCache()
           wx.setStorageSync('token', res.data.data.token)
           wx.setStorageSync('user', JSON.stringify(res.data.data.user))
@@ -388,7 +388,7 @@ Component({
         method: 'POST',
         data: this.data.registerForm as unknown as Record<string, unknown>
       }).then((res) => {
-        if (res.data?.data) {
+        if (res.data?.success && res.data?.data) {
           clearTokenCache()
           wx.setStorageSync('token', res.data.data.token)
           wx.setStorageSync('user', JSON.stringify(res.data.data.user))

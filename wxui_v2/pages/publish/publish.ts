@@ -41,28 +41,53 @@ Component({
 
   methods: {
     onLoad(options: Record<string, string | undefined>) {
-      if (!wx.getStorageSync('token')) {
-        wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
-        return
-      }
-      this.setData({ goodsId: options.id || '' })
-      this.loadCategories()
-      if (options.id) {
-        this.loadGoods(options.id)
-      }
+      this.checkToken().then(valid => {
+        if (!valid) return
+        this.setData({ goodsId: options.id || '' })
+        this.loadCategories()
+        if (options.id) {
+          this.loadGoods(options.id)
+        }
+      })
     },
 
     onShow() {
-      if (!wx.getStorageSync('token')) {
-        wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
-        return
-      }
-      const editId = wx.getStorageSync('editGoodsId')
-      if (editId) {
-        wx.removeStorageSync('editGoodsId')
-        this.setData({ goodsId: editId })
-        this.loadGoods(editId)
-      }
+      this.checkToken().then(valid => {
+        if (!valid) return
+        const editId = wx.getStorageSync('editGoodsId')
+        if (editId) {
+          wx.removeStorageSync('editGoodsId')
+          this.setData({ goodsId: editId })
+          this.loadGoods(editId)
+        }
+      })
+    },
+
+    checkToken(): Promise<boolean> {
+      return new Promise((resolve) => {
+        const token = wx.getStorageSync('token')
+        if (!token) {
+          wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
+          resolve(false)
+          return
+        }
+        wx.request({
+          url: `${app.globalData.baseUrl}/users/me`,
+          method: 'GET',
+          header: { Authorization: `Bearer ${token}` },
+          success: (res) => {
+            if (res.statusCode === 401) {
+              wx.removeStorageSync('token')
+              wx.removeStorageSync('user')
+              wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
+              resolve(false)
+            } else {
+              resolve(true)
+            }
+          },
+          fail: () => resolve(true)
+        })
+      })
     },
 
     async loadCategories() {
@@ -71,10 +96,14 @@ Component({
           url: `${app.globalData.baseUrl}/categories`,
           method: 'GET'
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '分类加载失败' })
+          return
+        }
         const categories = (res.data?.data as unknown as Category[]) || []
         this.setData({ categories })
       } catch (_err) {
-        this.setData({ info: '分类加载失败，请重新登录后再试' })
+        this.setData({ info: '分类加载失败，请检查网络连接' })
       }
     },
 
@@ -85,6 +114,10 @@ Component({
           url: `${app.globalData.baseUrl}/goods/${id}`,
           method: 'GET'
         })
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '商品信息加载失败' })
+          return
+        }
         const goods = res.data?.data as unknown as GoodsItem | undefined
         if (!goods) return
         this.setData({
@@ -102,7 +135,7 @@ Component({
           }
         })
       } catch (_err) {
-        this.setData({ info: '商品信息加载失败' })
+        this.setData({ info: '商品信息加载失败，请检查网络连接' })
       } finally {
         this.setData({ loading: false })
       }
@@ -157,8 +190,9 @@ Component({
             )
             const photos = this.data.form.photos.concat(results)
             this.setData({ 'form.photos': photos, 'errors.photos': '', info: '' })
-          } catch (_err) {
-            this.setData({ info: '图片上传失败，请稍后重试' })
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : '图片上传失败，请稍后重试'
+            this.setData({ info: msg })
           } finally {
             wx.hideLoading()
           }
@@ -220,18 +254,23 @@ Component({
 
       this.setData({ submitting: true, info: '' })
       try {
+        let res
         if (this.data.goodsId) {
-          await request({
+          res = await request({
             url: `${app.globalData.baseUrl}/goods/${this.data.goodsId}`,
             method: 'PUT',
             data: payload
           })
         } else {
-          await request({
+          res = await request({
             url: `${app.globalData.baseUrl}/goods`,
             method: 'POST',
             data: payload
           })
+        }
+        if (!res.data?.success) {
+          this.setData({ info: res.data?.message || '提交失败' })
+          return
         }
         wx.showToast({
           title: this.data.goodsId ? '已更新，等待审核' : '已提交，等待审核',
@@ -242,7 +281,7 @@ Component({
           wx.switchTab({ url: '/pages/profile/profile' })
         }, 1200)
       } catch (_err) {
-        this.setData({ info: '提交失败，请稍后重试' })
+        this.setData({ info: '提交失败，请检查网络连接' })
       } finally {
         this.setData({ submitting: false })
       }

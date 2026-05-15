@@ -93,12 +93,16 @@ Component({
           url: `${app.globalData.baseUrl}/categories`,
           method: 'GET'
         })
+        if (!res.data?.success) {
+          this.setData({ statusText: res.data?.message || '分类加载失败' })
+          return
+        }
         const categories = (res.data?.data as unknown as Category[]) || []
         this.setData({
           categoryItems: [{ id: '', name: '推荐' }, ...categories]
         })
       } catch (_err) {
-        this.setData({ statusText: '分类加载失败，请稍后重试' })
+        this.setData({ statusText: '分类加载失败，请检查网络连接' })
       }
     },
 
@@ -127,6 +131,15 @@ Component({
           method: 'GET',
           data: params
         })
+        if (!res.data?.success) {
+          this.setData({
+            statusText: res.data?.message || '商品加载失败',
+            goodsItems: [],
+            leftGoods: [],
+            rightGoods: []
+          })
+          return
+        }
 
         const pageData = res.data?.data as unknown as PageInfo | undefined
         const items = ((pageData?.items || []) as unknown as GoodsItem[]).map(item => ({
@@ -160,7 +173,7 @@ Component({
       } catch (_err) {
         if (!append) {
           this.setData({
-            statusText: '商品加载失败，请稍后重试',
+            statusText: '商品加载失败，请检查网络连接',
             goodsItems: [],
             leftGoods: [],
             rightGoods: []
