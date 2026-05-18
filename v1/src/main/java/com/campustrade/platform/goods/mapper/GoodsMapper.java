@@ -30,11 +30,11 @@ public interface GoodsMapper {
 
     GoodsDO findById(@Param("id") Long id);
 
-    List<GoodsDO> search(@Param("keyword") String keyword,
-                         @Param("categoryId") Long categoryId,
-                         @Param("status") GoodsStatusEnum status,
-                         @Param("limit") int limit,
-                         @Param("offset") int offset);
+    List<GoodsDO> searchList(@Param("keyword") String keyword,
+                             @Param("categoryId") Long categoryId,
+                             @Param("status") GoodsStatusEnum status,
+                             @Param("limit") int limit,
+                             @Param("offset") int offset);
 
     long countSearch(@Param("keyword") String keyword,
                      @Param("categoryId") Long categoryId,
@@ -49,6 +49,8 @@ public interface GoodsMapper {
     List<GoodsImageDO> findImagesByGoodsId(@Param("goodsId") Long goodsId);
 
     List<GoodsImageDO> findImagesByGoodsIds(@Param("goodsIds") List<Long> goodsIds);
+
+    List<GoodsImageDO> findCoverImagesByGoodsIds(@Param("goodsIds") List<Long> goodsIds);
 
     int deleteImagesByGoodsId(@Param("goodsId") Long goodsId);
 

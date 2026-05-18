@@ -5,6 +5,7 @@ import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
 import com.campustrade.platform.user.dto.response.UserProfileResponseDTO;
+import com.campustrade.platform.user.dto.response.UserSummaryResponseDTO;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -28,6 +29,14 @@ public class UserProfileAssembler {
         );
     }
 
+    public UserSummaryResponseDTO toSummaryResponse(UserDO user) {
+        return new UserSummaryResponseDTO(
+                user.getId(),
+                user.getNickname(),
+                toVisibleAvatarUrl(user)
+        );
+    }
+
     private String toVisibleAvatarUrl(UserDO user) {
         if (user.getAvatarAuditStatus() == ImageAuditStatusEnum.APPROVED) {
             return uploadService.getProxyUrl(user.getAvatarUrl());
@@ -39,4 +48,3 @@ public class UserProfileAssembler {
         return uploadService.buildStaticAssetUrl("/static/auditing.webp");
     }
 }
-

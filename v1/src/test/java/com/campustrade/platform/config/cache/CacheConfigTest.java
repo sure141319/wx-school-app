@@ -1,7 +1,7 @@
 package com.campustrade.platform.config.cache;
 
 import com.campustrade.platform.common.PageResponse;
-import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,22 +32,18 @@ class CacheConfigTest {
         );
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(mapper);
 
-        PageResponse<GoodsResponseDTO> original = PageResponse.of(
-                List.of(new GoodsResponseDTO(
+        PageResponse<GoodsListItemResponseDTO> original = PageResponse.of(
+                List.of(new GoodsListItemResponseDTO(
                         1L,
                         "MacBook Air",
-                        "Lightly used",
                         BigDecimal.valueOf(4999),
                         "9成新",
                         "Main Campus",
                         GoodsStatusEnum.ON_SALE,
                         null,
                         null,
-                        List.of("/static/auditing.png"),
-                        List.of("images/2026/04/auditing.png"),
-                        null,
-                        LocalDateTime.of(2026, 4, 2, 18, 0),
-                        LocalDateTime.of(2026, 4, 2, 18, 5)
+                        "/static/auditing.png",
+                        LocalDateTime.of(2026, 4, 2, 18, 0)
                 )),
                 1,
                 0,
@@ -60,6 +56,6 @@ class CacheConfigTest {
         PageResponse<?> response = (PageResponse<?>) restored;
         assertEquals(1, response.total());
         assertEquals(1, response.items().size());
-        assertInstanceOf(GoodsResponseDTO.class, response.items().get(0));
+        assertInstanceOf(GoodsListItemResponseDTO.class, response.items().get(0));
     }
 }

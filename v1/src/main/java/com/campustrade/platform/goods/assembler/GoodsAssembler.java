@@ -5,6 +5,7 @@ import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.category.dto.response.CategoryResponseDTO;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
+import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
@@ -54,6 +55,21 @@ public class GoodsAssembler {
                 goods.getAuditRemark(),
                 goods.getCreatedAt(),
                 goods.getUpdatedAt()
+        );
+    }
+
+    public GoodsListItemResponseDTO toListItemResponse(GoodsDO goods) {
+        return new GoodsListItemResponseDTO(
+                goods.getId(),
+                goods.getTitle(),
+                goods.getPrice(),
+                goods.getConditionLevel(),
+                goods.getCampusLocation(),
+                goods.getStatus(),
+                goods.getCategory() == null ? null : categoryAssembler.toSummaryResponse(goods.getCategory()),
+                goods.getSeller() == null ? null : userProfileAssembler.toSummaryResponse(goods.getSeller()),
+                goods.getImages().isEmpty() ? null : toVisibleImageUrl(goods.getImages().get(0)),
+                goods.getCreatedAt()
         );
     }
 

@@ -396,7 +396,7 @@ function renderTable(message) {
     const isSelected = state.selectedIds.has(item.id)
     const isDeleting = state.deletingIds.has(item.id)
     const statusMeta = getStatusMeta(item.status)
-    const imageUrl = item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : ''
+    const imageUrl = item.coverImageUrl || ''
     const categoryName = item.category ? item.category.name : '-'
     const seller = item.seller || {}
 

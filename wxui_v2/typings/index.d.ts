@@ -34,6 +34,26 @@ interface GoodsItem {
   auditRemark?: string
 }
 
+interface GoodsListItem {
+  id: number
+  title: string
+  price: number
+  conditionLevel?: string
+  campusLocation?: string
+  status: string
+  category?: {
+    id: number
+    name: string
+  }
+  seller?: {
+    id: number
+    nickname: string
+    avatarUrl?: string
+  }
+  coverImageUrl?: string
+  createdAt?: string
+}
+
 interface SellerInfo {
   id?: number
   nickname: string

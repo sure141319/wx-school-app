@@ -11,7 +11,7 @@ import com.campustrade.platform.config.cache.CacheConfig;
 import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
-import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
@@ -90,24 +90,20 @@ class GoodsListCacheTest {
     @MockBean
     private UploadService uploadService;
 
-    private GoodsResponseDTO cachedResponse;
+    private GoodsListItemResponseDTO cachedResponse;
 
     @BeforeEach
     void setUp() {
-        cachedResponse = new GoodsResponseDTO(
+        cachedResponse = new GoodsListItemResponseDTO(
                 1L,
                 "MacBook Air",
-                "Lightly used",
                 BigDecimal.valueOf(4999),
                 "9成新",
                 "Main Campus",
                 GoodsStatusEnum.ON_SALE,
                 null,
                 null,
-                List.of("/static/auditing.png"),
-                        List.of("images/2026/04/auditing.png"),
-                        null,
-                LocalDateTime.now(),
+                "/static/auditing.png",
                 LocalDateTime.now()
         );
     }
@@ -118,20 +114,20 @@ class GoodsListCacheTest {
         goods.setId(1L);
         goods.setTitle("MacBook Air");
 
-        when(goodsMapper.search(eq("mac"), eq(2L), eq(GoodsStatusEnum.ON_SALE), eq(10), eq(0)))
+        when(goodsMapper.searchList(eq("mac"), eq(2L), eq(GoodsStatusEnum.ON_SALE), eq(10), eq(0)))
                 .thenReturn(List.of(goods));
         when(goodsMapper.countSearch("mac", 2L, GoodsStatusEnum.ON_SALE)).thenReturn(1L);
-        when(goodsMapper.findImagesByGoodsIds(anyList())).thenReturn(List.of());
-        when(goodsAssembler.toResponse(goods)).thenReturn(cachedResponse);
+        when(goodsMapper.findCoverImagesByGoodsIds(anyList())).thenReturn(List.of());
+        when(goodsAssembler.toListItemResponse(goods)).thenReturn(cachedResponse);
 
-        PageResponse<GoodsResponseDTO> first = goodsService.list("  mac  ", 2L, GoodsStatusEnum.ON_SALE, 0, 10);
-        PageResponse<GoodsResponseDTO> second = goodsService.list("mac", 2L, GoodsStatusEnum.ON_SALE, 0, 10);
+        PageResponse<GoodsListItemResponseDTO> first = goodsService.list("  mac  ", 2L, GoodsStatusEnum.ON_SALE, 0, 10);
+        PageResponse<GoodsListItemResponseDTO> second = goodsService.list("mac", 2L, GoodsStatusEnum.ON_SALE, 0, 10);
 
         assertSame(first, second);
-        verify(goodsMapper, times(1)).search("mac", 2L, GoodsStatusEnum.ON_SALE, 10, 0);
+        verify(goodsMapper, times(1)).searchList("mac", 2L, GoodsStatusEnum.ON_SALE, 10, 0);
         verify(goodsMapper, times(1)).countSearch("mac", 2L, GoodsStatusEnum.ON_SALE);
-        verify(goodsMapper, times(1)).findImagesByGoodsIds(anyList());
-        verify(goodsAssembler, times(1)).toResponse(goods);
+        verify(goodsMapper, times(1)).findCoverImagesByGoodsIds(anyList());
+        verify(goodsAssembler, times(1)).toListItemResponse(goods);
     }
 
     @Test

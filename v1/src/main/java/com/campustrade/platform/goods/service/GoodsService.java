@@ -9,6 +9,7 @@ import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
+import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
@@ -153,15 +154,15 @@ public class GoodsService {
             cacheNames = "goods:list",
             key = "new org.springframework.cache.interceptor.SimpleKey(#keyword == null ? null : #keyword.trim(), #categoryId, #status == null ? null : #status.name(), #page, #size)"
     )
-    public PageResponse<GoodsResponseDTO> list(String keyword, Long categoryId, GoodsStatusEnum status, int page, int size) {
+    public PageResponse<GoodsListItemResponseDTO> list(String keyword, Long categoryId, GoodsStatusEnum status, int page, int size) {
         int offset = page * size;
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
 
-        List<GoodsDO> goodsList = goodsMapper.search(normalizedKeyword, categoryId, status, size, offset);
+        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeyword, categoryId, status, size, offset);
         long total = goodsMapper.countSearch(normalizedKeyword, categoryId, status);
-        attachImages(goodsList);
+        attachCoverImages(goodsList);
 
-        List<GoodsResponseDTO> items = goodsList.stream().map(goodsAssembler::toResponse).toList();
+        List<GoodsListItemResponseDTO> items = goodsList.stream().map(goodsAssembler::toListItemResponse).toList();
         return PageResponse.of(items, total, page, size);
     }
 
@@ -283,6 +284,25 @@ public class GoodsService {
 
         for (GoodsDO goods : goodsList) {
             goods.setImages(grouped.getOrDefault(goods.getId(), new ArrayList<>()));
+        }
+    }
+
+    private void attachCoverImages(List<GoodsDO> goodsList) {
+        if (goodsList == null || goodsList.isEmpty()) {
+            return;
+        }
+
+        List<Long> goodsIds = goodsList.stream().map(GoodsDO::getId).toList();
+        List<GoodsImageDO> coverImages = goodsMapper.findCoverImagesByGoodsIds(goodsIds);
+
+        Map<Long, GoodsImageDO> coverImageMap = new HashMap<>();
+        for (GoodsImageDO image : coverImages) {
+            coverImageMap.putIfAbsent(image.getGoodsId(), image);
+        }
+
+        for (GoodsDO goods : goodsList) {
+            GoodsImageDO coverImage = coverImageMap.get(goods.getId());
+            goods.setImages(coverImage == null ? new ArrayList<>() : new ArrayList<>(List.of(coverImage)));
         }
     }
 }

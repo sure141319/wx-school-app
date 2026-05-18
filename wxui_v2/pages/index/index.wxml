@@ -46,7 +46,7 @@
       <view wx:for="{{leftGoods}}" wx:key="id">
         <view class="goods-card" bindtap="openGoods" data-id="{{item.id}}">
           <view class="cover-wrap">
-            <image wx:if="{{item.imageUrls.length}}" class="cover-img" src="{{item.imageUrls[0]}}" mode="aspectFill" lazy-load />
+            <image wx:if="{{item.coverImageUrl}}" class="cover-img" src="{{item.coverImageUrl}}" mode="aspectFill" lazy-load />
             <view wx:else class="cover-empty">暂无图片</view>
             <view class="price-tag">¥{{item.price}}</view>
             <view class="cond-tag">{{item.conditionLevel || '成色未知'}}</view>
@@ -63,7 +63,7 @@
       <view wx:for="{{rightGoods}}" wx:key="id">
         <view class="goods-card" bindtap="openGoods" data-id="{{item.id}}">
           <view class="cover-wrap">
-            <image wx:if="{{item.imageUrls.length}}" class="cover-img" src="{{item.imageUrls[0]}}" mode="aspectFill" lazy-load />
+            <image wx:if="{{item.coverImageUrl}}" class="cover-img" src="{{item.coverImageUrl}}" mode="aspectFill" lazy-load />
             <view wx:else class="cover-empty">暂无图片</view>
             <view class="price-tag">¥{{item.price}}</view>
             <view class="cond-tag">{{item.conditionLevel || '成色未知'}}</view>

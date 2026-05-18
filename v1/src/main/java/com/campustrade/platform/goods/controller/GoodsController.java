@@ -2,6 +2,7 @@ package com.campustrade.platform.goods.controller;
 
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.request.GoodsStatusUpdateRequestDTO;
+import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.service.GoodsService;
@@ -37,7 +38,7 @@ public class GoodsController {
     }
 
 @GetMapping
-    public ApiResponse<PageResponse<GoodsResponseDTO>> list(
+    public ApiResponse<PageResponse<GoodsListItemResponseDTO>> list(
             @RequestParam(required = false) @Size(max = 100) String keyword,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) GoodsStatusEnum status,

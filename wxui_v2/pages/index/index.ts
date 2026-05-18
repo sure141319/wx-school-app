@@ -6,9 +6,9 @@ interface IndexPageData {
   loading: boolean
   loadingMore: boolean
   hasMore: boolean
-  goodsItems: GoodsItem[]
-  leftGoods: GoodsItem[]
-  rightGoods: GoodsItem[]
+  goodsItems: GoodsListItem[]
+  leftGoods: GoodsListItem[]
+  rightGoods: GoodsListItem[]
   statusText: string
   keyword: string
   categoryId: string
@@ -145,10 +145,7 @@ Component({
         }
 
         const pageData = res.data?.data as unknown as PageInfo | undefined
-        const items = ((pageData?.items || []) as unknown as GoodsItem[]).map(item => ({
-          ...item,
-          imageUrls: item.imageUrls || []
-        }))
+        const items = ((pageData?.items || []) as unknown as GoodsListItem[])
         const total = pageData?.total || 0
         const hasMore = items.length === this.data.size && (nextPage + 1) * this.data.size < total
 
@@ -156,8 +153,8 @@ Component({
           ? [...this.data.goodsItems, ...items]
           : items
 
-        const leftGoods: GoodsItem[] = []
-        const rightGoods: GoodsItem[] = []
+        const leftGoods: GoodsListItem[] = []
+        const rightGoods: GoodsListItem[] = []
         allItems.forEach((item, i) => {
           if (i % 2 === 0) {
             leftGoods.push(item)

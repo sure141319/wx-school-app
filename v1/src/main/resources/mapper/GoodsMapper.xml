@@ -46,6 +46,28 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
+    <resultMap id="GoodsListMap" type="com.campustrade.platform.goods.dataobject.GoodsDO">
+        <id property="id" column="goods_id"/>
+        <result property="title" column="goods_title"/>
+        <result property="price" column="goods_price"/>
+        <result property="conditionLevel" column="goods_condition_level"/>
+        <result property="campusLocation" column="goods_campus_location"/>
+        <result property="status" column="goods_status"/>
+        <result property="createdAt" column="goods_created_at"/>
+
+        <association property="seller" javaType="com.campustrade.platform.user.dataobject.UserDO">
+            <id property="id" column="seller_id"/>
+            <result property="nickname" column="seller_nickname"/>
+            <result property="avatarUrl" column="seller_avatar_url"/>
+            <result property="avatarAuditStatus" column="seller_avatar_audit_status"/>
+        </association>
+
+        <association property="category" javaType="com.campustrade.platform.category.dataobject.CategoryDO">
+            <id property="id" column="category_id"/>
+            <result property="name" column="category_name"/>
+        </association>
+    </resultMap>
+
     <sql id="GoodsBaseColumns">
         g.id AS goods_id,
         g.seller_id AS goods_seller_id,
@@ -129,9 +151,21 @@
         WHERE g.id = #{id}
     </select>
 
-    <select id="search" resultMap="GoodsBaseMap">
+    <select id="searchList" resultMap="GoodsListMap">
         SELECT
-        <include refid="GoodsBaseColumns"/>
+        g.id AS goods_id,
+        g.title AS goods_title,
+        g.price AS goods_price,
+        g.condition_level AS goods_condition_level,
+        g.campus_location AS goods_campus_location,
+        g.status AS goods_status,
+        g.created_at AS goods_created_at,
+        s.id AS seller_id,
+        s.nickname AS seller_nickname,
+        s.avatar_url AS seller_avatar_url,
+        s.avatar_audit_status AS seller_avatar_audit_status,
+        c.id AS category_id,
+        c.name AS category_name
         FROM goods_do g
         JOIN users s ON s.id = g.seller_id
         LEFT JOIN category_do c ON c.id = g.category_id
@@ -184,6 +218,25 @@
             #{goodsId}
         </foreach>
         ORDER BY goods_id ASC, sort_order ASC, id ASC
+    </select>
+
+    <select id="findCoverImagesByGoodsIds" resultMap="GoodsImageMap">
+        SELECT gi.id, gi.goods_id, gi.image_url, gi.sort_order, gi.audit_status, gi.audit_remark, gi.audited_by, gi.audited_at, gi.created_at
+        FROM goods_image_do gi
+        WHERE gi.goods_id IN
+        <foreach collection="goodsIds" item="goodsId" open="(" separator="," close=")">
+            #{goodsId}
+        </foreach>
+          AND NOT EXISTS (
+            SELECT 1
+            FROM goods_image_do earlier
+            WHERE earlier.goods_id = gi.goods_id
+              AND (
+                earlier.sort_order &lt; gi.sort_order
+                OR (earlier.sort_order = gi.sort_order AND earlier.id &lt; gi.id)
+              )
+          )
+        ORDER BY gi.goods_id ASC
     </select>
 
     <delete id="deleteImagesByGoodsId">
