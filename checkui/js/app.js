@@ -498,13 +498,17 @@ function renderDetail() {
   const isGoods = state.currentTab === 'goods'
   const itemId = isGoods ? selected.imageId : selected.userId
   const imageUrl = isGoods ? selected.originalImageUrl : selected.avatarUrl
+  const originalImageHref = escapeHtml(imageUrl || '#')
   const title = isGoods
     ? escapeHtml(selected.goodsTitle || `商品 #${selected.goodsId}`)
     : escapeHtml(selected.nickname || `用户 #${selected.userId}`)
   const metaItems = isGoods ? `
     <div>
       <span>商品ID</span>
-      <strong>${selected.goodsId ?? '-'}</strong>
+      <div class="meta-value-row">
+        <strong>${selected.goodsId ?? '-'}</strong>
+        <a class="detail-link meta-link" href="${originalImageHref}" target="_blank" rel="noreferrer">查看原图</a>
+      </div>
     </div>
     <div>
       <span>卖家</span>
@@ -521,7 +525,10 @@ function renderDetail() {
   ` : `
     <div>
       <span>用户ID</span>
-      <strong>${selected.userId ?? '-'}</strong>
+      <div class="meta-value-row">
+        <strong>${selected.userId ?? '-'}</strong>
+        <a class="detail-link meta-link" href="${originalImageHref}" target="_blank" rel="noreferrer">查看原图</a>
+      </div>
     </div>
     <div>
       <span>昵称</span>
@@ -545,7 +552,7 @@ function renderDetail() {
         </div>
       </div>
       <div class="info-stage">
-        <section class="detail-card">
+        <section class="detail-card info-card">
           <div class="detail-header">
             <div>
               <h4 class="detail-title">${title}</h4>
@@ -553,7 +560,6 @@ function renderDetail() {
             <span class="audit-badge ${statusMeta.className}">${statusMeta.label}</span>
           </div>
           ${isGoods && selected.goodsDescription ? `<p class="detail-desc">${escapeHtml(selected.goodsDescription)}</p>` : ''}
-          <a class="detail-link" href="${escapeHtml(imageUrl || '#')}" target="_blank" rel="noreferrer">查看原图</a>
           <div class="detail-meta">
             ${metaItems}
             <div>
@@ -566,7 +572,7 @@ function renderDetail() {
             </div>
           </div>
         </section>
-        <section class="detail-card">
+        <section class="detail-card action-card">
           <h4>审核操作</h4>
           <div class="detail-actions">
             <textarea id="remarkInput" placeholder="驳回原因（选填）">${escapeHtml(remark)}</textarea>

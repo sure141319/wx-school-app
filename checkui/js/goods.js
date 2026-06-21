@@ -80,6 +80,7 @@ function boot() {
     hydrateSession()
   } else {
     renderTable()
+    updatePagination()
   }
 }
 
@@ -94,6 +95,7 @@ async function hydrateSession() {
     clearSession()
     renderSession()
     renderTable()
+    updatePagination()
     showToast(error.message || UI_MESSAGES.SESSION_EXPIRED, 'error')
   }
 }
@@ -103,11 +105,13 @@ function handleLogout() {
   renderSession()
   state.items = []
   state.total = 0
+  state.page = 0
   state.categories = []
   state.selectedIds.clear()
   renderTable()
   renderBatchBar()
   renderCategorySelect()
+  updatePagination()
   showToast('已退出', 'success')
 }
 
@@ -293,10 +297,12 @@ async function loadGoods() {
     state.items = []
     state.total = 0
     renderTable()
+    updatePagination()
     return
   }
 
   state.loading = true
+  updatePagination()
   renderTable()
 
   try {
@@ -314,7 +320,6 @@ async function loadGoods() {
     state.page = pageData.page || 0
     state.size = pageData.size || state.size
     renderTable()
-    updatePagination()
   } catch (error) {
     state.items = []
     state.total = 0
@@ -323,6 +328,7 @@ async function loadGoods() {
   } finally {
     state.loading = false
     renderTable()
+    updatePagination()
   }
 }
 
