@@ -17,11 +17,15 @@
 
 html {
   min-height: 100%;
+  height: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--text);
   background: #f3f4f6;
@@ -38,14 +42,19 @@ textarea {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 16px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   padding: 16px;
+  overflow: hidden;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .workspace {
@@ -53,6 +62,8 @@ textarea {
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .brand-block,
@@ -248,6 +259,7 @@ textarea {
 }
 
 .workspace-head {
+  flex: 0 0 auto;
   padding: 12px 16px;
   background: var(--surface);
 }
@@ -293,13 +305,17 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .queue-panel,
 .detail-panel {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 140px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .queue-meta {
@@ -312,7 +328,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 200px;
+  min-height: 0;
   flex: 1;
   overflow-y: auto;
 }
@@ -395,42 +411,54 @@ textarea {
 .detail-content {
   display: flex;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .detail-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   width: 100%;
+  min-height: 0;
 }
 
 .image-stage,
 .info-stage {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  min-height: 0;
+}
+
+.image-stage {
+  flex: 0 0 auto;
+}
+
+.info-stage {
+  flex: 1;
 }
 
 .preview-frame {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius);
-  min-height: 300px;
+  height: clamp(220px, 34vh, 360px);
+  min-height: 0;
   background: #1f2937;
 }
 
 .preview-frame img {
   width: 100%;
   height: 100%;
-  min-height: 300px;
   object-fit: contain;
   display: block;
 }
 
 .preview-overlay {
   position: absolute;
-  inset: auto 12px 12px 12px;
-  padding: 8px 12px;
+  inset: auto 10px 10px 10px;
+  padding: 6px 10px;
   border-radius: var(--radius);
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
@@ -441,10 +469,26 @@ textarea {
 }
 
 .detail-card {
-  padding: 16px;
+  padding: 12px;
   border-radius: var(--radius);
   background: #f9fafb;
   border: 1px solid var(--surface-border);
+}
+
+.detail-card h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.info-card {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.action-card {
+  flex: 0 0 auto;
+  background: #fff;
 }
 
 .detail-header {
@@ -452,21 +496,23 @@ textarea {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .detail-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin: 4px 0 0;
+  margin: 0;
 }
 
 .detail-desc {
   color: var(--text);
   font-size: 0.9rem;
-  line-height: 1.5;
-  margin: 0 0 12px;
-  padding: 10px 12px;
+  line-height: 1.45;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  max-height: 4.8em;
+  overflow-y: auto;
   background: #fff;
   border-radius: var(--radius);
   border: 1px solid var(--surface-border);
@@ -479,50 +525,76 @@ textarea {
   color: var(--accent);
   text-decoration: none;
   font-size: 0.9rem;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .detail-link:hover {
   text-decoration: underline;
 }
 
+.meta-link {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
 .detail-meta {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
 }
 
 .detail-meta div {
-  padding: 8px;
+  padding: 7px 8px;
   background: #fff;
   border-radius: var(--radius);
   border: 1px solid var(--surface-border);
+}
+
+.detail-meta .meta-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .detail-meta span {
   display: block;
   color: var(--muted);
   font-size: 0.75rem;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .detail-meta strong {
+  display: block;
   font-size: 0.9rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
 }
 
 .detail-actions textarea {
   width: 100%;
-  min-height: 80px;
+  min-height: 58px;
+  max-height: 96px;
   resize: vertical;
   border: 1px solid var(--surface-border);
   border-radius: var(--radius);
-  padding: 10px 12px;
+  padding: 9px 10px;
   background: #fff;
   color: var(--text);
   font: inherit;
@@ -537,6 +609,11 @@ textarea {
 .action-row {
   display: flex;
   gap: 8px;
+}
+
+.action-row .button {
+  min-width: 72px;
+  height: 40px;
 }
 
 .empty-state,
@@ -573,11 +650,36 @@ textarea {
 
 .pager {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--surface-border);
+}
+
+.workspace > .panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.goods-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.goods-table-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 0 16px;
+  overflow: auto;
+}
+
+.goods-panel .pager {
+  margin-top: 0;
+  padding: 12px 16px;
 }
 
 #pageIndicator {
@@ -614,17 +716,33 @@ textarea {
 }
 
 @media (max-width: 1024px) {
+  body {
+    height: auto;
+    overflow: auto;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
   }
 
   .board {
     grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .sidebar,
+  .workspace,
+  .detail-content {
+    overflow: visible;
   }
 
   .queue-panel,
   .detail-panel {
     min-height: auto;
+    overflow: visible;
   }
 }
 
@@ -649,6 +767,14 @@ textarea {
 
   .detail-meta {
     grid-template-columns: 1fr;
+  }
+
+  .detail-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .action-row .button {
+    flex: 1;
   }
 
   .stats-row {
