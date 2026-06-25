@@ -2,6 +2,8 @@ import { COMMON_MESSAGES } from './messages'
 
 let cachedToken: string | null | undefined
 
+type WxRequestFn = (options: Record<string, unknown>) => void
+
 export function getToken(): string | undefined {
   if (cachedToken === undefined) {
     cachedToken = wx.getStorageSync('token') || null
@@ -25,12 +27,13 @@ export function request<T = unknown>(options: RequestOptions): Promise<WxRespons
       header.Authorization = `Bearer ${token}`
     }
 
-    wx.request({
+    const wxRequest = (wx as unknown as { request: WxRequestFn }).request
+    wxRequest({
       url: options.url,
       method: options.method || 'GET',
       data: options.data as WechatMiniprogram.IAnyObject,
       header,
-      success: (res: WechatMiniprogram.RequestSuccessCallbackResult<T>) => {
+      success: (res: WechatMiniprogram.RequestSuccessCallbackResult) => {
         if (res.statusCode === 401) {
           const isAuthEndpoint = options.url.includes('/auth/')
           if (isAuthEndpoint) {

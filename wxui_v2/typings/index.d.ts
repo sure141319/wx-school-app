@@ -78,6 +78,8 @@ interface UserProfile {
 interface UploadResult {
   url: string
   filename: string
+  thumbnailUrl?: string
+  thumbnailFilename?: string
 }
 
 interface PublishForm {
@@ -120,4 +122,9 @@ interface WxResponse<T = unknown> {
   data: T
   statusCode: number
   header: Record<string, string>
+}
+
+declare namespace WechatMiniprogram {
+  type InputEvent = Input
+  type SwiperChangeEvent = SwiperChange
 }

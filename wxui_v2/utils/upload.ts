@@ -3,6 +3,13 @@ import { COMMON_MESSAGES } from './messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 
+type CompressImageFn = (options: {
+  src: string
+  quality: number
+  success: (res: { tempFilePath: string }) => void
+  fail: () => void
+}) => void
+
 function handleLoginRequired(reject: (reason?: unknown) => void) {
   wx.removeStorageSync('token')
   wx.removeStorageSync('user')
@@ -11,7 +18,26 @@ function handleLoginRequired(reject: (reason?: unknown) => void) {
   reject(new Error(COMMON_MESSAGES.IMAGE_UPLOAD_LOGIN_REQUIRED))
 }
 
-export function uploadImage(filePath: string): Promise<UploadResult> {
+function compressImageForUpload(filePath: string): Promise<string> {
+  return new Promise((resolve) => {
+    const compressImage = (wx as unknown as { compressImage?: CompressImageFn }).compressImage
+    if (!compressImage) {
+      resolve(filePath)
+      return
+    }
+
+    compressImage({
+      src: filePath,
+      quality: 70,
+      success: res => resolve(res.tempFilePath || filePath),
+      fail: () => resolve(filePath)
+    })
+  })
+}
+
+export async function uploadImage(filePath: string): Promise<UploadResult> {
+  const uploadPath = await compressImageForUpload(filePath)
+
   return new Promise((resolve, reject) => {
     const token = getToken()
     if (!token) {
@@ -21,7 +47,7 @@ export function uploadImage(filePath: string): Promise<UploadResult> {
 
     wx.uploadFile({
       url: `${app.globalData.baseUrl}/uploads/image`,
-      filePath,
+      filePath: uploadPath,
       name: 'file',
       header: { Authorization: `Bearer ${token}` },
       success: (res: WechatMiniprogram.UploadFileSuccessCallbackResult) => {

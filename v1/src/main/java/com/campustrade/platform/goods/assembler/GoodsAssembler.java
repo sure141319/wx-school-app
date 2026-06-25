@@ -68,15 +68,29 @@ public class GoodsAssembler {
                 goods.getStatus(),
                 goods.getCategory() == null ? null : categoryAssembler.toSummaryResponse(goods.getCategory()),
                 goods.getSeller() == null ? null : userProfileAssembler.toSummaryResponse(goods.getSeller()),
-                goods.getImages().isEmpty() ? null : toVisibleImageUrl(goods.getImages().get(0)),
+                goods.getImages().isEmpty() ? null : toVisibleCoverImageUrl(goods.getImages().get(0)),
                 goods.getCreatedAt()
         );
+    }
+
+    private String toVisibleCoverImageUrl(GoodsImageDO image) {
+        if (image.getAuditStatus() == ImageAuditStatusEnum.APPROVED) {
+            String coverKey = StringUtils.hasText(image.getThumbnailUrl())
+                    ? image.getThumbnailUrl()
+                    : image.getImageUrl();
+            return uploadService.getProxyUrl(coverKey);
+        }
+        return pendingPlaceholderUrl();
     }
 
     private String toVisibleImageUrl(GoodsImageDO image) {
         if (image.getAuditStatus() == ImageAuditStatusEnum.APPROVED) {
             return uploadService.getProxyUrl(image.getImageUrl());
         }
+        return pendingPlaceholderUrl();
+    }
+
+    private String pendingPlaceholderUrl() {
         String configuredUrl = appProperties.getImageAudit().getPendingPlaceholderUrl();
         if (StringUtils.hasText(configuredUrl)) {
             return configuredUrl.trim();

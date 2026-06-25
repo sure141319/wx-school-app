@@ -17,7 +17,12 @@ class UploadControllerTest {
         UploadService uploadService = mock(UploadService.class);
         UploadController controller = new UploadController(uploadService);
         MockMultipartFile file = new MockMultipartFile("file", "demo.png", "image/png", new byte[]{1});
-        UploadResponseDTO payload = new UploadResponseDTO("/images/demo.png", "demo.png");
+        UploadResponseDTO payload = new UploadResponseDTO(
+                "/images/demo.png",
+                "demo.png",
+                "/images/thumbs/demo.webp",
+                "thumbs/demo.webp"
+        );
         when(uploadService.storeImage(file)).thenReturn(payload);
 
         ApiResponse<UploadResponseDTO> response = controller.uploadImage(file);

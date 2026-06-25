@@ -75,7 +75,7 @@ public class GoodsService {
         goods.setStatus(GoodsStatusEnum.PENDING_REVIEW);
 
         goodsMapper.insert(goods);
-        replaceImages(goods.getId(), request.imageUrls());
+        replaceImages(goods.getId(), request.imageUrls(), request.imageThumbnailUrls());
         return getDetail(goods.getId());
     }
 
@@ -97,7 +97,7 @@ public class GoodsService {
         update.setAuditRemark(null);
 
         goodsMapper.update(update);
-        replaceImages(goodsId, request.imageUrls());
+        replaceImages(goodsId, request.imageUrls(), request.imageThumbnailUrls());
         tryAutoApprove(goodsId);
         return getDetail(goodsId);
     }
@@ -113,6 +113,7 @@ public class GoodsService {
         List<GoodsImageDO> images = goodsMapper.findImagesByGoodsId(goodsId);
         for (GoodsImageDO image : images) {
             uploadService.deleteObject(image.getImageUrl());
+            uploadService.deleteObject(image.getThumbnailUrl());
         }
 
         conversationMapper.deleteByGoodsId(goodsId);
@@ -211,15 +212,21 @@ public class GoodsService {
 
     private static final String PLACEHOLDER_IMAGE_KEY = "images/2026/04/auditing.webp";
 
-    private void replaceImages(Long goodsId, List<String> imageUrls) {
+    private void replaceImages(Long goodsId, List<String> imageUrls, List<String> imageThumbnailUrls) {
         List<GoodsImageDO> oldImages = goodsMapper.findImagesByGoodsId(goodsId);
 
         Set<String> newKeys = new LinkedHashSet<>();
+        Map<String, String> thumbnailByImageKey = new HashMap<>();
         if (imageUrls != null) {
-            for (String url : imageUrls) {
+            for (int i = 0; i < imageUrls.size(); i++) {
+                String url = imageUrls.get(i);
                 String key = uploadService.extractObjectKey(url.trim());
                 if (StringUtils.hasText(key) && !PLACEHOLDER_IMAGE_KEY.equals(key)) {
                     newKeys.add(key);
+                    String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i);
+                    if (StringUtils.hasText(thumbnailKey)) {
+                        thumbnailByImageKey.put(key, thumbnailKey);
+                    }
                 }
             }
         }
@@ -232,6 +239,7 @@ public class GoodsService {
         for (GoodsImageDO oldImage : oldImages) {
             if (!newKeys.contains(oldImage.getImageUrl())) {
                 uploadService.deleteObject(oldImage.getImageUrl());
+                uploadService.deleteObject(oldImage.getThumbnailUrl());
                 goodsMapper.deleteImageById(oldImage.getId());
             }
         }
@@ -244,17 +252,33 @@ public class GoodsService {
                 GoodsImageDO image = new GoodsImageDO();
                 image.setGoodsId(goodsId);
                 image.setImageUrl(key);
+                image.setThumbnailUrl(thumbnailByImageKey.get(key));
                 image.setSortOrder(idx++);
                 image.setAuditStatus(ImageAuditStatusEnum.PENDING);
                 imagesToInsert.add(image);
             } else {
                 goodsMapper.updateImageSortOrder(existing.getId(), idx++);
+                String thumbnailKey = thumbnailByImageKey.get(key);
+                if (StringUtils.hasText(thumbnailKey) && !thumbnailKey.equals(existing.getThumbnailUrl())) {
+                    goodsMapper.updateImageThumbnail(existing.getId(), thumbnailKey);
+                }
             }
         }
 
         if (!imagesToInsert.isEmpty()) {
             goodsMapper.batchInsertImages(goodsId, imagesToInsert);
         }
+    }
+
+    private String extractThumbnailKey(List<String> imageThumbnailUrls, int index) {
+        if (imageThumbnailUrls == null || index >= imageThumbnailUrls.size()) {
+            return null;
+        }
+        String thumbnailUrl = imageThumbnailUrls.get(index);
+        if (!StringUtils.hasText(thumbnailUrl)) {
+            return null;
+        }
+        return uploadService.extractObjectKey(thumbnailUrl.trim());
     }
 
     private void tryAutoApprove(Long goodsId) {

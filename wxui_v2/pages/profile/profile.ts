@@ -7,6 +7,7 @@ const app = getApp<{ globalData: { baseUrl: string } }>()
 interface ProfilePageData {
   profile: UserProfile
   avatarValue: string
+  avatarChanged: boolean
   goodsItems: GoodsItem[]
   loading: boolean
   loadingMore: boolean
@@ -22,6 +23,7 @@ Component({
   data: {
     profile: { nickname: '', avatarUrl: '' },
     avatarValue: '',
+    avatarChanged: false,
     goodsItems: [],
     loading: false,
     loadingMore: false,
@@ -62,7 +64,8 @@ Component({
         const profile = (res.data?.data as unknown as UserProfile) || { nickname: '', avatarUrl: '' }
         this.setData({
           profile,
-          avatarValue: profile.avatarUrl || ''
+          avatarValue: '',
+          avatarChanged: false
         })
       } catch (_err) {
         this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
@@ -134,6 +137,7 @@ Component({
             this.setData({
               'profile.avatarUrl': upload.url,
               avatarValue: upload.filename,
+              avatarChanged: true,
               info: '头像已上传，保存后生效'
             })
           } catch (err) {
@@ -156,13 +160,15 @@ Component({
 
       this.setData({ saving: true, info: '' })
       try {
+        const data: Record<string, unknown> = { nickname }
+        if (this.data.avatarChanged && this.data.avatarValue) {
+          data.avatarUrl = this.data.avatarValue
+        }
+
         const res = await request<ApiResponse<UserProfile>>({
           url: `${app.globalData.baseUrl}/users/me`,
           method: 'PUT',
-          data: {
-            nickname,
-            avatarUrl: this.data.avatarValue || null
-          } as unknown as Record<string, unknown>
+          data
         })
         if (!res.data?.success) {
           this.setData({ info: res.data?.message || actionFailed('保存') })
@@ -177,7 +183,8 @@ Component({
         }))
         this.setData({
           profile,
-          avatarValue: profile.avatarUrl || this.data.avatarValue,
+          avatarValue: '',
+          avatarChanged: false,
           info: ''
         })
         wx.showToast({ title: '保存成功', icon: 'success' })
@@ -204,7 +211,7 @@ Component({
       }
       const nextStatus = status === 'ON_SALE' ? 'OFF_SHELF' : 'ON_SALE'
       try {
-        const res = await request({
+        const res = await request<ApiResponse>({
           url: `${app.globalData.baseUrl}/goods/${id}/status`,
           method: 'PATCH',
           data: { status: nextStatus }
@@ -231,7 +238,7 @@ Component({
         success: async (res) => {
           if (!res.confirm) return
           try {
-            const deleteRes = await request({
+            const deleteRes = await request<ApiResponse>({
               url: `${app.globalData.baseUrl}/goods/${id}`,
               method: 'DELETE'
             })
@@ -249,7 +256,7 @@ Component({
     },
 
     onUnload() {
-      const hasUnsavedAvatar = this.data.avatarValue && this.data.avatarValue !== this.data.profile.avatarUrl
+      const hasUnsavedAvatar = this.data.avatarChanged
       if (hasUnsavedAvatar) {
         wx.showModal({
           title: '保存头像',

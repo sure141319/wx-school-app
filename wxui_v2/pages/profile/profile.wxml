@@ -11,8 +11,9 @@
     <view class="nick-section">
       <text class="form-label">昵称</text>
       <view class="input-field flex items-center">
-        <input value="{{profile.nickname}}" class="input-field-nick" placeholder="请输入昵称" maxlength="64" bindinput="onNicknameInput" />
+        <input value="{{profile.nickname}}" class="input-field-nick" placeholder="如：软工-231" maxlength="64" bindinput="onNicknameInput" />
       </view>
+      <text class="field-hint">建议填写专业-班级，便于校内交易身份识别</text>
     </view>
 
     <text wx:if="{{info}}" class="block mt-16 text-center text-2xs status-text-error">{{info}}</text>

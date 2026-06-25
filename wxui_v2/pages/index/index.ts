@@ -30,7 +30,7 @@ Component({
     keyword: '',
     categoryId: '',
     page: 0,
-    size: 12,
+    size: 8,
     categoryItems: [{ id: '', name: '推荐' }]
   } as IndexPageData,
 
@@ -93,7 +93,7 @@ Component({
 
     async loadCategories() {
       try {
-        const res = await request<Category[]>({
+        const res = await request<ApiResponse<Category[]>>({
           url: `${app.globalData.baseUrl}/categories`,
           method: 'GET'
         })

@@ -1,5 +1,10 @@
 package com.campustrade.platform.upload.dto.response;
 
-public record UploadResponseDTO(String url, String filename) {
+public record UploadResponseDTO(
+        String url,
+        String filename,
+        String thumbnailUrl,
+        String thumbnailFilename
+) {
 }
 

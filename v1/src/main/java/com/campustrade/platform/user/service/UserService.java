@@ -9,6 +9,7 @@ import com.campustrade.platform.user.mapper.UserMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserService {
@@ -33,24 +34,29 @@ public class UserService {
     @Transactional
     public UserDO updateProfile(Long userId, UpdateProfileRequestDTO request) {
         UserDO user = getById(userId);
-        String newAvatarUrl = request.avatarUrl() == null ? null : request.avatarUrl().trim();
-        
-        // 如果更换了头像，删除旧头像并设置为待审核
-        boolean avatarChanged = newAvatarUrl != null && !newAvatarUrl.equals(user.getAvatarUrl());
+        String requestedAvatarUrl = request.avatarUrl() == null ? null : request.avatarUrl().trim();
+        boolean avatarProvided = StringUtils.hasText(requestedAvatarUrl);
+        String newAvatarUrl = avatarProvided ? normalizeAvatarObjectKey(requestedAvatarUrl) : user.getAvatarUrl();
+
+        boolean avatarChanged = avatarProvided && !newAvatarUrl.equals(user.getAvatarUrl());
         if (avatarChanged) {
             uploadService.deleteObject(user.getAvatarUrl());
         }
-        
+
         userMapper.updateProfile(
                 userId,
                 request.nickname().trim(),
                 newAvatarUrl);
-        
-        // 如果上传了新头像，设置为待审核状态
+
         if (avatarChanged) {
             userMapper.updateAvatarAuditStatus(userId, ImageAuditStatusEnum.PENDING, null, null);
         }
-        
+
         return getById(userId);
+    }
+
+    private String normalizeAvatarObjectKey(String avatarUrl) {
+        String objectKey = uploadService.extractObjectKey(avatarUrl);
+        return objectKey == null ? avatarUrl : objectKey;
     }
 }

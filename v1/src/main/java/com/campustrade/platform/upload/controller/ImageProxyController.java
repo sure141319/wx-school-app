@@ -59,6 +59,40 @@ public class ImageProxyController {
                 .body(new CloseableInputStreamResource(stream, info.size()));
     }
 
+    @GetMapping("/{year}/{month}/thumbs/{filename:.+}")
+    public ResponseEntity<InputStreamResource> serveThumbnail(
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String filename) {
+
+        if (!year.matches("^\\d{4}$")) {
+            throw new com.campustrade.platform.common.AppException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid year parameter");
+        }
+        if (!month.matches("^(0[1-9]|1[0-2])$")) {
+            throw new com.campustrade.platform.common.AppException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid month parameter");
+        }
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            throw new com.campustrade.platform.common.AppException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid filename parameter");
+        }
+
+        String objectKey = "images/" + year + "/" + month + "/thumbs/" + filename;
+
+        StatObjectResponse info = uploadService.getImageInfo(objectKey);
+        InputStream stream = uploadService.getImageStream(objectKey);
+
+        MediaType mediaType = resolveMediaType(info.contentType());
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .contentLength(info.size())
+                .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS).cachePublic())
+                .header(HttpHeaders.ETAG, info.etag())
+                .body(new CloseableInputStreamResource(stream, info.size()));
+    }
+
     private static class CloseableInputStreamResource extends InputStreamResource {
 
         private final InputStream inputStream;

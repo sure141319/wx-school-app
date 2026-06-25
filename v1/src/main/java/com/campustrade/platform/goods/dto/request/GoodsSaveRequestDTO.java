@@ -16,7 +16,8 @@ public record GoodsSaveRequestDTO(
         @NotBlank @Size(max = 50) String conditionLevel,
         @NotBlank @Size(max = 120) String campusLocation,
         Long categoryId,
-        @NotEmpty @Size(max = 9) List<@NotBlank @Size(max = 500) String> imageUrls
+        @NotEmpty @Size(max = 9) List<@NotBlank @Size(max = 500) String> imageUrls,
+        @Size(max = 9) List<@Size(max = 500) String> imageThumbnailUrls
 ) {
 }
 

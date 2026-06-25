@@ -49,7 +49,7 @@
         </view>
         <view class="flex flex-col gap-6">
           <text class="text-base font-semibold text-text-main">{{goods.seller.nickname}}</text>
-          <text class="text-2xs text-text-muted">平台认证用户，建议校内当面交易</text>
+          <text class="text-2xs text-text-muted">建议校内当面交易，谨防线上诈骗</text>
         </view>
       </view>
 

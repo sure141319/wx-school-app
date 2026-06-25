@@ -66,4 +66,6 @@ public interface GoodsMapper {
     int deleteImageById(@Param("id") Long id);
 
     int updateImageSortOrder(@Param("id") Long id, @Param("sortOrder") Integer sortOrder);
+
+    int updateImageThumbnail(@Param("id") Long id, @Param("thumbnailUrl") String thumbnailUrl);
 }

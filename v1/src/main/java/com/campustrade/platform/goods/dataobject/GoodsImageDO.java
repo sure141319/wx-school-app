@@ -13,6 +13,7 @@ public class GoodsImageDO {
     private Long id;
     private Long goodsId;
     private String imageUrl;
+    private String thumbnailUrl;
     private Integer sortOrder = 0;
     private ImageAuditStatusEnum auditStatus = ImageAuditStatusEnum.PENDING;
     private String auditRemark;

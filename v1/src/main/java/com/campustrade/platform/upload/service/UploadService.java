@@ -16,11 +16,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -32,6 +44,10 @@ public class UploadService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif");
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
+    private static final int THUMBNAIL_MAX_SIZE = 480;
+    private static final float THUMBNAIL_QUALITY = 0.78f;
+    private static final String THUMBNAIL_FORMAT = "jpg";
+    private static final String THUMBNAIL_CONTENT_TYPE = "image/jpeg";
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UploadService.class);
 
     private final MinioClient minioClient;
@@ -69,7 +85,94 @@ public class UploadService {
         String url = StringUtils.hasText(minioProperties.getPublicBaseUrl())
                 ? buildPublicUrl(objectKey)
                 : buildProxyUrl(objectKey);
-        return new UploadResponseDTO(url, objectKey);
+        String thumbnailObjectKey = storeThumbnail(file, objectKey);
+        String thumbnailUrl = StringUtils.hasText(thumbnailObjectKey)
+                ? (StringUtils.hasText(minioProperties.getPublicBaseUrl())
+                ? buildPublicUrl(thumbnailObjectKey)
+                : buildProxyUrl(thumbnailObjectKey))
+                : null;
+        return new UploadResponseDTO(url, objectKey, thumbnailUrl, thumbnailObjectKey);
+    }
+
+    private String storeThumbnail(MultipartFile file, String objectKey) {
+        try (InputStream inputStream = file.getInputStream()) {
+            BufferedImage source = ImageIO.read(inputStream);
+            if (source == null) {
+                log.warn("Skip thumbnail generation for unsupported image format: {}", objectKey);
+                return null;
+            }
+
+            BufferedImage thumbnail = resizeForThumbnail(source);
+            byte[] bytes = encodeJpeg(thumbnail);
+            if (bytes.length == 0) {
+                log.warn("Skip thumbnail generation because JPEG encoder is unavailable: {}", objectKey);
+                return null;
+            }
+
+            String thumbnailObjectKey = buildThumbnailObjectKey(objectKey);
+            try (ByteArrayInputStream thumbnailInput = new ByteArrayInputStream(bytes)) {
+                minioClient.putObject(
+                        PutObjectArgs.builder()
+                                .bucket(minioProperties.getBucket())
+                                .object(thumbnailObjectKey)
+                                .stream(thumbnailInput, bytes.length, -1)
+                                .contentType(THUMBNAIL_CONTENT_TYPE)
+                                .build());
+            }
+            return thumbnailObjectKey;
+        } catch (Exception ex) {
+            log.warn("Failed to generate thumbnail for object: {}", objectKey, ex);
+            return null;
+        }
+    }
+
+    private BufferedImage resizeForThumbnail(BufferedImage source) {
+        int sourceWidth = source.getWidth();
+        int sourceHeight = source.getHeight();
+        double scale = Math.min(
+                (double) THUMBNAIL_MAX_SIZE / sourceWidth,
+                (double) THUMBNAIL_MAX_SIZE / sourceHeight
+        );
+        scale = Math.min(1.0d, scale);
+
+        int targetWidth = Math.max(1, (int) Math.round(sourceWidth * scale));
+        int targetHeight = Math.max(1, (int) Math.round(sourceHeight * scale));
+        BufferedImage target = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+
+        Graphics2D graphics = target.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setColor(Color.WHITE);
+            graphics.fillRect(0, 0, targetWidth, targetHeight);
+            graphics.drawImage(source, 0, 0, targetWidth, targetHeight, null);
+        } finally {
+            graphics.dispose();
+        }
+        return target;
+    }
+
+    private byte[] encodeJpeg(BufferedImage image) throws java.io.IOException {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(THUMBNAIL_FORMAT);
+        if (!writers.hasNext()) {
+            return new byte[0];
+        }
+
+        ImageWriter writer = writers.next();
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+             ImageOutputStream imageOutput = ImageIO.createImageOutputStream(output)) {
+            writer.setOutput(imageOutput);
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            if (params.canWriteCompressed()) {
+                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                params.setCompressionQuality(THUMBNAIL_QUALITY);
+            }
+            writer.write(null, new IIOImage(image, null, null), params);
+            return output.toByteArray();
+        } finally {
+            writer.dispose();
+        }
     }
 
     private void ensureBucketReady() {
@@ -130,6 +233,16 @@ public class UploadService {
         String prefix = LocalDate.now(ZoneOffset.UTC).format(OBJECT_PREFIX_FORMATTER);
         String filename = UUID.randomUUID().toString().replace("-", "") + extension;
         return "images/" + prefix + "/" + filename;
+    }
+
+    private String buildThumbnailObjectKey(String objectKey) {
+        int slashIndex = objectKey.lastIndexOf('/');
+        String directory = slashIndex >= 0 ? objectKey.substring(0, slashIndex) : "";
+        String filename = slashIndex >= 0 ? objectKey.substring(slashIndex + 1) : objectKey;
+        int dotIndex = filename.lastIndexOf('.');
+        String basename = dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
+        String prefix = StringUtils.hasText(directory) ? directory + "/thumbs/" : "thumbs/";
+        return prefix + basename + "_thumb." + THUMBNAIL_FORMAT;
     }
 
     private String resolveContentType(MultipartFile file) {

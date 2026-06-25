@@ -93,7 +93,7 @@ Component({
 
     async loadCategories() {
       try {
-        const res = await request<Category[]>({
+        const res = await request<ApiResponse<Category[]>>({
           url: `${app.globalData.baseUrl}/categories`,
           method: 'GET'
         })
@@ -182,6 +182,7 @@ Component({
         count: remain,
         mediaType: ['image'],
         sourceType: ['album', 'camera'],
+        sizeType: ['compressed'],
         success: async (res) => {
           const files = res.tempFiles || []
           wx.showLoading({ title: '上传中...', mask: true })
@@ -250,20 +251,21 @@ Component({
         conditionLevel: form.conditionLevel,
         campusLocation: form.campusLocation,
         categoryId: form.categoryId || null,
-        imageUrls: form.photos.map(item => item.filename)
+        imageUrls: form.photos.map(item => item.filename),
+        imageThumbnailUrls: form.photos.map(item => item.thumbnailFilename || item.thumbnailUrl || '')
       }
 
       this.setData({ submitting: true, info: '' })
       try {
-        let res
+        let res: WxResponse<ApiResponse>
         if (this.data.goodsId) {
-          res = await request({
+          res = await request<ApiResponse>({
             url: `${app.globalData.baseUrl}/goods/${this.data.goodsId}`,
             method: 'PUT',
             data: payload
           })
         } else {
-          res = await request({
+          res = await request<ApiResponse>({
             url: `${app.globalData.baseUrl}/goods`,
             method: 'POST',
             data: payload

@@ -302,11 +302,11 @@ Component({
 
       this.setData({ sendingCode: true, message: '' })
       const app = getApp<{ globalData: { baseUrl: string } }>()
-      request({
+      request<ApiResponse>({
         url: `${app.globalData.baseUrl}/auth/email-code`,
         method: 'POST',
         data: { email, purpose: purpose as string }
-      }).then((res: WxResponse<ApiResponse>) => {
+      }).then((res) => {
         if (res.data?.success) {
           this.startCooldown(codeType)
           this.setData({ message: '验证码已发送，请查收邮箱' })
