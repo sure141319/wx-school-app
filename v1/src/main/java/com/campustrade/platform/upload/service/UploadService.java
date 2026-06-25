@@ -96,34 +96,55 @@ public class UploadService {
 
     private String storeThumbnail(MultipartFile file, String objectKey) {
         try (InputStream inputStream = file.getInputStream()) {
-            BufferedImage source = ImageIO.read(inputStream);
-            if (source == null) {
-                log.warn("Skip thumbnail generation for unsupported image format: {}", objectKey);
-                return null;
-            }
-
-            BufferedImage thumbnail = resizeForThumbnail(source);
-            byte[] bytes = encodeJpeg(thumbnail);
-            if (bytes.length == 0) {
-                log.warn("Skip thumbnail generation because JPEG encoder is unavailable: {}", objectKey);
-                return null;
-            }
-
-            String thumbnailObjectKey = buildThumbnailObjectKey(objectKey);
-            try (ByteArrayInputStream thumbnailInput = new ByteArrayInputStream(bytes)) {
-                minioClient.putObject(
-                        PutObjectArgs.builder()
-                                .bucket(minioProperties.getBucket())
-                                .object(thumbnailObjectKey)
-                                .stream(thumbnailInput, bytes.length, -1)
-                                .contentType(THUMBNAIL_CONTENT_TYPE)
-                                .build());
-            }
-            return thumbnailObjectKey;
+            return storeThumbnail(inputStream, objectKey);
         } catch (Exception ex) {
             log.warn("Failed to generate thumbnail for object: {}", objectKey, ex);
             return null;
         }
+    }
+
+    public String generateThumbnailForObject(String urlOrObjectKey) {
+        String objectKey = extractObjectKey(urlOrObjectKey);
+        if (!StringUtils.hasText(objectKey)) {
+            return null;
+        }
+
+        ensureBucketReady();
+        try (InputStream inputStream = getImageStream(objectKey)) {
+            return storeThumbnail(inputStream, objectKey);
+        } catch (AppException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.warn("Failed to backfill thumbnail for object: {}", objectKey, ex);
+            return null;
+        }
+    }
+
+    private String storeThumbnail(InputStream inputStream, String objectKey) throws Exception {
+        BufferedImage source = ImageIO.read(inputStream);
+        if (source == null) {
+            log.warn("Skip thumbnail generation for unsupported image format: {}", objectKey);
+            return null;
+        }
+
+        BufferedImage thumbnail = resizeForThumbnail(source);
+        byte[] bytes = encodeJpeg(thumbnail);
+        if (bytes.length == 0) {
+            log.warn("Skip thumbnail generation because JPEG encoder is unavailable: {}", objectKey);
+            return null;
+        }
+
+        String thumbnailObjectKey = buildThumbnailObjectKey(objectKey);
+        try (ByteArrayInputStream thumbnailInput = new ByteArrayInputStream(bytes)) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(minioProperties.getBucket())
+                            .object(thumbnailObjectKey)
+                            .stream(thumbnailInput, bytes.length, -1)
+                            .contentType(THUMBNAIL_CONTENT_TYPE)
+                            .build());
+        }
+        return thumbnailObjectKey;
     }
 
     private BufferedImage resizeForThumbnail(BufferedImage source) {

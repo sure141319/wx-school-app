@@ -937,6 +937,56 @@ input, textarea {
   opacity: 0.48;
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin: 24rpx 0;
+  color: var(--color-text-soft);
+  font-size: 24rpx;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  display: block;
+  height: 2rpx;
+  flex: 1;
+  background: #E6EDF5;
+  content: "";
+}
+
+.wechat-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  width: 100%;
+  min-height: 92rpx;
+  border: 2rpx solid rgba(22, 138, 74, 0.22);
+  border-radius: 28rpx;
+  background: #EAF8EF;
+  color: #107C41;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.wechat-login-btn[disabled] {
+  opacity: 0.56;
+}
+
+.wechat-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 999rpx;
+  background: #1AAD19;
+  color: #FFFFFF;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
 .email-history {
   position: absolute;
   top: calc(100% + 12rpx);

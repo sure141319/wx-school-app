@@ -48,6 +48,7 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar   # 运行打包好的 JAR
 | `REDIS_HOST` / `REDIS_PORT` | Redis 连接 | localhost:6379 |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM` | QQ 邮箱 SMTP 配置 | — |
 | `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | MinIO 配置 | — |
+| `MINIO_PUBLIC_BASE_URL` | 可公开访问的对象存储或 CDN 基础地址，配置后小程序图片 URL 直接走该地址 | — |
 
 ### 小程序 (wxui_v2/)
 
@@ -170,6 +171,6 @@ python -m http.server 5173     # 启动静态文件服务
 
 - **后端**: `https://www.ahut-campus.site/api/v1`
 - **管理后台**: 静态文件部署，连接同一 API
-- **图片存储**: MinIO (生产 bucket: `campus-trade`)
+- **图片存储**: MinIO (生产 bucket: `campus-trade`)；生产建议配置 `MINIO_PUBLIC_BASE_URL` 指向对象存储公开域名或 CDN，减少后端图片代理流量
 - **数据库**: MySQL (Flyway 自动迁移)
 - **小程序**: 微信审核发布

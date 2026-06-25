@@ -52,6 +52,10 @@ public interface GoodsMapper {
 
     List<GoodsImageDO> findCoverImagesByGoodsIds(@Param("goodsIds") List<Long> goodsIds);
 
+    List<GoodsImageDO> findImagesMissingThumbnails(@Param("limit") int limit);
+
+    long countImagesMissingThumbnails();
+
     int deleteImagesByGoodsId(@Param("goodsId") Long goodsId);
 
     int batchInsertImages(@Param("goodsId") Long goodsId, @Param("images") List<GoodsImageDO> images);

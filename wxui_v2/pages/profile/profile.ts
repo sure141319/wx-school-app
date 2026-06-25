@@ -3,6 +3,7 @@ import { uploadImage } from '../../utils/upload'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
+const QQ_REGEX = /^\d{5,12}$/
 
 interface ProfilePageData {
   profile: UserProfile
@@ -21,7 +22,7 @@ interface ProfilePageData {
 
 Component({
   data: {
-    profile: { nickname: '', avatarUrl: '' },
+    profile: { nickname: '', avatarUrl: '', wechatId: '', qq: '' },
     avatarValue: '',
     avatarChanged: false,
     goodsItems: [],
@@ -123,6 +124,14 @@ Component({
       this.setData({ 'profile.nickname': e.detail.value, info: '' })
     },
 
+    onWechatIdInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'profile.wechatId': e.detail.value, info: '' })
+    },
+
+    onQqInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'profile.qq': e.detail.value, info: '' })
+    },
+
     chooseAvatar() {
       wx.chooseMedia({
         count: 1,
@@ -153,14 +162,20 @@ Component({
     async saveProfile() {
       const nickname = (this.data.profile.nickname || '').trim()
       if (!nickname) {
-        this.setData({ info: '请输入昵称' })
+        this.setData({ info: '请输入专业昵称' })
+        return
+      }
+      const wechatId = (this.data.profile.wechatId || '').trim()
+      const qq = (this.data.profile.qq || '').trim()
+      if (qq && !QQ_REGEX.test(qq)) {
+        this.setData({ info: 'QQ号需为5-12位数字' })
         return
       }
       if (this.data.saving) return
 
       this.setData({ saving: true, info: '' })
       try {
-        const data: Record<string, unknown> = { nickname }
+        const data: Record<string, unknown> = { nickname, wechatId, qq }
         if (this.data.avatarChanged && this.data.avatarValue) {
           data.avatarUrl = this.data.avatarValue
         }
@@ -179,7 +194,10 @@ Component({
         wx.setStorageSync('user', JSON.stringify({
           ...user,
           nickname: profile.nickname,
-          avatarUrl: profile.avatarUrl
+          avatarUrl: profile.avatarUrl,
+          wechatOpenid: profile.wechatOpenid,
+          wechatId: profile.wechatId,
+          qq: profile.qq
         }))
         this.setData({
           profile,

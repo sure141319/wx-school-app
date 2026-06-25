@@ -4,7 +4,10 @@ public record UserProfileResponseDTO(
         Long id,
         String email,
         String nickname,
-        String avatarUrl
+        String avatarUrl,
+        String wechatOpenid,
+        String wechatId,
+        String qq
 ) {
 }
 

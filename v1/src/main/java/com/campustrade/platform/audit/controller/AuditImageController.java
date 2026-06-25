@@ -3,6 +3,7 @@ package com.campustrade.platform.audit.controller;
 import com.campustrade.platform.audit.dto.request.ImageRejectRequestDTO;
 import com.campustrade.platform.audit.dto.response.AuditImageResponseDTO;
 import com.campustrade.platform.audit.dto.response.AvatarAuditResponseDTO;
+import com.campustrade.platform.audit.dto.response.ThumbnailBackfillResponseDTO;
 import com.campustrade.platform.audit.service.AuditImageService;
 import com.campustrade.platform.common.ApiResponse;
 import com.campustrade.platform.common.PageResponse;
@@ -56,6 +57,13 @@ public class AuditImageController {
     }
 
     // ==================== 头像审核接口 ====================
+
+    @PostMapping("/thumbnails/backfill")
+    public ApiResponse<ThumbnailBackfillResponseDTO> backfillThumbnails(
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok("历史缩略图回填完成", auditImageService.backfillMissingThumbnails(principal.userId(), size));
+    }
 
     @GetMapping("/avatars")
     public ApiResponse<PageResponse<AvatarAuditResponseDTO>> listAvatars(

@@ -14,6 +14,8 @@ public interface UserMapper {
 
     UserDO findByEmail(@Param("email") String email);
 
+    UserDO findByWechatOpenid(@Param("wechatOpenid") String wechatOpenid);
+
     int countByEmail(@Param("email") String email);
 
     int insert(UserDO user);
@@ -29,7 +31,9 @@ public interface UserMapper {
 
     int updateProfile(@Param("id") Long id,
                       @Param("nickname") String nickname,
-                      @Param("avatarUrl") String avatarUrl);
+                      @Param("avatarUrl") String avatarUrl,
+                      @Param("wechatId") String wechatId,
+                      @Param("qq") String qq);
 
     int updateAvatarAuditStatus(@Param("id") Long id,
                                 @Param("avatarAuditStatus") ImageAuditStatusEnum avatarAuditStatus,

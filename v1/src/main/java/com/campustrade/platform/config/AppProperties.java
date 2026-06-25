@@ -32,6 +32,7 @@ public class AppProperties {
     private Cors cors = new Cors();
     private ImageAudit imageAudit = new ImageAudit();
     private Monitoring monitoring = new Monitoring();
+    private Wechat wechat = new Wechat();
 
     @Getter
     @Setter
@@ -125,5 +126,14 @@ public class AppProperties {
     public static class Monitoring {
         @Min(1)
         private long goodsListSlowThresholdMs = 300;
+    }
+
+    @Getter
+    @Setter
+    public static class Wechat {
+        private String appId = "";
+        private String appSecret = "";
+        @NotBlank
+        private String code2SessionUrl = "https://api.weixin.qq.com/sns/jscode2session";
     }
 }

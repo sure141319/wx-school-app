@@ -25,7 +25,10 @@ public class UserProfileAssembler {
                 user.getId(),
                 user.getEmail(),
                 user.getNickname(),
-                toVisibleAvatarUrl(user)
+                toVisibleAvatarUrl(user),
+                user.getWechatOpenid(),
+                user.getWechatId(),
+                user.getQq()
         );
     }
 

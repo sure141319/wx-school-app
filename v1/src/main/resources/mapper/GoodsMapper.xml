@@ -240,6 +240,24 @@
         ORDER BY gi.goods_id ASC
     </select>
 
+    <select id="findImagesMissingThumbnails" resultMap="GoodsImageMap">
+        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+        FROM goods_image_do
+        WHERE image_url IS NOT NULL
+          AND image_url &lt;&gt; ''
+          AND (thumbnail_url IS NULL OR thumbnail_url = '')
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countImagesMissingThumbnails" resultType="long">
+        SELECT COUNT(1)
+        FROM goods_image_do
+        WHERE image_url IS NOT NULL
+          AND image_url &lt;&gt; ''
+          AND (thumbnail_url IS NULL OR thumbnail_url = '')
+    </select>
+
     <delete id="deleteImagesByGoodsId">
         DELETE FROM goods_image_do WHERE goods_id = #{goodsId}
     </delete>

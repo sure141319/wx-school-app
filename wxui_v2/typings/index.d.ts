@@ -59,6 +59,7 @@ interface SellerInfo {
   nickname: string
   avatarUrl?: string
   email?: string
+  wechatId?: string
   qq?: string
 }
 
@@ -72,6 +73,8 @@ interface UserProfile {
   nickname: string
   avatarUrl: string
   email?: string
+  wechatOpenid?: string
+  wechatId?: string
   qq?: string
 }
 

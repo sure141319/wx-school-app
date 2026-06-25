@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -33,13 +34,15 @@ public class JwtTokenProvider {
     public String createToken(Long userId, String email) {
         Instant now = Instant.now();
         Instant expiration = now.plus(appProperties.getJwtExpirationMinutes(), ChronoUnit.MINUTES);
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(userId))
-                .claim("email", email)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
-                .signWith(key)
-                .compact();
+                .signWith(key);
+        if (StringUtils.hasText(email)) {
+            builder.claim("email", email);
+        }
+        return builder.compact();
     }
 
     public UserPrincipal parseToken(String token) {

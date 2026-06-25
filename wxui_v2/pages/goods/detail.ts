@@ -94,6 +94,17 @@ Component({
           wx.showToast({ title: 'QQ 号已复制', icon: 'success' })
         }
       })
+    },
+
+    copyWechatId(e: WechatMiniprogram.TouchEvent) {
+      const wechatId = e.currentTarget.dataset.wechatId as string
+      if (!wechatId) return
+      wx.setClipboardData({
+        data: wechatId,
+        success() {
+          wx.showToast({ title: '微信号已复制', icon: 'success' })
+        }
+      })
     }
   }
 })

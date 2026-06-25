@@ -5,6 +5,7 @@ import com.campustrade.platform.auth.dto.request.LoginRequestDTO;
 import com.campustrade.platform.auth.dto.request.RegisterRequestDTO;
 import com.campustrade.platform.auth.dto.request.ResetPasswordRequestDTO;
 import com.campustrade.platform.auth.dto.request.SendCodeRequestDTO;
+import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.dto.response.AuthResponseDTO;
 import com.campustrade.platform.auth.dto.response.SendCodeResponseDTO;
 import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
@@ -40,6 +41,7 @@ public class AuthService {
     private final AuthAssembler authAssembler;
     private final UserProfileAssembler userProfileAssembler;
     private final VerificationCodeStore verificationCodeStore;
+    private final WechatSessionClient wechatSessionClient;
 
     public AuthService(UserMapper userMapper,
                        PasswordEncoder passwordEncoder,
@@ -48,7 +50,8 @@ public class AuthService {
                        AppProperties appProperties,
                        AuthAssembler authAssembler,
                        UserProfileAssembler userProfileAssembler,
-                       VerificationCodeStore verificationCodeStore) {
+                       VerificationCodeStore verificationCodeStore,
+                       WechatSessionClient wechatSessionClient) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
@@ -57,6 +60,7 @@ public class AuthService {
         this.authAssembler = authAssembler;
         this.userProfileAssembler = userProfileAssembler;
         this.verificationCodeStore = verificationCodeStore;
+        this.wechatSessionClient = wechatSessionClient;
     }
 
     @Transactional
@@ -143,6 +147,23 @@ public class AuthService {
         }
 
         userMapper.updateAuthState(user.getId(), 0, null);
+        String token = tokenProvider.createToken(user.getId(), user.getEmail());
+        return authAssembler.toAuthResponse(token, user);
+    }
+
+    @Transactional
+    public AuthResponseDTO wechatLogin(WechatLoginRequestDTO request) {
+        WechatSession session = wechatSessionClient.exchange(request.code().trim());
+        UserDO user = userMapper.findByWechatOpenid(session.openid());
+        if (user == null) {
+            user = new UserDO();
+            user.setWechatOpenid(session.openid());
+            user.setNickname(defaultWechatNickname(session.openid()));
+            user.setFailedLoginCount(0);
+            userMapper.insert(user);
+            user = userMapper.findById(user.getId());
+        }
+
         String token = tokenProvider.createToken(user.getId(), user.getEmail());
         return authAssembler.toAuthResponse(token, user);
     }
@@ -235,6 +256,12 @@ public class AuthService {
 
     private boolean existsByEmail(String email) {
         return userMapper.countByEmail(email) > 0;
+    }
+
+    private String defaultWechatNickname(String openid) {
+        int suffixLength = Math.min(4, openid.length());
+        String suffix = openid.substring(openid.length() - suffixLength);
+        return "微信用户" + suffix;
     }
 
     private String rootCauseMessage(Throwable throwable) {

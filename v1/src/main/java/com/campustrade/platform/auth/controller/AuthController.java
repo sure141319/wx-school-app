@@ -5,6 +5,7 @@ import com.campustrade.platform.auth.dto.request.LoginRequestDTO;
 import com.campustrade.platform.auth.dto.request.RegisterRequestDTO;
 import com.campustrade.platform.auth.dto.request.ResetPasswordRequestDTO;
 import com.campustrade.platform.auth.dto.request.SendCodeRequestDTO;
+import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.dto.response.AuthResponseDTO;
 import com.campustrade.platform.auth.dto.response.SendCodeResponseDTO;
 import com.campustrade.platform.common.ApiResponse;
@@ -42,6 +43,11 @@ public class AuthController {
         return ApiResponse.ok("登录成功", authService.login(request));
     }
 
+    @PostMapping("/wechat-login")
+    public ApiResponse<AuthResponseDTO> wechatLogin(@Valid @RequestBody WechatLoginRequestDTO request) {
+        return ApiResponse.ok("微信登录成功", authService.wechatLogin(request));
+    }
+
     @PostMapping("/reset-password")
     public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         authService.resetPassword(request);
@@ -53,4 +59,3 @@ public class AuthController {
         return ApiResponse.ok(authService.me(AuthUtils.currentUser()));
     }
 }
-

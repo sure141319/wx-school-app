@@ -11,10 +11,13 @@ import java.time.LocalDateTime;
 public class UserDO {
 
     private Long id;
+    private String wechatOpenid;
     private String email;
     private String passwordHash;
     private String nickname;
     private String avatarUrl;
+    private String wechatId;
+    private String qq;
     private ImageAuditStatusEnum avatarAuditStatus = ImageAuditStatusEnum.APPROVED;
     private String avatarAuditRemark;
     private Long avatarAuditedBy;

@@ -17,6 +17,7 @@ interface AuthPageData {
   sendCodeTimer: number | null
   resetCodeTimer: number | null
   sendingCode: boolean
+  wechatLoading: boolean
   registerForm: RegisterForm
   loginForm: AuthForm
   resetForm: ResetForm
@@ -49,6 +50,7 @@ Component({
     sendCodeTimer: null,
     resetCodeTimer: null,
     sendingCode: false,
+    wechatLoading: false,
     registerForm: { email: '', code: '', password: '', nickname: '' },
     loginForm: { email: '', password: '' },
     resetForm: { email: '', code: '', newPassword: '', confirmPassword: '' },
@@ -346,6 +348,52 @@ Component({
         this.setData({ message: COMMON_MESSAGES.NETWORK_ERROR })
       }).finally(() => {
         this.setData({ loading: false })
+      })
+    },
+
+    handleWechatLogin() {
+      if (this.data.wechatLoading) return
+      this.setData({ wechatLoading: true, message: '' })
+      const app = getApp<{ globalData: { baseUrl: string } }>()
+
+      this.getWechatLoginCode()
+        .then((code) => request<ApiResponse<{ token: string; user: UserProfile }>>({
+          url: `${app.globalData.baseUrl}/auth/wechat-login`,
+          method: 'POST',
+          data: { code }
+        }))
+        .then((res) => {
+          if (res.data?.success && res.data?.data) {
+            clearTokenCache()
+            wx.setStorageSync('token', res.data.data.token)
+            wx.setStorageSync('user', JSON.stringify(res.data.data.user))
+            wx.showToast({ title: '微信登录成功', icon: 'success' })
+            setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+          } else {
+            this.setData({ message: res.data?.message || actionFailed('微信登录') })
+          }
+        })
+        .catch(() => {
+          this.setData({ message: COMMON_MESSAGES.NETWORK_ERROR })
+        })
+        .finally(() => {
+          this.setData({ wechatLoading: false })
+        })
+    },
+
+    getWechatLoginCode(): Promise<string> {
+      return new Promise((resolve, reject) => {
+        wx.login({
+          timeout: 10000,
+          success: (res) => {
+            if (res.code) {
+              resolve(res.code)
+            } else {
+              reject(new Error(res.errMsg || 'wx.login failed'))
+            }
+          },
+          fail: reject
+        })
       })
     },
 

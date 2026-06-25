@@ -4,6 +4,7 @@ import com.campustrade.platform.audit.dataobject.AuditImageRecordDO;
 import com.campustrade.platform.audit.dataobject.AvatarAuditRecordDO;
 import com.campustrade.platform.audit.dto.response.AuditImageResponseDTO;
 import com.campustrade.platform.audit.dto.response.AvatarAuditResponseDTO;
+import com.campustrade.platform.audit.dto.response.ThumbnailBackfillResponseDTO;
 import com.campustrade.platform.audit.mapper.AuditImageMapper;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.common.PageResponse;
@@ -25,6 +26,7 @@ import java.util.List;
 
 @Service
 public class AuditImageService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuditImageService.class);
 
     private final AuditImageMapper auditImageMapper;
     private final GoodsMapper goodsMapper;
@@ -77,6 +79,35 @@ public class AuditImageService {
         updateAuditStatus(imageId, reviewerUserId, ImageAuditStatusEnum.REJECTED, normalizedRemark);
         rejectGoods(imageId, normalizedRemark);
         return getAuditImageOrThrow(imageId);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = "goods:list", allEntries = true)
+    public ThumbnailBackfillResponseDTO backfillMissingThumbnails(Long reviewerUserId, int limit) {
+        ensureReviewer(reviewerUserId);
+
+        List<GoodsImageDO> images = goodsMapper.findImagesMissingThumbnails(limit);
+        int generated = 0;
+        int skipped = 0;
+        int failed = 0;
+
+        for (GoodsImageDO image : images) {
+            try {
+                String thumbnailKey = uploadService.generateThumbnailForObject(image.getImageUrl());
+                if (StringUtils.hasText(thumbnailKey)) {
+                    goodsMapper.updateImageThumbnail(image.getId(), thumbnailKey);
+                    generated++;
+                } else {
+                    skipped++;
+                }
+            } catch (RuntimeException ex) {
+                failed++;
+                log.warn("Failed to backfill thumbnail for image id {}: {}", image.getId(), ex.getMessage());
+            }
+        }
+
+        long remaining = goodsMapper.countImagesMissingThumbnails();
+        return new ThumbnailBackfillResponseDTO(images.size(), generated, skipped, failed, remaining);
     }
 
     private void updateAuditStatus(Long imageId,

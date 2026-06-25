@@ -16,7 +16,7 @@
     <text class="display-title mt-16 mb-16">
       {{mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码'}}
     </text>
-    <text class="helper-text">仅支持 QQ 邮箱注册，用于校内交易联系。</text>
+    <text class="helper-text">支持 QQ 邮箱/微信快捷登录</text>
   </view>
 
   <block wx:if="{{mode === 'login'}}">
@@ -43,6 +43,14 @@
       <button class="btn btn-primary btn-full" disabled="{{loading || !isLoginFormValid}}" loading="{{loading}}" bindtap="handleLogin">
         {{loading ? '登录中...' : '登录'}}
       </button>
+      <view class="auth-divider">
+        <text>或</text>
+      </view>
+      <button class="wechat-login-btn" disabled="{{wechatLoading || loading}}" loading="{{wechatLoading}}" bindtap="handleWechatLogin">
+        <text class="wechat-mark">微</text>
+        <text>{{wechatLoading ? '微信登录中...' : '微信快捷登录'}}</text>
+      </button>
+      <text class="field-hint">首次微信快捷登录后，请补充联系方式。</text>
       <view class="text-link" bindtap="goToReset">
         <text>忘记密码？</text>
       </view>

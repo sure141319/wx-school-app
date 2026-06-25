@@ -43,10 +43,15 @@ public class UserService {
             uploadService.deleteObject(user.getAvatarUrl());
         }
 
+        String wechatId = normalizeOptional(request.wechatId(), user.getWechatId());
+        String qq = normalizeOptional(request.qq(), user.getQq());
+
         userMapper.updateProfile(
                 userId,
                 request.nickname().trim(),
-                newAvatarUrl);
+                newAvatarUrl,
+                wechatId,
+                qq);
 
         if (avatarChanged) {
             userMapper.updateAvatarAuditStatus(userId, ImageAuditStatusEnum.PENDING, null, null);
@@ -58,5 +63,13 @@ public class UserService {
     private String normalizeAvatarObjectKey(String avatarUrl) {
         String objectKey = uploadService.extractObjectKey(avatarUrl);
         return objectKey == null ? avatarUrl : objectKey;
+    }
+
+    private String normalizeOptional(String value, String currentValue) {
+        if (value == null) {
+            return currentValue;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

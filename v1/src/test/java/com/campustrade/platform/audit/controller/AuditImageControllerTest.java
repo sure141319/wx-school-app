@@ -1,6 +1,8 @@
 package com.campustrade.platform.audit.controller;
 
+import com.campustrade.platform.audit.dto.response.ThumbnailBackfillResponseDTO;
 import com.campustrade.platform.audit.service.AuditImageService;
+import com.campustrade.platform.common.ApiResponse;
 import com.campustrade.platform.security.UserPrincipal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +13,8 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class AuditImageControllerTest {
 
@@ -30,6 +34,19 @@ class AuditImageControllerTest {
         assertEquals("图片已驳回", controller.reject(1L, null).message());
         assertEquals("头像审核通过", controller.approveAvatar(1L).message());
         assertEquals("头像已驳回", controller.rejectAvatar(1L, null).message());
+    }
+
+    @Test
+    void backfillThumbnailsUsesCurrentReviewerAndRequestedBatchSize() {
+        authenticateReviewer();
+        ThumbnailBackfillResponseDTO payload = new ThumbnailBackfillResponseDTO(2, 1, 1, 0, 3);
+        when(auditImageService.backfillMissingThumbnails(1L, 20)).thenReturn(payload);
+
+        ApiResponse<ThumbnailBackfillResponseDTO> response = controller.backfillThumbnails(20);
+
+        assertEquals("历史缩略图回填完成", response.message());
+        assertEquals(payload, response.data());
+        verify(auditImageService).backfillMissingThumbnails(1L, 20);
     }
 
     private void authenticateReviewer() {

@@ -16,6 +16,21 @@
       <text class="field-hint">建议填写专业-班级，便于校内交易身份识别</text>
     </view>
 
+    <view class="nick-section">
+      <text class="form-label">微信号</text>
+      <view class="input-field flex items-center">
+        <input value="{{profile.wechatId}}" class="input-field-nick" placeholder="填写后便于同学联系" maxlength="64" bindinput="onWechatIdInput" />
+      </view>
+    </view>
+
+    <view class="nick-section">
+      <text class="form-label">QQ号</text>
+      <view class="input-field flex items-center">
+        <input value="{{profile.qq}}" class="input-field-nick" type="number" placeholder="填写后便于同学联系" maxlength="12" bindinput="onQqInput" />
+      </view>
+      <text class="field-hint">微信号和QQ号用于校内交易联系，未填写将无法联系到你</text>
+    </view>
+
     <text wx:if="{{info}}" class="block mt-16 text-center text-2xs status-text-error">{{info}}</text>
     <button class="btn btn-primary btn-full mt-20" loading="{{saving}}" disabled="{{saving}}" bindtap="saveProfile">
       {{saving ? '保存中...' : '保存资料'}}

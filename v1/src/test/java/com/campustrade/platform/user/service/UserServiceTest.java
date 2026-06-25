@@ -32,10 +32,10 @@ class UserServiceTest {
         when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
         when(uploadService.extractObjectKey(proxyUrl)).thenReturn(objectKey);
 
-        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO(" new-name ", proxyUrl));
+        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO(" new-name ", proxyUrl, null, null));
 
         assertEquals("new-name", result.getNickname());
-        verify(userMapper).updateProfile(userId, "new-name", objectKey);
+        verify(userMapper).updateProfile(userId, "new-name", objectKey, null, null);
         verify(userMapper, never()).updateAvatarAuditStatus(anyLong(), any(), any(), any());
         verify(uploadService, never()).deleteObject(any());
     }
@@ -49,12 +49,34 @@ class UserServiceTest {
 
         when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
 
-        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO("new-name", null));
+        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO("new-name", null, null, null));
 
         assertEquals("new-name", result.getNickname());
-        verify(userMapper).updateProfile(userId, "new-name", objectKey);
+        verify(userMapper).updateProfile(userId, "new-name", objectKey, null, null);
         verify(userMapper, never()).updateAvatarAuditStatus(anyLong(), any(), any(), any());
         verify(uploadService, never()).deleteObject(any());
+    }
+
+    @Test
+    void updateProfileTrimsCampusContactFields() {
+        Long userId = 1L;
+        String objectKey = "images/2026/06/avatar.jpg";
+        UserDO existingUser = user(userId, "old-name", objectKey);
+        UserDO updatedUser = user(userId, "new-name", objectKey);
+        updatedUser.setWechatId("wx_school_231");
+        updatedUser.setQq("123456789");
+
+        when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
+
+        UserDO result = userService.updateProfile(
+                userId,
+                new UpdateProfileRequestDTO(" new-name ", null, " wx_school_231 ", " 123456789 ")
+        );
+
+        assertEquals("new-name", result.getNickname());
+        assertEquals("wx_school_231", result.getWechatId());
+        assertEquals("123456789", result.getQq());
+        verify(userMapper).updateProfile(userId, "new-name", objectKey, "wx_school_231", "123456789");
     }
 
     private UserDO user(Long id, String nickname, String avatarUrl) {
