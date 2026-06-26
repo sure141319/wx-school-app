@@ -47,7 +47,7 @@
         <text>或</text>
       </view>
       <button class="wechat-login-btn" disabled="{{wechatLoading || loading}}" loading="{{wechatLoading}}" bindtap="handleWechatLogin">
-        <text class="wechat-mark">微</text>
+        <image class="wechat-login-icon" src="/static/wx-login.png" mode="aspectFit" />
         <text>{{wechatLoading ? '微信登录中...' : '微信快捷登录'}}</text>
       </button>
       <text class="field-hint">首次微信快捷登录后，请补充联系方式。</text>

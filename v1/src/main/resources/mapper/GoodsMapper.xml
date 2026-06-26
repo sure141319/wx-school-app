@@ -20,6 +20,9 @@
             <result property="email" column="seller_email"/>
             <result property="nickname" column="seller_nickname"/>
             <result property="avatarUrl" column="seller_avatar_url"/>
+            <result property="wechatId" column="seller_wechat_id"/>
+            <result property="qq" column="seller_qq"/>
+            <result property="avatarAuditStatus" column="seller_avatar_audit_status"/>
             <result property="failedLoginCount" column="seller_failed_login_count"/>
             <result property="lockedUntil" column="seller_locked_until"/>
             <result property="createdAt" column="seller_created_at"/>
@@ -60,6 +63,7 @@
             <id property="id" column="seller_id"/>
             <result property="nickname" column="seller_nickname"/>
             <result property="avatarUrl" column="seller_avatar_url"/>
+            <result property="qq" column="seller_qq"/>
             <result property="avatarAuditStatus" column="seller_avatar_audit_status"/>
         </association>
 
@@ -86,6 +90,9 @@
         s.email AS seller_email,
         s.nickname AS seller_nickname,
         s.avatar_url AS seller_avatar_url,
+        s.wechat_id AS seller_wechat_id,
+        s.qq AS seller_qq,
+        s.avatar_audit_status AS seller_avatar_audit_status,
         s.failed_login_count AS seller_failed_login_count,
         s.locked_until AS seller_locked_until,
         s.created_at AS seller_created_at,
@@ -164,6 +171,7 @@
         s.id AS seller_id,
         s.nickname AS seller_nickname,
         s.avatar_url AS seller_avatar_url,
+        s.qq AS seller_qq,
         s.avatar_audit_status AS seller_avatar_audit_status,
         c.id AS category_id,
         c.name AS category_name

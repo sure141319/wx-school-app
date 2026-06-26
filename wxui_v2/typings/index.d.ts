@@ -49,6 +49,7 @@ interface GoodsListItem {
     id: number
     nickname: string
     avatarUrl?: string
+    avatarSource?: string
   }
   coverImageUrl?: string
   createdAt?: string
@@ -58,6 +59,7 @@ interface SellerInfo {
   id?: number
   nickname: string
   avatarUrl?: string
+  avatarSource?: string
   email?: string
   wechatId?: string
   qq?: string
@@ -72,6 +74,7 @@ interface UserProfile {
   id?: number
   nickname: string
   avatarUrl: string
+  avatarSource?: string
   email?: string
   wechatOpenid?: string
   wechatId?: string

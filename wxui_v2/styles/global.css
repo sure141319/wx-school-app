@@ -759,6 +759,17 @@ input, textarea {
 }
 
 /* ===== Profile ===== */
+.profile-summary-card {
+  padding-top: 24rpx;
+  padding-bottom: 24rpx;
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
 .profile-hero {
   display: flex;
   flex-direction: column;
@@ -786,6 +797,57 @@ input, textarea {
 .avatar-btn image {
   width: 100%;
   height: 100%;
+}
+
+.profile-summary-avatar {
+  width: 132rpx;
+  height: 132rpx;
+  flex: 0 0 132rpx;
+  font-size: 52rpx;
+}
+
+.profile-summary-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.profile-summary-name {
+  display: block;
+  overflow: hidden;
+  color: var(--color-text-main);
+  font-size: 34rpx;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-contact-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  min-height: 34rpx;
+}
+
+.profile-contact-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34rpx;
+  padding: 0 12rpx;
+  border: 2rpx solid #BFDBFE;
+  border-radius: 999rpx;
+  background: #EFF6FF;
+  color: var(--color-primary);
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.profile-contact-empty {
+  color: var(--color-text-muted);
+  font-size: 22rpx;
 }
 
 .nick-section {
@@ -885,6 +947,87 @@ input, textarea {
   font-size: 36rpx;
 }
 
+.profile-modal {
+  width: 88%;
+  max-width: 660rpx;
+  max-height: 88vh;
+}
+
+.profile-modal-body {
+  max-height: 66vh;
+  overflow-y: auto;
+  padding-bottom: 20rpx;
+}
+
+.profile-modal-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  padding-top: 4rpx;
+}
+
+.profile-modal-avatar-btn {
+  width: 150rpx;
+  height: 150rpx;
+  font-size: 60rpx;
+}
+
+.qq-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 96rpx;
+  padding: 14rpx 16rpx;
+  border: 2rpx solid #DDE5EF;
+  border-radius: 20rpx;
+  background: #F8FAFC;
+}
+
+.qq-preview-avatar {
+  width: 68rpx;
+  height: 68rpx;
+  flex: 0 0 68rpx;
+  border-radius: 999rpx;
+  background: #E2E8F0;
+}
+
+.qq-preview-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.qq-preview-title {
+  color: var(--color-text-main);
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.qq-preview-desc {
+  color: var(--color-text-muted);
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.profile-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.profile-modal-cancel {
+  flex: 0 0 180rpx;
+  margin: 0;
+}
+
+.profile-modal-save {
+  flex: 1;
+  margin: 0;
+}
+
 /* ===== Auth ===== */
 .auth-shell {
   min-height: 100vh;
@@ -974,17 +1117,10 @@ input, textarea {
   opacity: 0.56;
 }
 
-.wechat-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 999rpx;
-  background: #1AAD19;
-  color: #FFFFFF;
-  font-size: 22rpx;
-  font-weight: 800;
+.wechat-login-icon {
+  width: 56rpx;
+  height: 56rpx;
+  flex: 0 0 56rpx;
 }
 
 .email-history {

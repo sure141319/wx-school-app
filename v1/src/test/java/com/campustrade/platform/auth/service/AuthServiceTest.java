@@ -103,7 +103,8 @@ class AuthServiceTest {
                         user.getAvatarUrl(),
                         user.getWechatOpenid(),
                         user.getWechatId(),
-                        user.getQq()
+                        user.getQq(),
+                        "INITIAL"
                 )
         );
     }

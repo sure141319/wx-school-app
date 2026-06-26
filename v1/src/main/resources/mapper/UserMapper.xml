@@ -11,6 +11,10 @@
         <result property="avatarUrl" column="avatar_url"/>
         <result property="wechatId" column="wechat_id"/>
         <result property="qq" column="qq"/>
+        <result property="avatarAuditStatus" column="avatar_audit_status"/>
+        <result property="avatarAuditRemark" column="avatar_audit_remark"/>
+        <result property="avatarAuditedBy" column="avatar_audited_by"/>
+        <result property="avatarAuditedAt" column="avatar_audited_at"/>
         <result property="failedLoginCount" column="failed_login_count"/>
         <result property="lockedUntil" column="locked_until"/>
         <result property="createdAt" column="created_at"/>
@@ -34,13 +38,17 @@
     </resultMap>
 
     <select id="findByEmail" resultMap="UserResultMap">
-        SELECT id, wechat_openid, email, password_hash, nickname, avatar_url, wechat_id, qq, failed_login_count, locked_until, created_at, updated_at
+        SELECT id, wechat_openid, email, password_hash, nickname, avatar_url, wechat_id, qq,
+               avatar_audit_status, avatar_audit_remark, avatar_audited_by, avatar_audited_at,
+               failed_login_count, locked_until, created_at, updated_at
         FROM users
         WHERE email = #{email}
     </select>
 
     <select id="findByWechatOpenid" resultMap="UserResultMap">
-        SELECT id, wechat_openid, email, password_hash, nickname, avatar_url, wechat_id, qq, failed_login_count, locked_until, created_at, updated_at
+        SELECT id, wechat_openid, email, password_hash, nickname, avatar_url, wechat_id, qq,
+               avatar_audit_status, avatar_audit_remark, avatar_audited_by, avatar_audited_at,
+               failed_login_count, locked_until, created_at, updated_at
         FROM users
         WHERE wechat_openid = #{wechatOpenid}
     </select>

@@ -1,5 +1,6 @@
 import { request } from '../../utils/request'
 import { uploadImage } from '../../utils/upload'
+import { resolveProfileDisplayAvatar, resolveQqAvatarPreview } from '../../utils/avatar'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
@@ -7,6 +8,10 @@ const QQ_REGEX = /^\d{5,12}$/
 
 interface ProfilePageData {
   profile: UserProfile
+  profileDraft: UserProfile
+  displayAvatarUrl: string
+  draftAvatarUrl: string
+  qqPreviewAvatarUrl: string
   avatarValue: string
   avatarChanged: boolean
   goodsItems: GoodsItem[]
@@ -14,6 +19,7 @@ interface ProfilePageData {
   loadingMore: boolean
   saving: boolean
   info: string
+  showProfileModal: boolean
   showFeedbackModal: boolean
   page: number
   size: number
@@ -23,6 +29,10 @@ interface ProfilePageData {
 Component({
   data: {
     profile: { nickname: '', avatarUrl: '', wechatId: '', qq: '' },
+    profileDraft: { nickname: '', avatarUrl: '', wechatId: '', qq: '' },
+    displayAvatarUrl: '',
+    draftAvatarUrl: '',
+    qqPreviewAvatarUrl: '',
     avatarValue: '',
     avatarChanged: false,
     goodsItems: [],
@@ -30,6 +40,7 @@ Component({
     loadingMore: false,
     saving: false,
     info: '',
+    showProfileModal: false,
     showFeedbackModal: false,
     page: 0,
     size: 20,
@@ -65,6 +76,10 @@ Component({
         const profile = (res.data?.data as unknown as UserProfile) || { nickname: '', avatarUrl: '' }
         this.setData({
           profile,
+          profileDraft: { ...profile },
+          displayAvatarUrl: resolveProfileDisplayAvatar(profile),
+          draftAvatarUrl: '',
+          qqPreviewAvatarUrl: '',
           avatarValue: '',
           avatarChanged: false
         })
@@ -120,16 +135,47 @@ Component({
       }
     },
 
+    openProfileEditor() {
+      const profile = this.data.profile || { nickname: '', avatarUrl: '', wechatId: '', qq: '' }
+      this.setData({
+        showProfileModal: true,
+        profileDraft: { ...profile },
+        draftAvatarUrl: resolveProfileDisplayAvatar(profile),
+        qqPreviewAvatarUrl: '',
+        avatarValue: '',
+        avatarChanged: false,
+        info: ''
+      })
+    },
+
+    closeProfileEditor() {
+      if (this.data.saving) return
+      this.setData({
+        showProfileModal: false,
+        profileDraft: { ...this.data.profile },
+        draftAvatarUrl: '',
+        qqPreviewAvatarUrl: '',
+        avatarValue: '',
+        avatarChanged: false,
+        info: ''
+      })
+    },
+
     onNicknameInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'profile.nickname': e.detail.value, info: '' })
+      this.setData({ 'profileDraft.nickname': e.detail.value, info: '' })
     },
 
     onWechatIdInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'profile.wechatId': e.detail.value, info: '' })
+      this.setData({ 'profileDraft.wechatId': e.detail.value, info: '' })
     },
 
     onQqInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'profile.qq': e.detail.value, info: '' })
+      const qq = e.detail.value
+      this.setData({
+        'profileDraft.qq': qq,
+        qqPreviewAvatarUrl: resolveQqAvatarPreview(this.data.profile, qq, this.data.avatarChanged),
+        info: ''
+      })
     },
 
     chooseAvatar() {
@@ -144,7 +190,9 @@ Component({
           try {
             const upload = await uploadImage(filePath)
             this.setData({
-              'profile.avatarUrl': upload.url,
+              'profileDraft.avatarUrl': upload.url,
+              draftAvatarUrl: upload.url,
+              qqPreviewAvatarUrl: '',
               avatarValue: upload.filename,
               avatarChanged: true,
               info: '头像已上传，保存后生效'
@@ -160,13 +208,13 @@ Component({
     },
 
     async saveProfile() {
-      const nickname = (this.data.profile.nickname || '').trim()
+      const nickname = (this.data.profileDraft.nickname || '').trim()
       if (!nickname) {
         this.setData({ info: '请输入专业昵称' })
         return
       }
-      const wechatId = (this.data.profile.wechatId || '').trim()
-      const qq = (this.data.profile.qq || '').trim()
+      const wechatId = (this.data.profileDraft.wechatId || '').trim()
+      const qq = (this.data.profileDraft.qq || '').trim()
       if (qq && !QQ_REGEX.test(qq)) {
         this.setData({ info: 'QQ号需为5-12位数字' })
         return
@@ -195,14 +243,20 @@ Component({
           ...user,
           nickname: profile.nickname,
           avatarUrl: profile.avatarUrl,
+          avatarSource: profile.avatarSource,
           wechatOpenid: profile.wechatOpenid,
           wechatId: profile.wechatId,
           qq: profile.qq
         }))
         this.setData({
           profile,
+          profileDraft: { ...profile },
+          displayAvatarUrl: resolveProfileDisplayAvatar(profile),
+          draftAvatarUrl: '',
+          qqPreviewAvatarUrl: '',
           avatarValue: '',
           avatarChanged: false,
+          showProfileModal: false,
           info: ''
         })
         wx.showToast({ title: '保存成功', icon: 'success' })

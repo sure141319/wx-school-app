@@ -7,7 +7,8 @@ public record UserProfileResponseDTO(
         String avatarUrl,
         String wechatOpenid,
         String wechatId,
-        String qq
+        String qq,
+        String avatarSource
 ) {
 }
 

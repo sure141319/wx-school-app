@@ -3,6 +3,8 @@ package com.campustrade.platform.auth.service;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -14,6 +16,7 @@ public class DefaultWechatSessionClient implements WechatSessionClient {
 
     private final AppProperties appProperties;
     private final RestClient restClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultWechatSessionClient(AppProperties appProperties) {
         this.appProperties = appProperties;
@@ -35,11 +38,22 @@ public class DefaultWechatSessionClient implements WechatSessionClient {
                 .queryParam("grant_type", "authorization_code")
                 .toUriString();
 
-        WechatCode2SessionResponse response;
+        String responseBody;
         try {
-            response = restClient.get().uri(url).retrieve().body(WechatCode2SessionResponse.class);
+            responseBody = restClient.get().uri(url).retrieve().body(String.class);
         } catch (RuntimeException ex) {
             throw new AppException(HttpStatus.BAD_GATEWAY, "微信登录服务暂时不可用", ex);
+        }
+
+        if (!StringUtils.hasText(responseBody)) {
+            throw new AppException(HttpStatus.BAD_GATEWAY, "微信登录服务返回为空");
+        }
+
+        WechatCode2SessionResponse response;
+        try {
+            response = objectMapper.readValue(responseBody, WechatCode2SessionResponse.class);
+        } catch (JsonProcessingException ex) {
+            throw new AppException(HttpStatus.BAD_GATEWAY, "微信登录服务返回格式错误", ex);
         }
 
         if (response == null) {
