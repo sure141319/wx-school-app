@@ -56,6 +56,15 @@ public class AuditImageController {
         return ApiResponse.ok("图片已驳回", auditImageService.reject(principal.userId(), imageId, remark));
     }
 
+    @PostMapping("/reject-all-approved")
+    public ApiResponse<Integer> rejectAllApproved(
+            @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        String remark = request == null ? null : request.remark();
+        int count = auditImageService.rejectAllApproved(principal.userId(), remark);
+        return ApiResponse.ok("已驳回 " + count + " 张图片", count);
+    }
+
     // ==================== 头像审核接口 ====================
 
     @PostMapping("/thumbnails/backfill")
@@ -86,5 +95,14 @@ public class AuditImageController {
         UserPrincipal principal = AuthUtils.currentUser();
         String remark = request == null ? null : request.remark();
         return ApiResponse.ok("头像已驳回", auditImageService.rejectAvatar(principal.userId(), userId, remark));
+    }
+
+    @PostMapping("/avatars/reject-all-approved")
+    public ApiResponse<Integer> rejectAllApprovedAvatars(
+            @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        String remark = request == null ? null : request.remark();
+        int count = auditImageService.rejectAllApprovedAvatars(principal.userId(), remark);
+        return ApiResponse.ok("已驳回 " + count + " 个头像", count);
     }
 }

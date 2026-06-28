@@ -83,6 +83,22 @@ public class AuditImageService {
 
     @Transactional
     @CacheEvict(cacheNames = "goods:list", allEntries = true)
+    public int rejectAllApproved(Long reviewerUserId, String remark) {
+        ensureReviewer(reviewerUserId);
+        String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
+
+        List<GoodsImageDO> approvedImages = goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.APPROVED);
+        int count = 0;
+        for (GoodsImageDO image : approvedImages) {
+            goodsMapper.updateImageAudit(image.getId(), ImageAuditStatusEnum.REJECTED, normalizedRemark, reviewerUserId);
+            rejectGoods(image.getId(), normalizedRemark);
+            count++;
+        }
+        return count;
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public ThumbnailBackfillResponseDTO backfillMissingThumbnails(Long reviewerUserId, int limit) {
         ensureReviewer(reviewerUserId);
 
@@ -203,6 +219,20 @@ public class AuditImageService {
         String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
         updateAvatarAuditStatus(userId, reviewerUserId, ImageAuditStatusEnum.REJECTED, normalizedRemark);
         return getAvatarAuditOrThrow(userId);
+    }
+
+    @Transactional
+    public int rejectAllApprovedAvatars(Long reviewerUserId, String remark) {
+        ensureReviewer(reviewerUserId);
+        String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
+
+        List<UserDO> approvedUsers = userMapper.findByAvatarAuditStatus(ImageAuditStatusEnum.APPROVED);
+        int count = 0;
+        for (UserDO user : approvedUsers) {
+            userMapper.updateAvatarAuditStatus(user.getId(), ImageAuditStatusEnum.REJECTED, normalizedRemark, reviewerUserId);
+            count++;
+        }
+        return count;
     }
 
     private void updateAvatarAuditStatus(Long userId,

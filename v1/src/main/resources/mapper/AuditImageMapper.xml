@@ -41,7 +41,11 @@
         JOIN goods_do g ON g.id = gi.goods_id
         JOIN users u ON u.id = g.seller_id
         WHERE (#{status} IS NULL OR gi.audit_status = #{status})
-        ORDER BY gi.created_at ASC, gi.id ASC
+        ORDER BY
+            CASE WHEN gi.audit_status = 'PENDING' THEN 0 ELSE 1 END,
+            CASE WHEN gi.audit_status = 'PENDING' THEN gi.created_at END ASC,
+            gi.created_at DESC,
+            gi.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 

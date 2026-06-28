@@ -198,6 +198,153 @@ textarea {
   background: #f3f4f6;
 }
 
+.button.danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.button.danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 0 8px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  padding: 8px 0;
+  font-size: 0.9rem;
+  width: 200px;
+  background: transparent;
+}
+
+.search-clear {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+.keyboard-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.keyboard-hints kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  border: 1px solid #d1d5db;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.image-preview-content img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+}
+
+.modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.remark-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.remark-history-item {
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.remark-history-item:hover {
+  background: #e5e7eb;
+}
+
+.remark-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint-kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: #f3f4f6;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  border: 1px solid #d1d5db;
+  color: var(--muted);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.detail-card h4 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .stats-panel {
   padding: 12px 16px;
 }

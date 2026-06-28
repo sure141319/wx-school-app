@@ -1,7 +1,8 @@
 const STORAGE_KEYS = {
   apiBaseUrl: 'checkui:apiBaseUrl',
   token: 'checkui:token',
-  reviewer: 'checkui:reviewer'
+  reviewer: 'checkui:reviewer',
+  remarkHistory: 'checkui:remarkHistory'
 }
 
 const STATUS_META = {
@@ -17,6 +18,7 @@ const state = {
   token: localStorage.getItem(STORAGE_KEYS.token) || '',
   reviewer: parseJson(localStorage.getItem(STORAGE_KEYS.reviewer)),
   items: [],
+  filteredItems: [],
   total: 0,
   page: 0,
   size: 10,
@@ -24,7 +26,9 @@ const state = {
   currentTab: 'goods',
   selectedImageId: null,
   loading: false,
-  actionLoading: false
+  actionLoading: false,
+  searchQuery: '',
+  remarkHistory: parseJson(localStorage.getItem(STORAGE_KEYS.remarkHistory)) || []
 }
 
 const els = {
@@ -41,6 +45,9 @@ const els = {
   statusFilters: document.querySelector('#statusFilters'),
   refreshBtn: document.querySelector('#refreshBtn'),
   pageSizeSelect: document.querySelector('#pageSizeSelect'),
+  rejectAllBtn: document.querySelector('#rejectAllBtn'),
+  searchInput: document.querySelector('#searchInput'),
+  clearSearchBtn: document.querySelector('#clearSearchBtn'),
   queueMeta: document.querySelector('#queueMeta'),
   queueList: document.querySelector('#queueList'),
   prevPageBtn: document.querySelector('#prevPageBtn'),
@@ -50,7 +57,10 @@ const els = {
   summaryPage: document.querySelector('#summaryPage'),
   summaryTotal: document.querySelector('#summaryTotal'),
   detailContent: document.querySelector('#detailContent'),
-  toast: document.querySelector('#toast')
+  toast: document.querySelector('#toast'),
+  imagePreviewModal: document.querySelector('#imagePreviewModal'),
+  previewImage: document.querySelector('#previewImage'),
+  closePreviewBtn: document.querySelector('#closePreviewBtn')
 }
 
 let toastTimer = null
@@ -67,10 +77,16 @@ function boot() {
   els.logoutBtn.addEventListener('click', handleLogout)
   els.refreshBtn.addEventListener('click', () => loadQueue({ keepSelection: true }))
   els.pageSizeSelect.addEventListener('change', handlePageSizeChange)
+  els.rejectAllBtn.addEventListener('click', handleRejectAll)
   els.prevPageBtn.addEventListener('click', handlePrevPage)
   els.nextPageBtn.addEventListener('click', handleNextPage)
   els.typeFilters.addEventListener('click', handleTypeFilter)
   els.statusFilters.addEventListener('click', handleStatusFilter)
+  els.searchInput.addEventListener('input', handleSearchInput)
+  els.clearSearchBtn.addEventListener('click', clearSearch)
+  els.closePreviewBtn.addEventListener('click', closeImagePreview)
+  els.imagePreviewModal.querySelector('.modal-backdrop').addEventListener('click', closeImagePreview)
+  document.addEventListener('keydown', handleKeyboardShortcut)
 
   renderFilterState()
   renderTypeFilterState()
@@ -230,6 +246,176 @@ function handleStatusFilter(event) {
   loadQueue()
 }
 
+function handleSearchInput() {
+  state.searchQuery = els.searchInput.value.trim().toLowerCase()
+  els.clearSearchBtn.hidden = !state.searchQuery
+  filterAndRenderItems()
+}
+
+function clearSearch() {
+  els.searchInput.value = ''
+  state.searchQuery = ''
+  els.clearSearchBtn.hidden = true
+  filterAndRenderItems()
+}
+
+function filterAndRenderItems() {
+  if (!state.searchQuery) {
+    state.filteredItems = [...state.items]
+  } else {
+    state.filteredItems = state.items.filter(item => {
+      if (state.currentTab === 'goods') {
+        const title = (item.goodsTitle || '').toLowerCase()
+        const goodsId = String(item.goodsId || '')
+        const seller = (item.sellerNickname || '').toLowerCase()
+        const imageId = String(item.imageId || '')
+        return title.includes(state.searchQuery) ||
+               goodsId.includes(state.searchQuery) ||
+               seller.includes(state.searchQuery) ||
+               imageId.includes(state.searchQuery)
+      } else {
+        const nickname = (item.nickname || '').toLowerCase()
+        const userId = String(item.userId || '')
+        return nickname.includes(state.searchQuery) ||
+               userId.includes(state.searchQuery)
+      }
+    })
+  }
+  renderQueue()
+}
+
+function handleKeyboardShortcut(event) {
+  if (!state.token || state.actionLoading) return
+
+  const activeElement = document.activeElement
+  const isInputFocused = activeElement.tagName === 'INPUT' ||
+                         activeElement.tagName === 'TEXTAREA' ||
+                         activeElement.tagName === 'SELECT'
+
+  if (isInputFocused) return
+
+  const previewOpen = !els.imagePreviewModal.hidden
+  if (previewOpen) {
+    if (event.key === 'Escape') {
+      closeImagePreview()
+      event.preventDefault()
+    }
+    return
+  }
+
+  switch (event.key) {
+    case 'ArrowLeft':
+      navigateItem(-1)
+      event.preventDefault()
+      break
+    case 'ArrowRight':
+      navigateItem(1)
+      event.preventDefault()
+      break
+    case 'a':
+    case 'A':
+      approveSelected()
+      event.preventDefault()
+      break
+    case 'r':
+    case 'R':
+      const remarkInput = document.querySelector('#remarkInput')
+      if (remarkInput) {
+        remarkInput.focus()
+        remarkInput.select()
+      }
+      event.preventDefault()
+      break
+    case ' ':
+      openImagePreview()
+      event.preventDefault()
+      break
+    case 'Escape':
+      const remark = document.querySelector('#remarkInput')
+      if (remark === activeElement) {
+        remark.blur()
+        event.preventDefault()
+      }
+      break
+  }
+}
+
+function navigateItem(direction) {
+  const items = state.filteredItems
+  if (!items.length) return
+
+  const getItemId = (item) => state.currentTab === 'goods' ? item.imageId : item.userId
+  const currentIndex = items.findIndex(item => getItemId(item) === state.selectedImageId)
+
+  let newIndex = currentIndex + direction
+  if (newIndex < 0) newIndex = items.length - 1
+  if (newIndex >= items.length) newIndex = 0
+
+  state.selectedImageId = getItemId(items[newIndex])
+  renderQueue()
+  renderDetail()
+}
+
+function openImagePreview() {
+  const selected = getSelectedItem()
+  if (!selected) return
+
+  const imageUrl = state.currentTab === 'goods' ? selected.originalImageUrl : selected.avatarUrl
+  if (!imageUrl) return
+
+  els.previewImage.src = imageUrl
+  els.imagePreviewModal.hidden = false
+  document.body.style.overflow = 'hidden'
+}
+
+function closeImagePreview() {
+  els.imagePreviewModal.hidden = true
+  document.body.style.overflow = ''
+}
+
+function saveRemarkToHistory(remark) {
+  if (!remark || !remark.trim()) return
+
+  const history = state.remarkHistory.filter(r => r !== remark)
+  history.unshift(remark.trim())
+  state.remarkHistory = history.slice(0, 10)
+  localStorage.setItem(STORAGE_KEYS.remarkHistory, JSON.stringify(state.remarkHistory))
+}
+
+async function handleRejectAll() {
+  if (!state.token || state.actionLoading) {
+    return
+  }
+
+  const confirmed = confirm(`确定要驳回全部 ${state.total} 张已通过的图片吗？此操作不可撤销。`)
+  if (!confirmed) {
+    return
+  }
+
+  state.actionLoading = true
+  els.rejectAllBtn.disabled = true
+  els.rejectAllBtn.textContent = '处理中...'
+
+  try {
+    const apiPath = state.currentTab === 'goods'
+      ? '/audit/images/reject-all-approved'
+      : '/audit/images/avatars/reject-all-approved'
+    const result = await request(apiPath, {
+      method: 'POST',
+      body: {}
+    })
+    showToast(`已驳回 ${result} 张图片`, 'success')
+    state.page = 0
+    await loadQueue()
+  } catch (error) {
+    showToast(error.message || UI_MESSAGES.ACTION_FAILED, 'error')
+  } finally {
+    state.actionLoading = false
+    els.rejectAllBtn.disabled = false
+    els.rejectAllBtn.textContent = '全部驳回'
+  }
+}
+
 async function loadQueue(options = {}) {
   if (!state.token) {
     state.items = []
@@ -263,11 +449,14 @@ async function loadQueue(options = {}) {
     state.page = pageData.page || 0
     state.size = pageData.size || state.size
 
+    filterAndRenderItems()
+
     const getItemId = (item) => state.currentTab === 'goods' ? item.imageId : item.userId
-    const hasPreviousSelection = keepSelection && state.items.some(item => getItemId(item) === previousSelection)
-    state.selectedImageId = hasPreviousSelection ? previousSelection : (state.items.length > 0 ? getItemId(state.items[0]) : null)
+    const hasPreviousSelection = keepSelection && state.filteredItems.some(item => getItemId(item) === previousSelection)
+    state.selectedImageId = hasPreviousSelection ? previousSelection : (state.filteredItems.length > 0 ? getItemId(state.filteredItems[0]) : null)
   } catch (error) {
     state.items = []
+    state.filteredItems = []
     state.total = 0
     state.selectedImageId = null
     errorMessage = error.message || UI_MESSAGES.LOAD_FAILED
@@ -327,6 +516,9 @@ async function rejectSelected() {
       method: 'POST',
       body: remark ? { remark } : {}
     })
+    if (remark) {
+      saveRemarkToHistory(remark)
+    }
     const label = state.currentTab === 'goods' ? `图片 #${selected.imageId}` : `用户 #${selected.userId} 头像`
     showToast(`${label} 已驳回`, 'success')
     await loadQueue()
@@ -374,6 +566,7 @@ function renderFilterState() {
     button.classList.toggle('is-active', button.dataset.status === state.status)
   })
   els.summaryStatus.textContent = getStatusMeta(state.status).label
+  els.rejectAllBtn.hidden = state.status !== 'APPROVED'
 }
 
 function renderQueue(message) {
@@ -397,9 +590,12 @@ function renderQueue(message) {
     return
   }
 
-  const start = state.total === 0 ? 0 : state.page * state.size + 1
-  const end = Math.min((state.page + 1) * state.size, state.total)
-  els.queueMeta.textContent = message || `${start}-${end} / 共 ${state.total} 条`
+  const filteredCount = state.filteredItems.length
+  const totalCount = state.items.length
+  const metaText = state.searchQuery
+    ? `筛选 ${filteredCount}/${totalCount} 条`
+    : (message || `${state.page * state.size + 1}-${Math.min((state.page + 1) * state.size, state.total)} / 共 ${state.total} 条`)
+  els.queueMeta.textContent = metaText
 
   if (state.loading) {
     els.queueList.innerHTML = `
@@ -410,17 +606,17 @@ function renderQueue(message) {
     return
   }
 
-  if (!state.items.length) {
+  if (!state.filteredItems.length) {
     els.queueList.innerHTML = `
       <div class="empty-queue">
-        <h4>暂无数据</h4>
-        <p>可切换筛选条件或刷新</p>
+        <h4>${state.searchQuery ? '无匹配结果' : '暂无数据'}</h4>
+        <p>${state.searchQuery ? '尝试其他搜索词' : '可切换筛选条件或刷新'}</p>
       </div>
     `
     return
   }
 
-  els.queueList.innerHTML = state.items.map(item => {
+  els.queueList.innerHTML = state.filteredItems.map(item => {
     const meta = getStatusMeta(item.auditStatus)
     const itemId = state.currentTab === 'goods' ? item.imageId : item.userId
     const selectedClass = itemId === state.selectedImageId ? 'is-selected' : ''
@@ -573,9 +769,16 @@ function renderDetail() {
           </div>
         </section>
         <section class="detail-card action-card">
-          <h4>审核操作</h4>
+          <h4>审核操作 <kbd class="hint-kbd">A</kbd> <kbd class="hint-kbd">R</kbd></h4>
           <div class="detail-actions">
-            <textarea id="remarkInput" placeholder="驳回原因（选填）">${escapeHtml(remark)}</textarea>
+            <div class="remark-area">
+              <textarea id="remarkInput" placeholder="驳回原因（选填）">${escapeHtml(remark)}</textarea>
+              ${state.remarkHistory.length ? `
+                <div class="remark-history">
+                  ${state.remarkHistory.map(r => `<button class="remark-history-item" type="button" data-remark="${escapeHtml(r)}">${escapeHtml(r)}</button>`).join('')}
+                </div>
+              ` : ''}
+            </div>
             <div class="action-row">
               <button id="approveBtn" class="button primary" type="button" ${state.actionLoading ? 'disabled' : ''}>${state.actionLoading ? '处理中...' : '通过'}</button>
               <button id="rejectBtn" class="button secondary" type="button" ${state.actionLoading ? 'disabled' : ''}>${state.actionLoading ? '处理中...' : '驳回'}</button>
@@ -601,6 +804,22 @@ function renderDetail() {
 
   document.querySelector('#approveBtn')?.addEventListener('click', approveSelected)
   document.querySelector('#rejectBtn')?.addEventListener('click', rejectSelected)
+
+  document.querySelectorAll('.remark-history-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const remarkInput = document.querySelector('#remarkInput')
+      if (remarkInput) {
+        remarkInput.value = btn.dataset.remark
+        remarkInput.focus()
+      }
+    })
+  })
+
+  const previewFrame = els.detailContent.querySelector('.preview-frame')
+  if (previewFrame) {
+    previewFrame.style.cursor = 'pointer'
+    previewFrame.addEventListener('click', openImagePreview)
+  }
 }
 
 async function request(path, options = {}) {
@@ -672,9 +891,9 @@ function setLoadingState(loading) {
 
 function getSelectedItem() {
   if (state.currentTab === 'goods') {
-    return state.items.find(item => item.imageId === state.selectedImageId) || null
+    return state.filteredItems.find(item => item.imageId === state.selectedImageId) || null
   }
-  return state.items.find(item => item.userId === state.selectedImageId) || null
+  return state.filteredItems.find(item => item.userId === state.selectedImageId) || null
 }
 
 function getTotalPages() {

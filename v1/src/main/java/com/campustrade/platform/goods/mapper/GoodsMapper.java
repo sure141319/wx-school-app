@@ -62,6 +62,8 @@ public interface GoodsMapper {
 
     GoodsImageDO findImageById(@Param("id") Long id);
 
+    List<GoodsImageDO> findImagesByAuditStatus(@Param("auditStatus") ImageAuditStatusEnum auditStatus);
+
     int updateImageAudit(@Param("id") Long id,
                          @Param("auditStatus") ImageAuditStatusEnum auditStatus,
                          @Param("auditRemark") String auditRemark,

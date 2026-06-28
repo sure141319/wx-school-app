@@ -37,6 +37,7 @@ const els = {
   statusSelect: document.querySelector('#statusSelect'),
   searchBtn: document.querySelector('#searchBtn'),
   resetBtn: document.querySelector('#resetBtn'),
+  pageSizeSelect: document.querySelector('#pageSizeSelect'),
   totalCount: document.querySelector('#totalCount'),
   batchBar: document.querySelector('#batchBar'),
   batchCount: document.querySelector('#batchCount'),
@@ -60,11 +61,13 @@ boot()
 
 function boot() {
   els.apiBaseUrl.value = state.apiBaseUrl
+  els.pageSizeSelect.value = String(state.size)
 
   els.saveConfigBtn.addEventListener('click', handleSaveConfig)
   els.logoutBtn.addEventListener('click', handleLogout)
   els.searchBtn.addEventListener('click', handleSearch)
   els.resetBtn.addEventListener('click', handleReset)
+  els.pageSizeSelect.addEventListener('change', handlePageSizeChange)
   els.prevPageBtn.addEventListener('click', handlePrevPage)
   els.nextPageBtn.addEventListener('click', handleNextPage)
   els.selectAllCheckbox.addEventListener('change', handleSelectAll)
@@ -141,6 +144,12 @@ function handleReset() {
   state.keyword = ''
   state.categoryId = ''
   state.status = ''
+  state.page = 0
+  loadGoods()
+}
+
+function handlePageSizeChange(event) {
+  state.size = Number(event.target.value)
   state.page = 0
   loadGoods()
 }

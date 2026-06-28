@@ -284,6 +284,13 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findImagesByAuditStatus" resultMap="GoodsImageMap">
+        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+        FROM goods_image_do
+        WHERE audit_status = #{auditStatus}
+        ORDER BY created_at DESC
+    </select>
+
     <update id="updateImageAudit">
         UPDATE goods_image_do
         SET audit_status = #{auditStatus},

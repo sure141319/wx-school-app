@@ -81,12 +81,17 @@
             <button class="pill" data-status="REJECTED" type="button">已驳回</button>
           </div>
           <div class="toolbar-actions">
+            <div class="search-box">
+              <input id="searchInput" type="text" placeholder="搜索商品标题/ID/卖家..." class="search-input">
+              <button id="clearSearchBtn" class="button ghost search-clear" type="button" hidden>✕</button>
+            </div>
             <select id="pageSizeSelect" class="page-size-select">
               <option value="10">10条/页</option>
               <option value="20">20条/页</option>
               <option value="30">30条/页</option>
               <option value="50">50条/页</option>
             </select>
+            <button id="rejectAllBtn" class="button danger" type="button" hidden>全部驳回</button>
             <button id="refreshBtn" class="button secondary" type="button">刷新</button>
           </div>
         </div>
@@ -108,6 +113,12 @@
             <div class="empty-state">
               <h4>请选择图片</h4>
               <p>从左侧列表选择一条记录进行审核</p>
+              <div class="keyboard-hints">
+                <span><kbd>←</kbd><kbd>→</kbd> 切换</span>
+                <span><kbd>A</kbd> 通过</span>
+                <span><kbd>R</kbd> 驳回</span>
+                <span><kbd>空格</kbd> 预览</span>
+              </div>
             </div>
           </div>
         </section>
@@ -116,6 +127,14 @@
   </div>
 
   <div id="toast" class="toast" aria-live="polite"></div>
+
+  <div id="imagePreviewModal" class="modal image-preview-modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-content image-preview-content">
+      <img id="previewImage" src="" alt="预览图片">
+      <button id="closePreviewBtn" class="modal-close" type="button">✕</button>
+    </div>
+  </div>
 
   <script src="../js/messages.js"></script>
   <script src="../js/app.js"></script>
