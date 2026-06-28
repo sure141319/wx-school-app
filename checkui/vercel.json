@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/html/index.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "https://www.ahut-campus.site/api/$1"
     }
