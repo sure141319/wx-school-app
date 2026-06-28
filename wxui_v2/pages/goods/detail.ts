@@ -2,7 +2,6 @@ import { request } from '../../utils/request'
 import { COMMON_MESSAGES, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
-const PLACEHOLDER_IMAGE = '/static/auditing.webp'
 
 interface DetailPageData {
   goods: GoodsItem | null
@@ -77,11 +76,9 @@ Component({
     previewImage(e: WechatMiniprogram.TouchEvent) {
       if (!this.data.goods?.imageUrls?.length) return
       const index = (e.currentTarget.dataset.index as number) || 0
-      const realImages = this.data.goods.imageUrls.filter(url => url !== PLACEHOLDER_IMAGE)
-      if (!realImages.length) return
       wx.previewImage({
-        urls: realImages,
-        current: realImages[Math.min(index, realImages.length - 1)]
+        urls: this.data.goods.imageUrls,
+        current: this.data.goods.imageUrls[Math.min(index, this.data.goods.imageUrls.length - 1)]
       })
     },
 

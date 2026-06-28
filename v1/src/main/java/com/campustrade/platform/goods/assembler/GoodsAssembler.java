@@ -1,13 +1,11 @@
 package com.campustrade.platform.goods.assembler;
 
 import com.campustrade.platform.category.assembler.CategoryAssembler;
-import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.category.dto.response.CategoryResponseDTO;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
-import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
 import org.springframework.stereotype.Component;
@@ -15,21 +13,17 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class GoodsAssembler {
-    private static final String MINI_PROGRAM_PENDING_PLACEHOLDER = "/static/auditing.webp";
 
     private final UserProfileAssembler userProfileAssembler;
     private final CategoryAssembler categoryAssembler;
     private final UploadService uploadService;
-    private final AppProperties appProperties;
 
     public GoodsAssembler(UserProfileAssembler userProfileAssembler,
                           CategoryAssembler categoryAssembler,
-                          UploadService uploadService,
-                          AppProperties appProperties) {
+                          UploadService uploadService) {
         this.userProfileAssembler = userProfileAssembler;
         this.categoryAssembler = categoryAssembler;
         this.uploadService = uploadService;
-        this.appProperties = appProperties;
     }
 
     public GoodsResponseDTO toResponse(GoodsDO goods) {
@@ -74,27 +68,13 @@ public class GoodsAssembler {
     }
 
     private String toVisibleCoverImageUrl(GoodsImageDO image) {
-        if (image.getAuditStatus() == ImageAuditStatusEnum.APPROVED) {
-            String coverKey = StringUtils.hasText(image.getThumbnailUrl())
-                    ? image.getThumbnailUrl()
-                    : image.getImageUrl();
-            return uploadService.getProxyUrl(coverKey);
-        }
-        return pendingPlaceholderUrl();
+        String coverKey = StringUtils.hasText(image.getThumbnailUrl())
+                ? image.getThumbnailUrl()
+                : image.getImageUrl();
+        return uploadService.getProxyUrl(coverKey);
     }
 
     private String toVisibleImageUrl(GoodsImageDO image) {
-        if (image.getAuditStatus() == ImageAuditStatusEnum.APPROVED) {
-            return uploadService.getProxyUrl(image.getImageUrl());
-        }
-        return pendingPlaceholderUrl();
-    }
-
-    private String pendingPlaceholderUrl() {
-        String configuredUrl = appProperties.getImageAudit().getPendingPlaceholderUrl();
-        if (StringUtils.hasText(configuredUrl)) {
-            return configuredUrl.trim();
-        }
-        return MINI_PROGRAM_PENDING_PLACEHOLDER;
+        return uploadService.getProxyUrl(image.getImageUrl());
     }
 }

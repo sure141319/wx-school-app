@@ -1,7 +1,6 @@
 package com.campustrade.platform.goods.assembler;
 
 import com.campustrade.platform.category.assembler.CategoryAssembler;
-import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
@@ -25,12 +24,13 @@ import static org.mockito.Mockito.when;
 class GoodsAssemblerTest {
 
     @Test
-    void listCoverUsesThumbnailUrlWhenApprovedThumbnailExists() {
+    void listCoverUsesThumbnailUrlWhenThumbnailExists() {
         UploadService uploadService = mock(UploadService.class);
         GoodsAssembler assembler = newAssembler(uploadService);
-        GoodsDO goods = goodsWithImages(List.of(approvedImage(
+        GoodsDO goods = goodsWithImages(List.of(image(
                 "images/2026/06/original.jpg",
-                "images/2026/06/thumbs/original.webp"
+                "images/2026/06/thumbs/original.webp",
+                ImageAuditStatusEnum.APPROVED
         )));
 
         when(uploadService.getProxyUrl("images/2026/06/thumbs/original.webp"))
@@ -47,9 +47,10 @@ class GoodsAssemblerTest {
     void listCoverFallsBackToOriginalUrlForOldImagesWithoutThumbnail() {
         UploadService uploadService = mock(UploadService.class);
         GoodsAssembler assembler = newAssembler(uploadService);
-        GoodsDO goods = goodsWithImages(List.of(approvedImage(
+        GoodsDO goods = goodsWithImages(List.of(image(
                 "images/2026/06/original.jpg",
-                null
+                null,
+                ImageAuditStatusEnum.APPROVED
         )));
 
         when(uploadService.getProxyUrl("images/2026/06/original.jpg"))
@@ -61,13 +62,49 @@ class GoodsAssemblerTest {
         verify(uploadService).getProxyUrl("images/2026/06/original.jpg");
     }
 
+    @Test
+    void listCoverShowsRealUrlForPendingImages() {
+        UploadService uploadService = mock(UploadService.class);
+        GoodsAssembler assembler = newAssembler(uploadService);
+        GoodsDO goods = goodsWithImages(List.of(image(
+                "images/2026/06/pending.jpg",
+                null,
+                ImageAuditStatusEnum.PENDING
+        )));
+
+        when(uploadService.getProxyUrl("images/2026/06/pending.jpg"))
+                .thenReturn("https://cdn.example.com/images/2026/06/pending.jpg");
+
+        GoodsListItemResponseDTO response = assembler.toListItemResponse(goods);
+
+        assertEquals("https://cdn.example.com/images/2026/06/pending.jpg", response.coverImageUrl());
+        verify(uploadService).getProxyUrl("images/2026/06/pending.jpg");
+    }
+
+    @Test
+    void listCoverShowsRealUrlForRejectedImages() {
+        UploadService uploadService = mock(UploadService.class);
+        GoodsAssembler assembler = newAssembler(uploadService);
+        GoodsDO goods = goodsWithImages(List.of(image(
+                "images/2026/06/rejected.jpg",
+                null,
+                ImageAuditStatusEnum.REJECTED
+        )));
+
+        when(uploadService.getProxyUrl("images/2026/06/rejected.jpg"))
+                .thenReturn("https://cdn.example.com/images/2026/06/rejected.jpg");
+
+        GoodsListItemResponseDTO response = assembler.toListItemResponse(goods);
+
+        assertEquals("https://cdn.example.com/images/2026/06/rejected.jpg", response.coverImageUrl());
+        verify(uploadService).getProxyUrl("images/2026/06/rejected.jpg");
+    }
+
     private GoodsAssembler newAssembler(UploadService uploadService) {
-        AppProperties appProperties = new AppProperties();
         return new GoodsAssembler(
                 mock(UserProfileAssembler.class),
                 mock(CategoryAssembler.class),
-                uploadService,
-                appProperties
+                uploadService
         );
     }
 
@@ -84,11 +121,11 @@ class GoodsAssemblerTest {
         return goods;
     }
 
-    private GoodsImageDO approvedImage(String imageUrl, String thumbnailUrl) {
+    private GoodsImageDO image(String imageUrl, String thumbnailUrl, ImageAuditStatusEnum auditStatus) {
         GoodsImageDO image = new GoodsImageDO();
         image.setImageUrl(imageUrl);
         image.setThumbnailUrl(thumbnailUrl);
-        image.setAuditStatus(ImageAuditStatusEnum.APPROVED);
+        image.setAuditStatus(auditStatus);
         return image;
     }
 }

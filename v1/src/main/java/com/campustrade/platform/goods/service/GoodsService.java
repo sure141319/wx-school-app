@@ -98,6 +98,7 @@ public class GoodsService {
 
         goodsMapper.update(update);
         replaceImages(goodsId, request.imageUrls(), request.imageThumbnailUrls());
+        resetImageAuditStatus(goodsId);
         tryAutoApprove(goodsId);
         return getDetail(goodsId);
     }
@@ -210,8 +211,6 @@ public class GoodsService {
         return userId != null && appProperties.getImageAudit().getReviewerUserIds().contains(userId);
     }
 
-    private static final String PLACEHOLDER_IMAGE_KEY = "images/2026/04/auditing.webp";
-
     private void replaceImages(Long goodsId, List<String> imageUrls, List<String> imageThumbnailUrls) {
         List<GoodsImageDO> oldImages = goodsMapper.findImagesByGoodsId(goodsId);
 
@@ -221,7 +220,7 @@ public class GoodsService {
             for (int i = 0; i < imageUrls.size(); i++) {
                 String url = imageUrls.get(i);
                 String key = uploadService.extractObjectKey(url.trim());
-                if (StringUtils.hasText(key) && !PLACEHOLDER_IMAGE_KEY.equals(key)) {
+                if (StringUtils.hasText(key)) {
                     newKeys.add(key);
                     String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i);
                     if (StringUtils.hasText(thumbnailKey)) {
@@ -279,6 +278,15 @@ public class GoodsService {
             return null;
         }
         return uploadService.extractObjectKey(thumbnailUrl.trim());
+    }
+
+    private void resetImageAuditStatus(Long goodsId) {
+        List<GoodsImageDO> images = goodsMapper.findImagesByGoodsId(goodsId);
+        for (GoodsImageDO image : images) {
+            if (image.getAuditStatus() == ImageAuditStatusEnum.REJECTED) {
+                goodsMapper.updateImageAudit(image.getId(), ImageAuditStatusEnum.PENDING, null, null);
+            }
+        }
     }
 
     private void tryAutoApprove(Long goodsId) {
