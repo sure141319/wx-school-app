@@ -11,7 +11,7 @@ const STATUS_META = {
   REJECTED: { label: '已驳回', className: 'rejected' }
 }
 
-const DEFAULT_API_BASE_URL = '/api/v1'
+const DEFAULT_API_BASE_URL = 'https://www.ahut-campus.site/api/v1'
 
 const state = {
   apiBaseUrl: normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || DEFAULT_API_BASE_URL),
@@ -101,9 +101,12 @@ function boot() {
 
 function renderOriginNotice() {
   const currentOrigin = window.location.origin
-  const isVercel = currentOrigin.includes('.vercel.app')
-  const isAllowedLocal = ['http://localhost:5173', 'http://127.0.0.1:5173'].includes(currentOrigin)
-  const shouldWarn = !isAllowedLocal && !isVercel
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://sure141319.github.io'
+  ]
+  const shouldWarn = !allowedOrigins.includes(currentOrigin)
 
   els.originNotice.hidden = !shouldWarn
   if (!shouldWarn) {

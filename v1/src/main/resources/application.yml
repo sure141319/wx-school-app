@@ -80,4 +80,4 @@ app:
     app-secret: ${WECHAT_APP_SECRET:}
     code2-session-url: ${WECHAT_CODE2_SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://sure141319.github.io}
