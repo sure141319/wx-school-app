@@ -28,7 +28,8 @@ const state = {
   loading: false,
   actionLoading: false,
   searchQuery: '',
-  remarkHistory: parseJson(localStorage.getItem(STORAGE_KEYS.remarkHistory)) || []
+  remarkHistory: parseJson(localStorage.getItem(STORAGE_KEYS.remarkHistory)) || [],
+  sellerEmailCache: new Map()
 }
 
 const els = {
@@ -452,6 +453,7 @@ async function loadQueue(options = {}) {
     state.page = pageData.page || 0
     state.size = pageData.size || state.size
 
+    await hydrateSellerEmails()
     filterAndRenderItems()
 
     const getItemId = (item) => state.currentTab === 'goods' ? item.imageId : item.userId
@@ -469,6 +471,47 @@ async function loadQueue(options = {}) {
     renderQueue(errorMessage)
     renderDetail()
   }
+}
+
+async function hydrateSellerEmails() {
+  if (state.currentTab !== 'goods' || !state.items.length) {
+    return
+  }
+
+  const goodsIds = Array.from(new Set(
+    state.items
+      .map(item => item.goodsId)
+      .filter(goodsId => goodsId !== null && goodsId !== undefined)
+      .map(goodsId => String(goodsId))
+  ))
+
+  await Promise.all(goodsIds.map(async goodsId => {
+    const existingItemEmail = state.items.find(item => String(item.goodsId) === goodsId && item.sellerEmail)?.sellerEmail
+    if (existingItemEmail) {
+      state.sellerEmailCache.set(goodsId, existingItemEmail)
+      return
+    }
+
+    if (!state.sellerEmailCache.has(goodsId)) {
+      try {
+        const detail = await request(`/goods/${encodeURIComponent(goodsId)}`)
+        state.sellerEmailCache.set(goodsId, detail?.seller?.email || '')
+      } catch (_error) {
+        state.sellerEmailCache.set(goodsId, '')
+      }
+    }
+
+    const sellerEmail = state.sellerEmailCache.get(goodsId)
+    if (!sellerEmail) {
+      return
+    }
+
+    state.items.forEach(item => {
+      if (String(item.goodsId) === goodsId) {
+        item.sellerEmail = sellerEmail
+      }
+    })
+  }))
 }
 
 async function approveSelected() {
