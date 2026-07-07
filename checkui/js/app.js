@@ -269,10 +269,12 @@ function filterAndRenderItems() {
         const title = (item.goodsTitle || '').toLowerCase()
         const goodsId = String(item.goodsId || '')
         const seller = (item.sellerNickname || '').toLowerCase()
+        const sellerEmail = (item.sellerEmail || '').toLowerCase()
         const imageId = String(item.imageId || '')
         return title.includes(state.searchQuery) ||
                goodsId.includes(state.searchQuery) ||
                seller.includes(state.searchQuery) ||
+               sellerEmail.includes(state.searchQuery) ||
                imageId.includes(state.searchQuery)
       } else {
         const nickname = (item.nickname || '').toLowerCase()
@@ -628,7 +630,7 @@ function renderQueue(message) {
           <div class="queue-item-top">
             <div>
               <div class="queue-title">${escapeHtml(item.goodsTitle || `商品 #${item.goodsId}`)}</div>
-              <div class="queue-subtitle">${escapeHtml(item.sellerNickname || `用户 ${item.sellerId}`)}</div>
+              <div class="queue-subtitle">${escapeHtml(item.sellerEmail || item.sellerNickname || `用户 ${item.sellerId}`)}</div>
             </div>
             <span class="audit-badge ${meta.className}">${meta.label}</span>
           </div>
@@ -708,8 +710,8 @@ function renderDetail() {
       </div>
     </div>
     <div>
-      <span>卖家</span>
-      <strong>${escapeHtml(selected.sellerNickname || `用户 ${selected.sellerId}`)}</strong>
+      <span>卖家邮箱</span>
+      <strong>${escapeHtml(selected.sellerEmail || selected.sellerNickname || `用户 ${selected.sellerId}`)}</strong>
     </div>
     <div>
       <span>图片序号</span>
