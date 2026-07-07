@@ -689,13 +689,13 @@ function renderDetail() {
 
   const statusMeta = getStatusMeta(selected.auditStatus)
   const remark = selected.auditRemark || ''
-  const auditedAt = selected.auditedAt ? formatDate(selected.auditedAt) : '-'
-  const reviewerText = selected.auditedBy ? `审核员 #${selected.auditedBy}` : '-'
 
   const isGoods = state.currentTab === 'goods'
   const itemId = isGoods ? selected.imageId : selected.userId
   const imageUrl = isGoods ? selected.originalImageUrl : selected.avatarUrl
   const originalImageHref = escapeHtml(imageUrl || '#')
+  const qq = isGoods ? selected.sellerQq : selected.qq
+  const wechatId = isGoods ? selected.sellerWechatId : selected.wechatId
   const title = isGoods
     ? escapeHtml(selected.goodsTitle || `商品 #${selected.goodsId}`)
     : escapeHtml(selected.nickname || `用户 #${selected.userId}`)
@@ -760,12 +760,12 @@ function renderDetail() {
           <div class="detail-meta">
             ${metaItems}
             <div>
-              <span>审核时间</span>
-              <strong>${auditedAt}</strong>
+              <span>QQ</span>
+              <strong>${formatContactValue(qq)}</strong>
             </div>
             <div>
-              <span>审核人</span>
-              <strong>${reviewerText}</strong>
+              <span>微信号</span>
+              <strong>${formatContactValue(wechatId)}</strong>
             </div>
           </div>
         </section>
@@ -919,6 +919,11 @@ function formatDate(value) {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+function formatContactValue(value) {
+  const normalized = String(value ?? '').trim()
+  return escapeHtml(normalized || '未填写')
 }
 
 function normalizeBaseUrl(value) {
