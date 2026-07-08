@@ -9,6 +9,10 @@ public enum VerificationPurposeEnum {
     /**
      * 重置密码
      */
-    RESET_PASSWORD
-}
+    RESET_PASSWORD,
 
+    /**
+     * 绑定邮箱
+     */
+    BIND_EMAIL
+}

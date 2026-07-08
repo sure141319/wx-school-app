@@ -1,5 +1,6 @@
 package com.campustrade.platform.user.controller;
 
+import com.campustrade.platform.auth.dto.request.BindEmailRequestDTO;
 import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.common.ApiResponse;
 import com.campustrade.platform.security.AuthUtils;
@@ -44,5 +45,11 @@ public class UserController {
     public ApiResponse<UserProfileResponseDTO> bindWechat(@Valid @RequestBody WechatLoginRequestDTO request) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok("微信绑定成功", userProfileAssembler.toResponse(userService.bindWechat(principal.userId(), request)));
+    }
+
+    @PostMapping("/me/email-bind")
+    public ApiResponse<UserProfileResponseDTO> bindEmail(@Valid @RequestBody BindEmailRequestDTO request) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok("邮箱绑定成功", userProfileAssembler.toResponse(userService.bindEmail(principal.userId(), request)));
     }
 }

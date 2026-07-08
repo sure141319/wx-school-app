@@ -6,20 +6,32 @@ const wxml = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.w
 
 assert.match(
   wxml,
+  /<view class="settings-item" bindtap="openAccountBindModal">/,
+  'profile page should expose account binding as a settings entry'
+)
+
+assert.match(
+  wxml,
+  /<view class="modal-dialog account-bind-modal" wx:if="{{showAccountBindModal}}">/,
+  'profile page should render a standalone account binding modal'
+)
+
+assert.match(
+  wxml,
+  /绑定账号/,
+  'account binding entry and modal should use the title 绑定账号'
+)
+
+assert.match(
+  wxml,
   /bindtap="bindWechat"/,
-  'profile editor should expose a bindWechat tap target'
+  'account binding modal should expose a bindWechat tap target'
 )
 
 assert.match(
   wxml,
-  /微信快捷登录已绑定/,
-  'profile editor should show the current WeChat binding state'
-)
-
-assert.match(
-  wxml,
-  /绑定微信/,
-  'profile editor should show a clear bind WeChat action'
+  /bindtap="bindEmail"/,
+  'account binding modal should expose a bindEmail tap target'
 )
 
 console.log('profile wechat bind wxml tests passed')

@@ -73,6 +73,13 @@
   </view>
 
   <view class="card settings-card">
+    <view class="settings-item" bindtap="openAccountBindModal">
+      <view class="settings-left">
+        <text class="text-lg text-primary">@</text>
+        <text class="text-base text-text-main">绑定账号</text>
+      </view>
+      <text class="settings-arrow">›</text>
+    </view>
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
         <text class="text-lg text-primary">?</text>
@@ -104,18 +111,6 @@
         <text class="field-hint">建议填写专业-班级，便于校内交易身份识别</text>
       </view>
 
-      <view class="wechat-bind-row">
-        <view class="wechat-bind-copy">
-          <text class="wechat-bind-title">微信快捷登录</text>
-          <text wx:if="{{profile.wechatOpenid}}" class="wechat-bind-desc">微信快捷登录已绑定</text>
-          <text wx:else class="wechat-bind-desc">绑定后可用微信直接进入当前账号</text>
-        </view>
-        <button wx:if="{{!profile.wechatOpenid}}" class="btn btn-secondary btn-sm wechat-bind-button" loading="{{bindingWechat}}" disabled="{{bindingWechat || saving}}" bindtap="bindWechat">
-          {{bindingWechat ? '绑定中...' : '绑定微信'}}
-        </button>
-        <text wx:else class="wechat-bind-status">已绑定</text>
-      </view>
-
       <view class="nick-section">
         <text class="form-label">微信号</text>
         <view class="input-field flex items-center">
@@ -145,6 +140,65 @@
       <button class="btn btn-primary profile-modal-save" loading="{{saving}}" disabled="{{saving}}" bindtap="saveProfile">
         {{saving ? '保存中...' : '保存资料'}}
       </button>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showAccountBindModal}}" bindtap="closeAccountBindModal"></view>
+  <view class="modal-dialog account-bind-modal" wx:if="{{showAccountBindModal}}">
+    <view class="modal-title">绑定账号</view>
+    <view class="modal-body account-bind-body">
+      <view class="account-bind-section">
+        <view class="wechat-bind-row">
+          <view class="wechat-bind-copy">
+            <text class="wechat-bind-title">微信快捷登录</text>
+            <text wx:if="{{profile.wechatOpenid}}" class="wechat-bind-desc">微信快捷登录已绑定</text>
+            <text wx:else class="wechat-bind-desc">绑定后可用微信直接进入当前账号</text>
+          </view>
+          <button wx:if="{{!profile.wechatOpenid}}" class="btn btn-secondary btn-sm wechat-bind-button" loading="{{bindingWechat}}" disabled="{{bindingWechat}}" bindtap="bindWechat">
+            {{bindingWechat ? '绑定中...' : '绑定微信'}}
+          </button>
+          <text wx:else class="wechat-bind-status">已绑定</text>
+        </view>
+      </view>
+
+      <view class="account-bind-section">
+        <view class="account-bind-head">
+          <text class="wechat-bind-title">QQ邮箱账号</text>
+          <text wx:if="{{profile.email}}" class="wechat-bind-status">已绑定</text>
+        </view>
+        <text wx:if="{{profile.email}}" class="wechat-bind-desc">{{profile.email}} 可用于邮箱密码登录</text>
+        <block wx:else>
+          <view class="contact-modal-field">
+            <text class="form-label">QQ邮箱</text>
+            <view class="inline-row">
+              <input class="input-field" type="text" placeholder="xxx@qq.com" value="{{bindEmailForm.email}}" bindinput="onBindEmailInput" />
+              <button class="btn btn-secondary btn-sm email-code-button" loading="{{sendingBindEmailCode}}" disabled="{{sendingBindEmailCode || bindingEmail}}" bindtap="sendBindEmailCode">
+                {{sendingBindEmailCode ? '发送中' : '验证码'}}
+              </button>
+            </view>
+          </view>
+          <view class="contact-modal-field">
+            <text class="form-label">验证码</text>
+            <input class="input-field" type="number" maxlength="6" placeholder="6位验证码" value="{{bindEmailForm.code}}" bindinput="onBindEmailCodeInput" />
+          </view>
+          <view class="contact-modal-field">
+            <text class="form-label">登录密码</text>
+            <input class="input-field" password placeholder="至少6位，绑定后可邮箱登录" value="{{bindEmailForm.password}}" bindinput="onBindEmailPasswordInput" />
+          </view>
+          <button class="btn btn-primary btn-full account-bind-action" loading="{{bindingEmail}}" disabled="{{bindingEmail || sendingBindEmailCode}}" bindtap="bindEmail">
+            {{bindingEmail ? '绑定中...' : '绑定QQ邮箱'}}
+          </button>
+        </block>
+      </view>
+
+      <text wx:if="{{accountBindMessage}}" class="block mt-16 text-center text-2xs status-text-error">{{accountBindMessage}}</text>
+      <view wx:if="{{accountMergeHint}}" class="merge-risk-box">
+        <text class="notice-title">账号合并需谨慎</text>
+        <text class="notice-item">该邮箱已有账号，暂不自动合并。合并会涉及商品、头像、联系方式和登录身份迁移，需要确认归属后再处理。</text>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="btn btn-primary btn-full" disabled="{{bindingWechat || sendingBindEmailCode || bindingEmail}}" bindtap="closeAccountBindModal">知道了</button>
     </view>
   </view>
 

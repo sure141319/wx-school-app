@@ -113,6 +113,16 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateEmailAndPassword">
+        UPDATE users
+        SET email = #{email},
+            password_hash = #{passwordHash},
+            failed_login_count = #{failedLoginCount},
+            locked_until = #{lockedUntil},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
     <update id="updateAvatarAuditStatus">
         UPDATE users
         SET avatar_audit_status = #{avatarAuditStatus},

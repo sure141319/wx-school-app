@@ -41,6 +41,12 @@ public interface UserMapper {
     int updateWechatOpenid(@Param("id") Long id,
                            @Param("wechatOpenid") String wechatOpenid);
 
+    int updateEmailAndPassword(@Param("id") Long id,
+                               @Param("email") String email,
+                               @Param("passwordHash") String passwordHash,
+                               @Param("failedLoginCount") int failedLoginCount,
+                               @Param("lockedUntil") LocalDateTime lockedUntil);
+
     int updateAvatarAuditStatus(@Param("id") Long id,
                                 @Param("avatarAuditStatus") ImageAuditStatusEnum avatarAuditStatus,
                                 @Param("avatarAuditRemark") String avatarAuditRemark,

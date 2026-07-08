@@ -54,6 +54,7 @@ public class SmtpMailService implements MailService {
         return switch (purpose) {
             case REGISTER -> "校园交易平台 - 注册验证码";
             case RESET_PASSWORD -> "校园交易平台 - 重置密码验证码";
+            case BIND_EMAIL -> "校园交易平台 - 绑定邮箱验证码";
         };
     }
 
@@ -61,6 +62,7 @@ public class SmtpMailService implements MailService {
         String purposeText = switch (purpose) {
             case REGISTER -> "注册账号";
             case RESET_PASSWORD -> "重置密码";
+            case BIND_EMAIL -> "绑定QQ邮箱";
         };
         int expireMinutes = appProperties.getVerificationCode().getExpireMinutes();
         return """

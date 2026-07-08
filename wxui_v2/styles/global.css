@@ -1101,6 +1101,50 @@ input, textarea {
   margin: 0;
 }
 
+.account-bind-modal {
+  width: 88%;
+  max-width: 660rpx;
+  max-height: 88vh;
+}
+
+.account-bind-body {
+  max-height: 66vh;
+  overflow-y: auto;
+}
+
+.account-bind-section {
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #EEF2F6;
+}
+
+.account-bind-section:last-child {
+  border-bottom: none;
+}
+
+.account-bind-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.email-code-button {
+  flex: 0 0 156rpx;
+  margin: 0;
+}
+
+.account-bind-action {
+  margin-top: 22rpx;
+}
+
+.merge-risk-box {
+  margin-top: 20rpx;
+  padding: 20rpx 22rpx;
+  border: 2rpx solid #FAD7D7;
+  border-radius: 20rpx;
+  background: #FFF5F5;
+}
+
 /* ===== Auth ===== */
 .auth-shell {
   min-height: 100vh;

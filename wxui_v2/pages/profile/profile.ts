@@ -5,6 +5,7 @@ import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
+const QQ_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@qq\.com$/
 
 interface ProfilePageData {
   profile: UserProfile
@@ -19,9 +20,19 @@ interface ProfilePageData {
   loadingMore: boolean
   saving: boolean
   bindingWechat: boolean
+  sendingBindEmailCode: boolean
+  bindingEmail: boolean
   info: string
+  accountBindMessage: string
+  accountMergeHint: boolean
   showProfileModal: boolean
+  showAccountBindModal: boolean
   showFeedbackModal: boolean
+  bindEmailForm: {
+    email: string
+    code: string
+    password: string
+  }
   page: number
   size: number
   hasMore: boolean
@@ -41,9 +52,19 @@ Component({
     loadingMore: false,
     saving: false,
     bindingWechat: false,
+    sendingBindEmailCode: false,
+    bindingEmail: false,
     info: '',
+    accountBindMessage: '',
+    accountMergeHint: false,
     showProfileModal: false,
+    showAccountBindModal: false,
     showFeedbackModal: false,
+    bindEmailForm: {
+      email: '',
+      code: '',
+      password: ''
+    },
     page: 0,
     size: 20,
     hasMore: true
@@ -269,6 +290,46 @@ Component({
       }
     },
 
+    openAccountBindModal() {
+      this.setData({
+        showAccountBindModal: true,
+        accountBindMessage: '',
+        accountMergeHint: false,
+        bindEmailForm: {
+          email: this.data.profile.email || '',
+          code: '',
+          password: ''
+        },
+        info: ''
+      })
+    },
+
+    closeAccountBindModal() {
+      if (this.data.bindingWechat || this.data.sendingBindEmailCode || this.data.bindingEmail) return
+      this.setData({
+        showAccountBindModal: false,
+        accountBindMessage: '',
+        accountMergeHint: false,
+        bindEmailForm: {
+          email: '',
+          code: '',
+          password: ''
+        }
+      })
+    },
+
+    onBindEmailInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'bindEmailForm.email': e.detail.value, accountBindMessage: '', accountMergeHint: false })
+    },
+
+    onBindEmailCodeInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'bindEmailForm.code': e.detail.value, accountBindMessage: '', accountMergeHint: false })
+    },
+
+    onBindEmailPasswordInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'bindEmailForm.password': e.detail.value, accountBindMessage: '', accountMergeHint: false })
+    },
+
     bindWechat() {
       if (this.data.bindingWechat || this.data.saving || this.data.profile.wechatOpenid) return
       this.setData({ bindingWechat: true, info: '' })
@@ -280,35 +341,128 @@ Component({
         }))
         .then((res) => {
           if (!res.data?.success || !res.data?.data) {
-            this.setData({ info: res.data?.message || actionFailed('绑定微信') })
+            this.setData({ accountBindMessage: res.data?.message || actionFailed('绑定微信') })
             return
           }
           const profile = res.data.data as UserProfile
-          const user = JSON.parse(wx.getStorageSync('user') || '{}')
-          wx.setStorageSync('user', JSON.stringify({
-            ...user,
-            nickname: profile.nickname,
-            avatarUrl: profile.avatarUrl,
-            avatarSource: profile.avatarSource,
-            wechatOpenid: profile.wechatOpenid,
-            wechatId: profile.wechatId,
-            qq: profile.qq
-          }))
+          this.updateStoredProfile(profile)
           this.setData({
             profile,
             profileDraft: { ...profile },
             displayAvatarUrl: resolveProfileDisplayAvatar(profile),
             draftAvatarUrl: resolveProfileDisplayAvatar(profile),
-            info: ''
+            accountBindMessage: '',
+            accountMergeHint: false
           })
           wx.showToast({ title: '绑定成功', icon: 'success' })
         })
         .catch(() => {
-          this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+          this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
         })
         .finally(() => {
           this.setData({ bindingWechat: false })
         })
+    },
+
+    sendBindEmailCode() {
+      if (this.data.sendingBindEmailCode || this.data.profile.email) return
+      const email = (this.data.bindEmailForm.email || '').trim().toLowerCase()
+      if (!QQ_EMAIL_REGEX.test(email)) {
+        this.setData({ accountBindMessage: '请输入正确的QQ邮箱', accountMergeHint: false })
+        return
+      }
+
+      this.setData({ sendingBindEmailCode: true, accountBindMessage: '', accountMergeHint: false })
+      request<ApiResponse>({
+        url: `${app.globalData.baseUrl}/auth/email-code`,
+        method: 'POST',
+        data: { email, purpose: 'BIND_EMAIL' }
+      })
+        .then((res) => {
+          if (!res.data?.success) {
+            this.setData({
+              accountBindMessage: res.data?.message || actionFailed('发送验证码'),
+              accountMergeHint: this.isAccountMergeMessage(res.data?.message)
+            })
+            return
+          }
+          this.setData({ 'bindEmailForm.email': email, accountBindMessage: '验证码已发送', accountMergeHint: false })
+        })
+        .catch(() => {
+          this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR, accountMergeHint: false })
+        })
+        .finally(() => {
+          this.setData({ sendingBindEmailCode: false })
+        })
+    },
+
+    bindEmail() {
+      if (this.data.bindingEmail || this.data.profile.email) return
+      const email = (this.data.bindEmailForm.email || '').trim().toLowerCase()
+      const code = (this.data.bindEmailForm.code || '').trim()
+      const password = this.data.bindEmailForm.password || ''
+      if (!QQ_EMAIL_REGEX.test(email)) {
+        this.setData({ accountBindMessage: '请输入正确的QQ邮箱', accountMergeHint: false })
+        return
+      }
+      if (!/^\d{6}$/.test(code)) {
+        this.setData({ accountBindMessage: '请输入6位验证码', accountMergeHint: false })
+        return
+      }
+      if (password.length < 6 || password.length > 64) {
+        this.setData({ accountBindMessage: '密码需为6-64位', accountMergeHint: false })
+        return
+      }
+
+      this.setData({ bindingEmail: true, accountBindMessage: '', accountMergeHint: false })
+      request<ApiResponse<UserProfile>>({
+        url: `${app.globalData.baseUrl}/users/me/email-bind`,
+        method: 'POST',
+        data: { email, code, password }
+      })
+        .then((res) => {
+          if (!res.data?.success || !res.data?.data) {
+            this.setData({
+              accountBindMessage: res.data?.message || actionFailed('绑定邮箱'),
+              accountMergeHint: this.isAccountMergeMessage(res.data?.message)
+            })
+            return
+          }
+          const profile = res.data.data as UserProfile
+          this.updateStoredProfile(profile)
+          this.setData({
+            profile,
+            profileDraft: { ...profile },
+            bindEmailForm: { email: profile.email || email, code: '', password: '' },
+            accountBindMessage: '',
+            accountMergeHint: false
+          })
+          wx.showToast({ title: '邮箱已绑定', icon: 'success' })
+        })
+        .catch(() => {
+          this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR, accountMergeHint: false })
+        })
+        .finally(() => {
+          this.setData({ bindingEmail: false })
+        })
+    },
+
+    isAccountMergeMessage(message?: string) {
+      return Boolean(message && (message.includes('已注册') || message.includes('账号合并')))
+    },
+
+    updateStoredProfile(profile: UserProfile) {
+      const user = JSON.parse(wx.getStorageSync('user') || '{}')
+      wx.setStorageSync('user', JSON.stringify({
+        ...user,
+        email: profile.email,
+        nickname: profile.nickname,
+        avatarUrl: profile.avatarUrl,
+        avatarSource: profile.avatarSource,
+        wechatOpenid: profile.wechatOpenid,
+        wechatId: profile.wechatId,
+        qq: profile.qq
+      }))
     },
 
     getWechatLoginCode(): Promise<string> {

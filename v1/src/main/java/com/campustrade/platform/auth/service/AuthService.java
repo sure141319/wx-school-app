@@ -71,6 +71,9 @@ public class AuthService {
         if (purpose == VerificationPurposeEnum.REGISTER && existsByEmail(email)) {
             throw new AppException(HttpStatus.CONFLICT, "邮箱已注册");
         }
+        if (purpose == VerificationPurposeEnum.BIND_EMAIL && existsByEmail(email)) {
+            throw new AppException(HttpStatus.CONFLICT, "该邮箱已注册，请使用账号合并");
+        }
         if (purpose == VerificationPurposeEnum.RESET_PASSWORD && !existsByEmail(email)) {
             throw new AppException(HttpStatus.NOT_FOUND, "邮箱未注册");
         }

@@ -1,9 +1,12 @@
 package com.campustrade.platform.user.service;
 
 import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
+import com.campustrade.platform.auth.dto.request.BindEmailRequestDTO;
 import com.campustrade.platform.auth.service.WechatSession;
 import com.campustrade.platform.auth.service.WechatSessionClient;
+import com.campustrade.platform.auth.store.VerificationCodeStore;
 import com.campustrade.platform.common.AppException;
+import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
@@ -11,10 +14,12 @@ import com.campustrade.platform.user.dto.request.UpdateProfileRequestDTO;
 import com.campustrade.platform.user.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -26,7 +31,17 @@ class UserServiceTest {
     private final UserMapper userMapper = mock(UserMapper.class);
     private final UploadService uploadService = mock(UploadService.class);
     private final WechatSessionClient wechatSessionClient = mock(WechatSessionClient.class);
-    private final UserService userService = new UserService(userMapper, uploadService, wechatSessionClient);
+    private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+    private final VerificationCodeStore verificationCodeStore = mock(VerificationCodeStore.class);
+    private final AppProperties appProperties = new AppProperties();
+    private final UserService userService = new UserService(
+            userMapper,
+            uploadService,
+            wechatSessionClient,
+            passwordEncoder,
+            verificationCodeStore,
+            appProperties
+    );
 
     @Test
     void updateProfileDoesNotResubmitAvatarReviewWhenRequestUsesEquivalentProxyUrl() {
@@ -124,6 +139,49 @@ class UserServiceTest {
         verify(userMapper, never()).updateWechatOpenid(anyLong(), any());
     }
 
+    @Test
+    void bindEmailStoresVerifiedQqEmailAndPasswordOnCurrentWechatAccount() {
+        Long userId = 1L;
+        UserDO existingUser = wechatOnlyUser(userId, "微信用户abcd");
+        UserDO boundUser = wechatOnlyUser(userId, "微信用户abcd");
+        boundUser.setEmail("student@qq.com");
+        boundUser.setPasswordHash("encoded-password");
+
+        when(userMapper.findById(userId)).thenReturn(existingUser, boundUser);
+        when(userMapper.findByEmail("student@qq.com")).thenReturn(null);
+        when(verificationCodeStore.get("auth:code:BIND_EMAIL:student@qq.com")).thenReturn("123456");
+        when(passwordEncoder.encode("secret123")).thenReturn("encoded-password");
+
+        UserDO result = userService.bindEmail(
+                userId,
+                new BindEmailRequestDTO(" Student@qq.com ", "123456", "secret123")
+        );
+
+        assertEquals("student@qq.com", result.getEmail());
+        verify(userMapper).updateEmailAndPassword(userId, "student@qq.com", "encoded-password", 0, null);
+        verify(verificationCodeStore).delete("auth:code:BIND_EMAIL:student@qq.com");
+    }
+
+    @Test
+    void bindEmailRejectsRegisteredEmailAndGuidesAccountMerge() {
+        Long userId = 1L;
+        UserDO existingUser = wechatOnlyUser(userId, "微信用户abcd");
+        UserDO emailUser = user(2L, "软工-231", "images/avatar.jpg");
+        emailUser.setEmail("student@qq.com");
+
+        when(userMapper.findById(userId)).thenReturn(existingUser);
+        when(userMapper.findByEmail("student@qq.com")).thenReturn(emailUser);
+
+        AppException ex = assertThrows(
+                AppException.class,
+                () -> userService.bindEmail(userId, new BindEmailRequestDTO("student@qq.com", "123456", "secret123"))
+        );
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatus());
+        assertEquals("该邮箱已注册，请使用账号合并", ex.getMessage());
+        verify(userMapper, never()).updateEmailAndPassword(anyLong(), any(), any(), anyInt(), any());
+    }
+
     private UserDO user(Long id, String nickname, String avatarUrl) {
         UserDO user = new UserDO();
         user.setId(id);
@@ -131,6 +189,14 @@ class UserServiceTest {
         user.setNickname(nickname);
         user.setAvatarUrl(avatarUrl);
         user.setAvatarAuditStatus(ImageAuditStatusEnum.APPROVED);
+        return user;
+    }
+
+    private UserDO wechatOnlyUser(Long id, String nickname) {
+        UserDO user = user(id, nickname, null);
+        user.setEmail(null);
+        user.setPasswordHash(null);
+        user.setWechatOpenid("openid-" + id);
         return user;
     }
 }
