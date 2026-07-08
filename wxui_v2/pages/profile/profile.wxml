@@ -75,15 +75,15 @@
   <view class="card settings-card">
     <view class="settings-item" bindtap="openAccountBindModal">
       <view class="settings-left">
-        <text class="text-lg text-primary">@</text>
-        <text class="text-base text-text-main">绑定账号</text>
+        <text class="settings-icon settings-icon-account">@</text>
+        <text class="settings-label">绑定账号</text>
       </view>
       <text class="settings-arrow">›</text>
     </view>
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
-        <text class="text-lg text-primary">?</text>
-        <text class="text-base text-text-main">意见反馈</text>
+        <text class="settings-icon settings-icon-feedback">?</text>
+        <text class="settings-label">意见反馈</text>
       </view>
       <text class="settings-arrow">›</text>
     </view>
