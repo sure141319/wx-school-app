@@ -1012,6 +1012,50 @@ input, textarea {
   line-height: 1.4;
 }
 
+.wechat-bind-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 104rpx;
+  margin-top: 24rpx;
+  padding: 18rpx 20rpx;
+  border: 2rpx solid #DDE5EF;
+  border-radius: 22rpx;
+  background: #F8FAFC;
+}
+
+.wechat-bind-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.wechat-bind-title {
+  color: var(--color-text-main);
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.wechat-bind-desc {
+  color: var(--color-text-muted);
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.wechat-bind-button {
+  flex: 0 0 176rpx;
+  margin: 0;
+}
+
+.wechat-bind-status {
+  flex: 0 0 auto;
+  color: var(--color-success);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
 .profile-modal-footer {
   display: flex;
   align-items: center;
@@ -1024,6 +1068,35 @@ input, textarea {
 }
 
 .profile-modal-save {
+  flex: 1;
+  margin: 0;
+}
+
+.contact-modal {
+  width: 88%;
+  max-width: 660rpx;
+}
+
+.contact-modal-body {
+  padding-bottom: 24rpx;
+}
+
+.contact-modal-field {
+  margin-top: 22rpx;
+}
+
+.contact-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.contact-modal-cancel {
+  flex: 0 0 180rpx;
+  margin: 0;
+}
+
+.contact-modal-save {
   flex: 1;
   margin: 0;
 }

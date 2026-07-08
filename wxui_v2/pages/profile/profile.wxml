@@ -104,6 +104,18 @@
         <text class="field-hint">建议填写专业-班级，便于校内交易身份识别</text>
       </view>
 
+      <view class="wechat-bind-row">
+        <view class="wechat-bind-copy">
+          <text class="wechat-bind-title">微信快捷登录</text>
+          <text wx:if="{{profile.wechatOpenid}}" class="wechat-bind-desc">微信快捷登录已绑定</text>
+          <text wx:else class="wechat-bind-desc">绑定后可用微信直接进入当前账号</text>
+        </view>
+        <button wx:if="{{!profile.wechatOpenid}}" class="btn btn-secondary btn-sm wechat-bind-button" loading="{{bindingWechat}}" disabled="{{bindingWechat || saving}}" bindtap="bindWechat">
+          {{bindingWechat ? '绑定中...' : '绑定微信'}}
+        </button>
+        <text wx:else class="wechat-bind-status">已绑定</text>
+      </view>
+
       <view class="nick-section">
         <text class="form-label">微信号</text>
         <view class="input-field flex items-center">

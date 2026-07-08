@@ -12,6 +12,8 @@ public class AvatarAuditRecordDO {
 
     private Long userId;
     private String nickname;
+    private String wechatId;
+    private String qq;
     private String avatarUrl;
     private ImageAuditStatusEnum avatarAuditStatus;
     private String avatarAuditRemark;

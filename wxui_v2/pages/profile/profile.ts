@@ -18,6 +18,7 @@ interface ProfilePageData {
   loading: boolean
   loadingMore: boolean
   saving: boolean
+  bindingWechat: boolean
   info: string
   showProfileModal: boolean
   showFeedbackModal: boolean
@@ -39,6 +40,7 @@ Component({
     loading: false,
     loadingMore: false,
     saving: false,
+    bindingWechat: false,
     info: '',
     showProfileModal: false,
     showFeedbackModal: false,
@@ -265,6 +267,64 @@ Component({
       } finally {
         this.setData({ saving: false })
       }
+    },
+
+    bindWechat() {
+      if (this.data.bindingWechat || this.data.saving || this.data.profile.wechatOpenid) return
+      this.setData({ bindingWechat: true, info: '' })
+      this.getWechatLoginCode()
+        .then((code) => request<ApiResponse<UserProfile>>({
+          url: `${app.globalData.baseUrl}/users/me/wechat-bind`,
+          method: 'POST',
+          data: { code }
+        }))
+        .then((res) => {
+          if (!res.data?.success || !res.data?.data) {
+            this.setData({ info: res.data?.message || actionFailed('绑定微信') })
+            return
+          }
+          const profile = res.data.data as UserProfile
+          const user = JSON.parse(wx.getStorageSync('user') || '{}')
+          wx.setStorageSync('user', JSON.stringify({
+            ...user,
+            nickname: profile.nickname,
+            avatarUrl: profile.avatarUrl,
+            avatarSource: profile.avatarSource,
+            wechatOpenid: profile.wechatOpenid,
+            wechatId: profile.wechatId,
+            qq: profile.qq
+          }))
+          this.setData({
+            profile,
+            profileDraft: { ...profile },
+            displayAvatarUrl: resolveProfileDisplayAvatar(profile),
+            draftAvatarUrl: resolveProfileDisplayAvatar(profile),
+            info: ''
+          })
+          wx.showToast({ title: '绑定成功', icon: 'success' })
+        })
+        .catch(() => {
+          this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+        })
+        .finally(() => {
+          this.setData({ bindingWechat: false })
+        })
+    },
+
+    getWechatLoginCode(): Promise<string> {
+      return new Promise((resolve, reject) => {
+        wx.login({
+          timeout: 10000,
+          success: (res) => {
+            if (res.code) {
+              resolve(res.code)
+            } else {
+              reject(new Error(res.errMsg || 'wx.login failed'))
+            }
+          },
+          fail: reject
+        })
+      })
     },
 
     editGoods(e: WechatMiniprogram.TouchEvent) {

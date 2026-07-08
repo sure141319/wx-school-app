@@ -9,6 +9,8 @@
         <result property="goodsDescription" column="goods_description"/>
         <result property="sellerId" column="seller_id"/>
         <result property="sellerNickname" column="seller_nickname"/>
+        <result property="sellerWechatId" column="seller_wechat_id"/>
+        <result property="sellerQq" column="seller_qq"/>
         <result property="imageUrl" column="image_url"/>
         <result property="sortOrder" column="sort_order"/>
         <result property="auditStatus" column="audit_status"/>
@@ -25,6 +27,8 @@
         g.description AS goods_description,
         u.id AS seller_id,
         u.nickname AS seller_nickname,
+        u.wechat_id AS seller_wechat_id,
+        u.qq AS seller_qq,
         gi.image_url AS image_url,
         gi.sort_order AS sort_order,
         gi.audit_status AS audit_status,
@@ -69,6 +73,8 @@
     <resultMap id="AvatarAuditRecordMap" type="com.campustrade.platform.audit.dataobject.AvatarAuditRecordDO">
         <id property="userId" column="user_id"/>
         <result property="nickname" column="nickname"/>
+        <result property="wechatId" column="wechat_id"/>
+        <result property="qq" column="qq"/>
         <result property="avatarUrl" column="avatar_url"/>
         <result property="avatarAuditStatus" column="avatar_audit_status"/>
         <result property="avatarAuditRemark" column="avatar_audit_remark"/>
@@ -81,6 +87,8 @@
         SELECT
             id AS user_id,
             nickname,
+            wechat_id,
+            qq,
             avatar_url,
             avatar_audit_status,
             avatar_audit_remark,
@@ -103,6 +111,8 @@
         SELECT
             id AS user_id,
             nickname,
+            wechat_id,
+            qq,
             avatar_url,
             avatar_audit_status,
             avatar_audit_remark,

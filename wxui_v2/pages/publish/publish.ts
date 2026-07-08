@@ -1,5 +1,6 @@
 import { request } from '../../utils/request'
 import { uploadImage } from '../../utils/upload'
+import { hasContactMethod, validateContactDraft } from '../../utils/contact'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
@@ -11,7 +12,15 @@ interface PublishPageData {
   goodsId: string
   loading: boolean
   submitting: boolean
+  savingContact: boolean
   info: string
+  contactError: string
+  showContactModal: boolean
+  userProfile: UserProfile
+  contactDraft: {
+    wechatId: string
+    qq: string
+  }
   categories: Category[]
   conditionOptions: string[]
   locationOptions: string[]
@@ -24,7 +33,15 @@ Component({
     goodsId: '',
     loading: false,
     submitting: false,
+    savingContact: false,
     info: '',
+    contactError: '',
+    showContactModal: false,
+    userProfile: { nickname: '', avatarUrl: '', wechatId: '', qq: '' },
+    contactDraft: {
+      wechatId: '',
+      qq: ''
+    },
     categories: [],
     conditionOptions: CONDITION_OPTIONS,
     locationOptions: LOCATION_OPTIONS,
@@ -83,6 +100,17 @@ Component({
               wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
               resolve(false)
             } else {
+              const response = res.data as ApiResponse<UserProfile> | undefined
+              if (response?.success && response.data) {
+                const profile = response.data as UserProfile
+                this.setData({
+                  userProfile: profile,
+                  contactDraft: {
+                    wechatId: profile.wechatId || '',
+                    qq: profile.qq || ''
+                  }
+                })
+              }
               resolve(true)
             }
           },
@@ -222,6 +250,92 @@ Component({
       return !Object.keys(errors).length
     },
 
+    openContactModal() {
+      const profile = this.data.userProfile || { nickname: '', avatarUrl: '', wechatId: '', qq: '' }
+      this.setData({
+        showContactModal: true,
+        contactDraft: {
+          wechatId: profile.wechatId || '',
+          qq: profile.qq || ''
+        },
+        contactError: '',
+        info: ''
+      })
+    },
+
+    closeContactModal() {
+      if (this.data.savingContact || this.data.submitting) return
+      this.setData({
+        showContactModal: false,
+        contactError: ''
+      })
+    },
+
+    onContactWechatInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'contactDraft.wechatId': e.detail.value, contactError: '' })
+    },
+
+    onContactQqInput(e: WechatMiniprogram.InputEvent) {
+      this.setData({ 'contactDraft.qq': e.detail.value, contactError: '' })
+    },
+
+    async saveContactBeforePublish() {
+      if (this.data.savingContact || this.data.submitting) return
+
+      const wechatId = (this.data.contactDraft.wechatId || '').trim()
+      const qq = (this.data.contactDraft.qq || '').trim()
+      const validation = validateContactDraft({ wechatId, qq })
+      if (!validation.ok) {
+        this.setData({ contactError: validation.message })
+        return
+      }
+
+      const currentProfile = this.data.userProfile || { nickname: '', avatarUrl: '' }
+      const nickname = (currentProfile.nickname || '微信用户').trim()
+
+      this.setData({ savingContact: true, contactError: '', info: '' })
+      try {
+        const res = await request<ApiResponse<UserProfile>>({
+          url: `${app.globalData.baseUrl}/users/me`,
+          method: 'PUT',
+          data: { nickname, wechatId, qq }
+        })
+        if (!res.data?.success) {
+          this.setData({ contactError: res.data?.message || actionFailed('保存') })
+          return
+        }
+        const profile = (res.data?.data as unknown as UserProfile) || {
+          ...currentProfile,
+          wechatId,
+          qq
+        }
+        const user = JSON.parse(wx.getStorageSync('user') || '{}')
+        wx.setStorageSync('user', JSON.stringify({
+          ...user,
+          nickname: profile.nickname,
+          avatarUrl: profile.avatarUrl,
+          avatarSource: profile.avatarSource,
+          wechatOpenid: profile.wechatOpenid,
+          wechatId: profile.wechatId,
+          qq: profile.qq
+        }))
+        this.setData({
+          userProfile: profile,
+          contactDraft: {
+            wechatId: profile.wechatId || '',
+            qq: profile.qq || ''
+          },
+          showContactModal: false,
+          contactError: ''
+        })
+        await this.submitGoods()
+      } catch (_err) {
+        this.setData({ contactError: COMMON_MESSAGES.NETWORK_ERROR })
+      } finally {
+        this.setData({ savingContact: false })
+      }
+    },
+
     resetForm() {
       this.setData({
         goodsId: '',
@@ -242,7 +356,15 @@ Component({
     async submit() {
       if (this.data.submitting) return
       if (!this.validateForm()) return
+      if (!hasContactMethod(this.data.userProfile)) {
+        this.openContactModal()
+        return
+      }
 
+      await this.submitGoods()
+    },
+
+    async submitGoods() {
       const form = this.data.form
       const payload = {
         title: form.title.trim(),

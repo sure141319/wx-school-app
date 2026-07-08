@@ -1,10 +1,13 @@
 package com.campustrade.platform.audit.service;
 
+import com.campustrade.platform.audit.dataobject.AuditImageRecordDO;
+import com.campustrade.platform.audit.dataobject.AvatarAuditRecordDO;
 import com.campustrade.platform.audit.dto.response.ThumbnailBackfillResponseDTO;
 import com.campustrade.platform.audit.mapper.AuditImageMapper;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
+import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.mapper.UserMapper;
@@ -33,6 +36,49 @@ class AuditImageServiceTest {
             uploadService,
             appProperties
     );
+
+    @Test
+    void listIncludesSellerContactFields() {
+        AuditImageRecordDO record = new AuditImageRecordDO();
+        record.setImageId(10L);
+        record.setGoodsId(20L);
+        record.setGoodsTitle("台灯");
+        record.setSellerId(30L);
+        record.setSellerNickname("卖家");
+        record.setSellerWechatId("wx_seller_30");
+        record.setSellerQq("123456789");
+        record.setImageUrl("images/original.jpg");
+        record.setAuditStatus(ImageAuditStatusEnum.PENDING);
+        when(auditImageMapper.search(ImageAuditStatusEnum.PENDING, 10, 0)).thenReturn(List.of(record));
+        when(auditImageMapper.countSearch(ImageAuditStatusEnum.PENDING)).thenReturn(1L);
+        when(uploadService.getProxyUrl("images/original.jpg")).thenReturn("/api/v1/images/proxy/original.jpg");
+
+        var response = service.list(1L, null, 0, 10);
+
+        assertEquals(1, response.total());
+        assertEquals("wx_seller_30", response.items().get(0).sellerWechatId());
+        assertEquals("123456789", response.items().get(0).sellerQq());
+    }
+
+    @Test
+    void listAvatarsIncludesUserContactFields() {
+        AvatarAuditRecordDO record = new AvatarAuditRecordDO();
+        record.setUserId(30L);
+        record.setNickname("用户");
+        record.setWechatId("wx_user_30");
+        record.setQq("987654321");
+        record.setAvatarUrl("avatars/user.jpg");
+        record.setAvatarAuditStatus(ImageAuditStatusEnum.PENDING);
+        when(auditImageMapper.searchAvatars(ImageAuditStatusEnum.PENDING, 10, 0)).thenReturn(List.of(record));
+        when(auditImageMapper.countSearchAvatars(ImageAuditStatusEnum.PENDING)).thenReturn(1L);
+        when(uploadService.getProxyUrl("avatars/user.jpg")).thenReturn("/api/v1/images/proxy/avatar.jpg");
+
+        var response = service.listAvatars(1L, null, 0, 10);
+
+        assertEquals(1, response.total());
+        assertEquals("wx_user_30", response.items().get(0).wechatId());
+        assertEquals("987654321", response.items().get(0).qq());
+    }
 
     @Test
     void backfillMissingThumbnailsGeneratesThumbnailAndStoresObjectKey() {

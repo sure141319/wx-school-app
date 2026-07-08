@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 public record AvatarAuditResponseDTO(
         Long userId,
         String nickname,
+        String wechatId,
+        String qq,
         String avatarUrl,
         ImageAuditStatusEnum auditStatus,
         String auditRemark,

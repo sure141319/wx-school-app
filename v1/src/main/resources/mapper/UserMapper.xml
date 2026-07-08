@@ -106,6 +106,13 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updateWechatOpenid">
+        UPDATE users
+        SET wechat_openid = #{wechatOpenid},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
     <update id="updateAvatarAuditStatus">
         UPDATE users
         SET avatar_audit_status = #{avatarAuditStatus},

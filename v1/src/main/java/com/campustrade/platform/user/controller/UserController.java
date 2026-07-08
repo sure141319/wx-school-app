@@ -1,5 +1,6 @@
 package com.campustrade.platform.user.controller;
 
+import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.common.ApiResponse;
 import com.campustrade.platform.security.AuthUtils;
 import com.campustrade.platform.security.UserPrincipal;
@@ -9,6 +10,7 @@ import com.campustrade.platform.user.dto.response.UserProfileResponseDTO;
 import com.campustrade.platform.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,5 +39,10 @@ public class UserController {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok("个人资料更新成功", userProfileAssembler.toResponse(userService.updateProfile(principal.userId(), request)));
     }
-}
 
+    @PostMapping("/me/wechat-bind")
+    public ApiResponse<UserProfileResponseDTO> bindWechat(@Valid @RequestBody WechatLoginRequestDTO request) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok("微信绑定成功", userProfileAssembler.toResponse(userService.bindWechat(principal.userId(), request)));
+    }
+}

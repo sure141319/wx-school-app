@@ -178,6 +178,8 @@ public class AuditImageService {
                 record.getGoodsDescription(),
                 record.getSellerId(),
                 record.getSellerNickname(),
+                record.getSellerWechatId(),
+                record.getSellerQq(),
                 uploadService.getProxyUrl(record.getImageUrl()),
                 record.getSortOrder(),
                 record.getAuditStatus(),
@@ -258,6 +260,8 @@ public class AuditImageService {
         return new AvatarAuditResponseDTO(
                 record.getUserId(),
                 record.getNickname(),
+                record.getWechatId(),
+                record.getQq(),
                 uploadService.getProxyUrl(record.getAvatarUrl()),
                 record.getAvatarAuditStatus(),
                 record.getAvatarAuditRemark(),

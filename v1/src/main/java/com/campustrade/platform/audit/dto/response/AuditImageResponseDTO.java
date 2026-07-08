@@ -11,6 +11,8 @@ public record AuditImageResponseDTO(
         String goodsDescription,
         Long sellerId,
         String sellerNickname,
+        String sellerWechatId,
+        String sellerQq,
         String originalImageUrl,
         Integer sortOrder,
         ImageAuditStatusEnum auditStatus,

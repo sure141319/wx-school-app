@@ -1,5 +1,8 @@
 package com.campustrade.platform.user.service;
 
+import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
+import com.campustrade.platform.auth.service.WechatSession;
+import com.campustrade.platform.auth.service.WechatSessionClient;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
@@ -16,10 +19,12 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final UploadService uploadService;
+    private final WechatSessionClient wechatSessionClient;
 
-    public UserService(UserMapper userMapper, UploadService uploadService) {
+    public UserService(UserMapper userMapper, UploadService uploadService, WechatSessionClient wechatSessionClient) {
         this.userMapper = userMapper;
         this.uploadService = uploadService;
+        this.wechatSessionClient = wechatSessionClient;
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +62,28 @@ public class UserService {
             userMapper.updateAvatarAuditStatus(userId, ImageAuditStatusEnum.PENDING, null, null);
         }
 
+        return getById(userId);
+    }
+
+    @Transactional
+    public UserDO bindWechat(Long userId, WechatLoginRequestDTO request) {
+        UserDO currentUser = getById(userId);
+        WechatSession session = wechatSessionClient.exchange(request.code().trim());
+        String openid = session.openid();
+
+        if (StringUtils.hasText(currentUser.getWechatOpenid())) {
+            if (currentUser.getWechatOpenid().equals(openid)) {
+                return currentUser;
+            }
+            throw new AppException(HttpStatus.CONFLICT, "当前账号已绑定其他微信");
+        }
+
+        UserDO boundUser = userMapper.findByWechatOpenid(openid);
+        if (boundUser != null && !boundUser.getId().equals(userId)) {
+            throw new AppException(HttpStatus.CONFLICT, "该微信已绑定其他账号");
+        }
+
+        userMapper.updateWechatOpenid(userId, openid);
         return getById(userId);
     }
 

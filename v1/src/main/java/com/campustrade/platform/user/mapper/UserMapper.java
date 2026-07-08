@@ -38,6 +38,9 @@ public interface UserMapper {
                       @Param("wechatId") String wechatId,
                       @Param("qq") String qq);
 
+    int updateWechatOpenid(@Param("id") Long id,
+                           @Param("wechatOpenid") String wechatOpenid);
+
     int updateAvatarAuditStatus(@Param("id") Long id,
                                 @Param("avatarAuditStatus") ImageAuditStatusEnum avatarAuditStatus,
                                 @Param("avatarAuditRemark") String avatarAuditRemark,

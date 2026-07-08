@@ -103,4 +103,31 @@
       {{submitting ? '提交中...' : goodsId ? '保存修改' : '发布闲置'}}
     </button>
   </view>
+
+  <view class="modal-mask" wx:if="{{showContactModal}}" bindtap="closeContactModal"></view>
+  <view class="modal-dialog contact-modal" wx:if="{{showContactModal}}">
+    <view class="modal-title">补全联系方式</view>
+    <view class="modal-body contact-modal-body">
+      <text class="modal-text">请先填写联系方式，方便同校同学联系你后再发布商品。</text>
+
+      <view class="contact-modal-field">
+        <text class="form-label">微信号</text>
+        <input class="input-field" type="text" placeholder="可选，填写后商品详情会展示" value="{{contactDraft.wechatId}}" bindinput="onContactWechatInput" />
+      </view>
+
+      <view class="contact-modal-field">
+        <text class="form-label">QQ号</text>
+        <input class="input-field" type="number" maxlength="12" placeholder="可选，5-12位数字" value="{{contactDraft.qq}}" bindinput="onContactQqInput" />
+      </view>
+
+      <text wx:if="{{contactError}}" class="field-error">{{contactError}}</text>
+      <text wx:else class="field-hint">微信号和 QQ 号至少填写一个，保存后会同步到“我的”页面。</text>
+    </view>
+    <view class="modal-footer contact-modal-footer">
+      <button class="btn btn-ghost contact-modal-cancel" disabled="{{savingContact || submitting}}" bindtap="closeContactModal">取消</button>
+      <button class="btn btn-primary contact-modal-save" loading="{{savingContact || submitting}}" disabled="{{savingContact || submitting}}" bindtap="saveContactBeforePublish">
+        {{savingContact ? '保存中...' : submitting ? '发布中...' : '保存并发布'}}
+      </button>
+    </view>
+  </view>
 </view>
