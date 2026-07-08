@@ -211,7 +211,7 @@ Component({
           if (!filePath) return
           wx.showLoading({ title: '上传头像...', mask: true })
           try {
-            const upload = await uploadImage(filePath)
+            const upload = await uploadImage(filePath, 'avatar')
             this.setData({
               'profileDraft.avatarUrl': upload.url,
               draftAvatarUrl: upload.url,

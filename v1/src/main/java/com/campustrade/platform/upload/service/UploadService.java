@@ -28,7 +28,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -44,6 +44,9 @@ public class UploadService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif");
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
+    private static final DateTimeFormatter OBJECT_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final String USAGE_AVATAR = "avatar";
+    private static final String USAGE_GOODS = "goods";
     private static final int THUMBNAIL_MAX_SIZE = 480;
     private static final float THUMBNAIL_QUALITY = 0.78f;
     private static final String THUMBNAIL_FORMAT = "jpg";
@@ -64,11 +67,15 @@ public class UploadService {
     }
 
     public UploadResponseDTO storeImage(MultipartFile file) {
+        return storeImage(file, USAGE_GOODS, null);
+    }
+
+    public UploadResponseDTO storeImage(MultipartFile file, String usage, Long userId) {
         validateImage(file);
         ensureBucketReady();
 
         String extension = getExtension(file.getOriginalFilename());
-        String objectKey = buildObjectKey(extension);
+        String objectKey = buildObjectKey(extension, usage, userId);
 
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(
@@ -250,10 +257,26 @@ public class UploadService {
         return lower.substring(index);
     }
 
-    private String buildObjectKey(String extension) {
-        String prefix = LocalDate.now(ZoneOffset.UTC).format(OBJECT_PREFIX_FORMATTER);
-        String filename = UUID.randomUUID().toString().replace("-", "") + extension;
-        return "images/" + prefix + "/" + filename;
+    private String buildObjectKey(String extension, String usage, Long userId) {
+        String normalizedUsage = normalizeUsage(usage);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        String prefix = now.format(OBJECT_PREFIX_FORMATTER);
+        String timestamp = now.format(OBJECT_TIMESTAMP_FORMATTER);
+        String randomSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        long safeUserId = userId == null || userId <= 0 ? 0 : userId;
+        String filename = normalizedUsage + "_u" + safeUserId + "_" + timestamp + "_" + randomSuffix + extension;
+        return "images/" + prefix + "/" + normalizedUsage + "/" + filename;
+    }
+
+    private String normalizeUsage(String usage) {
+        if (!StringUtils.hasText(usage)) {
+            return USAGE_GOODS;
+        }
+        String normalized = usage.trim().toLowerCase(Locale.ROOT);
+        if (USAGE_AVATAR.equals(normalized) || USAGE_GOODS.equals(normalized)) {
+            return normalized;
+        }
+        throw new AppException(HttpStatus.BAD_REQUEST, "Invalid image usage");
     }
 
     private String buildThumbnailObjectKey(String objectKey) {

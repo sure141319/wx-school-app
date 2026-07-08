@@ -216,7 +216,7 @@ Component({
           wx.showLoading({ title: '上传中...', mask: true })
           try {
             const results = await Promise.all(
-              files.map(file => uploadImage(file.tempFilePath))
+              files.map(file => uploadImage(file.tempFilePath, 'goods'))
             )
             const photos = this.data.form.photos.concat(results)
             this.setData({ 'form.photos': photos, 'errors.photos': '', info: '' })

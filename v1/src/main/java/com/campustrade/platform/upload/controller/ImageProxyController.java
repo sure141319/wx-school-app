@@ -1,9 +1,11 @@
 package com.campustrade.platform.upload.controller;
 
+import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.upload.service.UploadService;
 import io.minio.StatObjectResponse;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,21 +33,49 @@ public class ImageProxyController {
             @PathVariable String month,
             @PathVariable String filename) {
 
-        if (!year.matches("^\\d{4}$")) {
-            throw new com.campustrade.platform.common.AppException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "无效的年份参数");
-        }
-        if (!month.matches("^(0[1-9]|1[0-2])$")) {
-            throw new com.campustrade.platform.common.AppException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "无效的月份参数");
-        }
-        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
-            throw new com.campustrade.platform.common.AppException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "无效的文件名参数");
-        }
+        validateDatePath(year, month);
+        validatePathSegment(filename, "Invalid filename parameter");
+        return serveObject("images/" + year + "/" + month + "/" + filename);
+    }
 
-        String objectKey = "images/" + year + "/" + month + "/" + filename;
+    @GetMapping("/{year}/{month}/thumbs/{filename:.+}")
+    public ResponseEntity<StreamingResponseBody> serveThumbnail(
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String filename) {
 
+        validateDatePath(year, month);
+        validatePathSegment(filename, "Invalid filename parameter");
+        return serveObject("images/" + year + "/" + month + "/thumbs/" + filename);
+    }
+
+    @GetMapping("/{year}/{month}/{usage}/{filename:.+}")
+    public ResponseEntity<StreamingResponseBody> serveUsageImage(
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String usage,
+            @PathVariable String filename) {
+
+        validateDatePath(year, month);
+        validateUsagePath(usage);
+        validatePathSegment(filename, "Invalid filename parameter");
+        return serveObject("images/" + year + "/" + month + "/" + usage + "/" + filename);
+    }
+
+    @GetMapping("/{year}/{month}/{usage}/thumbs/{filename:.+}")
+    public ResponseEntity<StreamingResponseBody> serveUsageThumbnail(
+            @PathVariable String year,
+            @PathVariable String month,
+            @PathVariable String usage,
+            @PathVariable String filename) {
+
+        validateDatePath(year, month);
+        validateUsagePath(usage);
+        validatePathSegment(filename, "Invalid filename parameter");
+        return serveObject("images/" + year + "/" + month + "/" + usage + "/thumbs/" + filename);
+    }
+
+    private ResponseEntity<StreamingResponseBody> serveObject(String objectKey) {
         StatObjectResponse info = uploadService.getImageInfo(objectKey);
         MediaType mediaType = resolveMediaType(info.contentType());
         StreamingResponseBody body = outputStream -> {
@@ -62,41 +92,25 @@ public class ImageProxyController {
                 .body(body);
     }
 
-    @GetMapping("/{year}/{month}/thumbs/{filename:.+}")
-    public ResponseEntity<StreamingResponseBody> serveThumbnail(
-            @PathVariable String year,
-            @PathVariable String month,
-            @PathVariable String filename) {
-
+    private void validateDatePath(String year, String month) {
         if (!year.matches("^\\d{4}$")) {
-            throw new com.campustrade.platform.common.AppException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid year parameter");
+            throw new AppException(HttpStatus.BAD_REQUEST, "Invalid year parameter");
         }
         if (!month.matches("^(0[1-9]|1[0-2])$")) {
-            throw new com.campustrade.platform.common.AppException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid month parameter");
+            throw new AppException(HttpStatus.BAD_REQUEST, "Invalid month parameter");
         }
-        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
-            throw new com.campustrade.platform.common.AppException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid filename parameter");
+    }
+
+    private void validateUsagePath(String usage) {
+        if (!"avatar".equals(usage) && !"goods".equals(usage)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Invalid image usage parameter");
         }
+    }
 
-        String objectKey = "images/" + year + "/" + month + "/thumbs/" + filename;
-
-        StatObjectResponse info = uploadService.getImageInfo(objectKey);
-        MediaType mediaType = resolveMediaType(info.contentType());
-        StreamingResponseBody body = outputStream -> {
-            try (InputStream stream = uploadService.getImageStream(objectKey)) {
-                stream.transferTo(outputStream);
-            }
-        };
-
-        return ResponseEntity.ok()
-                .contentType(mediaType)
-                .contentLength(info.size())
-                .cacheControl(CacheControl.maxAge(7, TimeUnit.DAYS).cachePublic())
-                .header(HttpHeaders.ETAG, info.etag())
-                .body(body);
+    private void validatePathSegment(String value, String message) {
+        if (value.contains("..") || value.contains("/") || value.contains("\\")) {
+            throw new AppException(HttpStatus.BAD_REQUEST, message);
+        }
     }
 
     private MediaType resolveMediaType(String contentType) {

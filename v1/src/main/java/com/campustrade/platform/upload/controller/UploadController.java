@@ -1,6 +1,8 @@
 package com.campustrade.platform.upload.controller;
 
 import com.campustrade.platform.common.ApiResponse;
+import com.campustrade.platform.security.AuthUtils;
+import com.campustrade.platform.security.UserPrincipal;
 import com.campustrade.platform.upload.dto.request.PresignRequestDTO;
 import com.campustrade.platform.upload.dto.response.UploadResponseDTO;
 import com.campustrade.platform.upload.service.UploadService;
@@ -26,8 +28,10 @@ public class UploadController {
     }
 
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<UploadResponseDTO> uploadImage(@RequestParam("file") MultipartFile file) {
-        return ApiResponse.ok("图片上传成功", uploadService.storeImage(file));
+    public ApiResponse<UploadResponseDTO> uploadImage(@RequestParam("file") MultipartFile file,
+                                                      @RequestParam(value = "usage", required = false) String usage) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok("图片上传成功", uploadService.storeImage(file, usage, principal.userId()));
     }
 
     @PostMapping("/presign/batch")

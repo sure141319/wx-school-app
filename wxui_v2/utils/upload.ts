@@ -35,7 +35,7 @@ function compressImageForUpload(filePath: string): Promise<string> {
   })
 }
 
-export async function uploadImage(filePath: string): Promise<UploadResult> {
+export async function uploadImage(filePath: string, usage: 'avatar' | 'goods' = 'goods'): Promise<UploadResult> {
   const uploadPath = await compressImageForUpload(filePath)
 
   return new Promise((resolve, reject) => {
@@ -50,6 +50,7 @@ export async function uploadImage(filePath: string): Promise<UploadResult> {
       filePath: uploadPath,
       name: 'file',
       header: { Authorization: `Bearer ${token}` },
+      formData: { usage },
       success: (res: WechatMiniprogram.UploadFileSuccessCallbackResult) => {
         if (res.statusCode === 401 || res.statusCode === 403) {
           handleLoginRequired(reject)
