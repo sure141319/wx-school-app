@@ -29,7 +29,7 @@ const state = {
   actionLoading: false,
   searchQuery: '',
   remarkHistory: parseJson(localStorage.getItem(STORAGE_KEYS.remarkHistory)) || [],
-  sellerEmailCache: new Map()
+  sellerContactCache: new Map()
 }
 
 const els = {
@@ -453,7 +453,7 @@ async function loadQueue(options = {}) {
     state.page = pageData.page || 0
     state.size = pageData.size || state.size
 
-    await hydrateSellerEmails()
+    await hydrateSellerContacts()
     filterAndRenderItems()
 
     const getItemId = (item) => state.currentTab === 'goods' ? item.imageId : item.userId
@@ -473,7 +473,7 @@ async function loadQueue(options = {}) {
   }
 }
 
-async function hydrateSellerEmails() {
+async function hydrateSellerContacts() {
   if (state.currentTab !== 'goods' || !state.items.length) {
     return
   }
@@ -486,32 +486,88 @@ async function hydrateSellerEmails() {
   ))
 
   await Promise.all(goodsIds.map(async goodsId => {
-    const existingItemEmail = state.items.find(item => String(item.goodsId) === goodsId && item.sellerEmail)?.sellerEmail
-    if (existingItemEmail) {
-      state.sellerEmailCache.set(goodsId, existingItemEmail)
-      return
-    }
+    const existingContact = sellerContactFromAuditItem(
+      state.items.find(item => String(item.goodsId) === goodsId)
+    )
+    let sellerContact = mergeSellerContact(state.sellerContactCache.get(goodsId), existingContact)
 
-    if (!state.sellerEmailCache.has(goodsId)) {
+    if (!hasCompleteSellerContact(sellerContact)) {
       try {
         const detail = await request(`/goods/${encodeURIComponent(goodsId)}`)
-        state.sellerEmailCache.set(goodsId, detail?.seller?.email || '')
+        sellerContact = mergeSellerContact(sellerContact, sellerContactFromGoodsDetail(detail))
       } catch (_error) {
-        state.sellerEmailCache.set(goodsId, '')
+        // Keep any contact fields already returned by the audit list; retry details on refresh.
       }
     }
 
-    const sellerEmail = state.sellerEmailCache.get(goodsId)
-    if (!sellerEmail) {
+    if (hasAnySellerContact(sellerContact)) {
+      state.sellerContactCache.set(goodsId, sellerContact)
+      applySellerContact(goodsId, sellerContact)
+    } else {
+      state.sellerContactCache.delete(goodsId)
+    }
+  }))
+}
+
+function sellerContactFromAuditItem(item) {
+  return {
+    email: normalizeContactField(item?.sellerEmail),
+    wechatId: normalizeContactField(item?.sellerWechatId),
+    qq: normalizeContactField(item?.sellerQq)
+  }
+}
+
+function sellerContactFromGoodsDetail(detail) {
+  const seller = detail?.seller || {}
+  const email = normalizeContactField(seller.email || detail?.sellerEmail)
+  const qq = normalizeContactField(seller.qq || detail?.sellerQq) || deriveQqFromEmail(email)
+  return {
+    email,
+    wechatId: normalizeContactField(seller.wechatId || detail?.sellerWechatId),
+    qq
+  }
+}
+
+function mergeSellerContact(base = {}, next = {}) {
+  return {
+    email: normalizeContactField(next.email) || normalizeContactField(base.email),
+    wechatId: normalizeContactField(next.wechatId) || normalizeContactField(base.wechatId),
+    qq: normalizeContactField(next.qq) || normalizeContactField(base.qq)
+  }
+}
+
+function applySellerContact(goodsId, contact) {
+  state.items.forEach(item => {
+    if (String(item.goodsId) !== goodsId) {
       return
     }
+    if (contact.email) {
+      item.sellerEmail = contact.email
+    }
+    if (contact.wechatId) {
+      item.sellerWechatId = contact.wechatId
+    }
+    if (contact.qq) {
+      item.sellerQq = contact.qq
+    }
+  })
+}
 
-    state.items.forEach(item => {
-      if (String(item.goodsId) === goodsId) {
-        item.sellerEmail = sellerEmail
-      }
-    })
-  }))
+function hasAnySellerContact(contact) {
+  return Boolean(contact?.email || contact?.wechatId || contact?.qq)
+}
+
+function hasCompleteSellerContact(contact) {
+  return Boolean(contact?.email && contact?.wechatId && contact?.qq)
+}
+
+function normalizeContactField(value) {
+  return String(value ?? '').trim()
+}
+
+function deriveQqFromEmail(email) {
+  const match = normalizeContactField(email).match(/^(\d{5,12})@qq\.com$/i)
+  return match ? match[1] : ''
 }
 
 async function approveSelected() {
