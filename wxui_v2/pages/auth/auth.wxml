@@ -11,16 +11,30 @@
     </view>
   </view>
 
-  <view class="mt-48 text-center">
+  <view class="auth-title-block text-center">
     <text class="auth-eyebrow">校园闲置平台</text>
-    <text class="display-title mt-16 mb-16">
+    <text class="display-title auth-title-main">
       {{mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码'}}
     </text>
-    <text class="helper-text">支持 QQ 邮箱/微信快捷登录</text>
+    <text class="helper-text auth-title-desc">
+      {{mode === 'login' ? 'QQ 邮箱登录，或使用微信快捷进入' : mode === 'register' ? '仅支持 QQ 邮箱注册，便于校内联系' : '通过 QQ 邮箱验证码重置密码'}}
+    </text>
+  </view>
+
+  <view wx:if="{{mode === 'login'}}" class="login-wechat-section">
+    <button class="wechat-login-btn wechat-login-primary" disabled="{{wechatLoading || loading}}" loading="{{wechatLoading}}" bindtap="handleWechatLogin">
+      <image class="wechat-login-icon" src="/static/wx-login.png" mode="aspectFit" />
+      <text>{{wechatLoading ? '微信登录中...' : '微信一键登录'}}</text>
+    </button>
+    <text class="field-hint login-wechat-hint">首次微信快捷登录后，请补充联系方式。</text>
+  </view>
+
+  <view wx:if="{{mode === 'login'}}" class="auth-divider auth-divider-account">
+    <text>或使用 QQ 邮箱登录</text>
   </view>
 
   <block wx:if="{{mode === 'login'}}">
-    <view class="auth-form">
+    <view class="auth-form auth-form-login">
       <view class="form-row relative">
         <text class="form-label">QQ 邮箱</text>
         <input class="input-field" value="{{loginForm.email}}" placeholder="请输入 xxx@qq.com" bindinput="onLoginEmailInput" bindfocus="showEmailHistory" bindblur="hideEmailHistory" />
@@ -43,14 +57,6 @@
       <button class="btn btn-primary btn-full" disabled="{{loading || !isLoginFormValid}}" loading="{{loading}}" bindtap="handleLogin">
         {{loading ? '登录中...' : '登录'}}
       </button>
-      <view class="auth-divider">
-        <text>或</text>
-      </view>
-      <button class="wechat-login-btn" disabled="{{wechatLoading || loading}}" loading="{{wechatLoading}}" bindtap="handleWechatLogin">
-        <image class="wechat-login-icon" src="/static/wx-login.png" mode="aspectFit" />
-        <text>{{wechatLoading ? '微信登录中...' : '微信快捷登录'}}</text>
-      </button>
-      <text class="field-hint">首次微信快捷登录后，请补充联系方式。</text>
       <view class="text-link" bindtap="goToReset">
         <text>忘记密码？</text>
       </view>

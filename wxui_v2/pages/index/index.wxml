@@ -1,25 +1,24 @@
 <view class="page-shell flex flex-col gap-28">
   <view class="home-hero">
-    <view class="flex items-center gap-16">
-      <view class="search-bar">
-        <text class="search-icon">⌕</text>
-        <input placeholder="搜索你想买的闲置" value="{{keyword}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" />
-      </view>
-      <view class="icon-btn" bindtap="loadGoods" aria-label="刷新">↻</view>
-    </view>
-
-    <view class="mt-28">
-      <text class="eyebrow">Campus Trade</text>
-      <text class="display-title mt-8">校园闲置集市</text>
-      <text class="helper-text mt-12">发现同校好物，QQ联系，校内线下交易。</text>
+    <view class="home-hero-copy">
+      <text class="display-title">校园闲置集市</text>
+      <text class="helper-text home-hero-subtitle">找同校闲置，QQ/微信联系，建议校内当面交易。</text>
     </view>
 
     <view class="hero-footer">
       <view class="trust-badge">
         <view class="trust-dot"></view>
-        <text class="helper-text">认证同学发布，图片审核后展示</text>
+        <text class="helper-text hero-note">图片审核后展示，联系方式由卖家填写</text>
       </view>
       <view class="btn btn-secondary btn-sm" bindtap="goToPublish">去发布</view>
+    </view>
+  </view>
+
+  <view class="home-search-section">
+    <view class="search-bar home-search-bar">
+      <text class="search-icon">⌕</text>
+      <input placeholder="搜索你想买的闲置" value="{{keyword}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" />
+      <view class="search-refresh-inline" bindtap="loadGoods" aria-label="刷新">↻</view>
     </view>
   </view>
 

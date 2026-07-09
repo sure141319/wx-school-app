@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const profileWxml = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.wxml'), 'utf8')
+const profileTs = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.ts'), 'utf8')
 const appWxss = fs.readFileSync(path.resolve(__dirname, '../app.wxss'), 'utf8')
 
 function cssBlock(selector) {
@@ -22,6 +23,60 @@ assert.match(
   profileWxml,
   /<text class="settings-icon settings-icon-feedback">\?<\/text>\s*<text class="settings-label">意见反馈<\/text>/,
   'feedback settings row should use dedicated icon and label classes for stable vertical alignment'
+)
+
+assert.match(
+  profileWxml,
+  /bindtap="openAccountBindModal"[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
+  'support author row should sit between account binding and feedback settings'
+)
+
+assert.match(
+  profileTs,
+  /const SUPPORT_AUTHOR_AD_UNIT_ID = 'adunit-f3d20d1b06422a8d'/,
+  'support author rewarded video ad unit id should be configured in profile page'
+)
+
+assert.match(
+  profileTs,
+  /let supportAuthorVideoAd: WechatMiniprogram\.RewardedVideoAd \| null = null/,
+  'support author rewarded video ad instance should be stored at module scope'
+)
+
+assert.match(
+  profileTs,
+  /onLoad\(\)[\s\S]*?this\.initSupportAuthorVideoAd\(\)/,
+  'profile page should create the support author rewarded video ad on load'
+)
+
+assert.match(
+  profileTs,
+  /wx\.createRewardedVideoAd\(\{\s*adUnitId:\s*SUPPORT_AUTHOR_AD_UNIT_ID\s*\}\)/,
+  'support author rewarded video ad should be created with the configured ad unit id'
+)
+
+assert.match(
+  profileTs,
+  /supportAuthorVideoAd\.onError\(\(err\) => \{[\s\S]*?console\.error\('激励视频广告加载失败', err\)/,
+  'support author rewarded video ad should log loading errors'
+)
+
+assert.match(
+  profileTs,
+  /supportAuthorVideoAd\.onClose\(\(res\) => \{[\s\S]*?if \(!res \|\| res\.isEnded\)[\s\S]*?感谢支持/,
+  'support author rewarded video ad close handler should thank users after complete viewing and tolerate old close results'
+)
+
+assert.match(
+  profileTs,
+  /showSupportAuthor\(\)[\s\S]*?const videoAd = supportAuthorVideoAd[\s\S]*?videoAd\.show\(\)\.catch\(\(\) => \{[\s\S]*?videoAd\.load\(\)[\s\S]*?\.then\(\(\) => videoAd\.show\(\)\)/,
+  'support author tap handler should show the rewarded video ad and retry after loading'
+)
+
+assert.match(
+  profileTs,
+  /onUnload\(\)[\s\S]*?this\.destroySupportAuthorVideoAd\(\)/,
+  'profile page should destroy the support author rewarded video ad on unload'
 )
 
 assert.doesNotMatch(

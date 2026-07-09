@@ -9,6 +9,7 @@ interface DetailPageData {
   info: string
   goodsId: string
   currentImgIndex: number
+  displayCreatedAt: string
 }
 
 Component({
@@ -17,7 +18,8 @@ Component({
     loading: false,
     info: '',
     goodsId: '',
-    currentImgIndex: 0
+    currentImgIndex: 0,
+    displayCreatedAt: ''
   } as DetailPageData,
 
   methods: {
@@ -39,7 +41,7 @@ Component({
     },
 
     async loadGoods() {
-      this.setData({ loading: true, info: '' })
+      this.setData({ loading: true, info: '', displayCreatedAt: '' })
       try {
         const res = await request<ApiResponse<GoodsItem>>({
           url: `${app.globalData.baseUrl}/goods/${this.data.goodsId}`,
@@ -65,12 +67,32 @@ Component({
           goods.seller.qq = goods.seller.email.replace('@qq.com', '')
         }
 
-        this.setData({ goods: goods || null })
+        this.setData({
+          goods: goods || null,
+          displayCreatedAt: this.formatCreatedAt(goods?.createdAt)
+        })
       } catch (_err) {
         this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
       } finally {
         this.setData({ loading: false })
       }
+    },
+
+    formatCreatedAt(createdAt?: string) {
+      if (!createdAt) return ''
+      const normalized = createdAt.replace('T', ' ').slice(0, 16)
+      if (!normalized.trim()) return ''
+
+      const date = new Date(createdAt)
+      if (Number.isNaN(date.getTime())) {
+        return normalized
+      }
+
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+      return `${month}-${day} ${hour}:${minute}`
     },
 
     previewImage(e: WechatMiniprogram.TouchEvent) {

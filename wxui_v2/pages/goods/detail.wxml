@@ -19,13 +19,14 @@
       </view>
     </view>
 
-    <view class="section-card">
-      <view class="flex items-baseline mb-16">
+    <view class="detail-summary-card">
+      <view class="detail-price-row">
         <text class="text-base font-bold mr-4 text-price">¥</text>
-        <text class="text-4xl font-bold text-price">{{goods.price}}</text>
+        <text class="detail-price text-price">{{goods.price}}</text>
       </view>
-      <text class="block text-lg font-semibold mb-20 leading-normal text-text-main">{{goods.title}}</text>
-      <view class="flex flex-wrap gap-12">
+      <text class="detail-title">{{goods.title}}</text>
+      <view wx:if="{{displayCreatedAt}}" class="detail-time">发布于 {{displayCreatedAt}}</view>
+      <view class="detail-tags">
         <view class="tag tag-cond">{{goods.conditionLevel || '成色未知'}}</view>
         <view class="tag tag-loc">{{goods.campusLocation || '校内交易'}}</view>
         <view wx:if="{{goods.category}}" class="tag tag-cat">{{goods.category.name}}</view>
@@ -35,34 +36,40 @@
       </view>
     </view>
 
-    <view class="section-card">
+    <view class="section-card detail-section-card">
       <text class="section-label">商品描述</text>
       <text class="section-body">{{goods.description || '暂无描述'}}</text>
     </view>
 
-    <view class="section-card">
+    <view class="section-card detail-section-card">
       <text class="section-label">卖家信息</text>
-      <view class="flex items-center gap-20">
+      <view class="seller-head">
         <view class="seller-avatar">
           <image wx:if="{{goods.seller.avatarUrl}}" class="seller-avatar-img" src="{{goods.seller.avatarUrl}}" mode="aspectFill" />
           <text wx:else class="seller-avatar-text">{{goods.seller.nickname[0]}}</text>
         </view>
-        <view class="flex flex-col gap-6">
-          <text class="text-base font-semibold text-text-main">{{goods.seller.nickname}}</text>
-          <text class="text-2xs text-text-muted">建议校内当面交易，谨防线上诈骗</text>
+        <view class="seller-copy">
+          <text class="seller-name">{{goods.seller.nickname}}</text>
+          <text class="seller-tip">建议校内当面交易，谨防线上诈骗</text>
         </view>
       </view>
 
-      <view wx:if="{{goods.seller.wechatId}}" class="seller-qq-row">
-        <text class="text-sm text-text-muted">微信</text>
-        <text class="text-sm font-medium flex-1 text-text-main">{{goods.seller.wechatId}}</text>
-        <button class="btn-copy" data-wechat-id="{{goods.seller.wechatId}}" bindtap="copyWechatId">复制</button>
+      <view wx:if="{{goods.seller.wechatId || goods.seller.qq}}" class="seller-contact-list">
+        <view wx:if="{{goods.seller.wechatId}}" class="seller-contact-row">
+          <text class="seller-contact-label">微信</text>
+          <text class="seller-contact-value">{{goods.seller.wechatId}}</text>
+          <button class="btn-copy" data-wechat-id="{{goods.seller.wechatId}}" bindtap="copyWechatId">复制</button>
+        </view>
+
+        <view wx:if="{{goods.seller.qq}}" class="seller-contact-row">
+          <text class="seller-contact-label">QQ</text>
+          <text class="seller-contact-value">{{goods.seller.qq}}</text>
+          <button class="btn-copy" data-qq="{{goods.seller.qq}}" bindtap="copyQQ">复制</button>
+        </view>
       </view>
 
-      <view wx:if="{{goods.seller.qq}}" class="seller-qq-row">
-        <text class="text-sm text-text-muted">QQ</text>
-        <text class="text-sm font-medium flex-1 text-text-main">{{goods.seller.qq}}</text>
-        <button class="btn-copy" data-qq="{{goods.seller.qq}}" bindtap="copyQQ">复制</button>
+      <view wx:else class="seller-contact-empty">
+        卖家暂未填写联系方式
       </view>
     </view>
   </view>

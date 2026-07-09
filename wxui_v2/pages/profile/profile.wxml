@@ -80,6 +80,13 @@
       </view>
       <text class="settings-arrow">›</text>
     </view>
+    <view class="settings-item" bindtap="showSupportAuthor">
+      <view class="settings-left">
+        <text class="settings-icon settings-icon-support">♥</text>
+        <text class="settings-label">支持作者</text>
+      </view>
+      <text class="settings-arrow">›</text>
+    </view>
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
         <text class="settings-icon settings-icon-feedback">?</text>

@@ -6,6 +6,9 @@ import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
 const QQ_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@qq\.com$/
+const SUPPORT_AUTHOR_AD_UNIT_ID = 'adunit-f3d20d1b06422a8d'
+
+let supportAuthorVideoAd: WechatMiniprogram.RewardedVideoAd | null = null
 
 interface ProfilePageData {
   profile: UserProfile
@@ -71,6 +74,10 @@ Component({
   } as ProfilePageData,
 
   methods: {
+    onLoad() {
+      this.initSupportAuthorVideoAd()
+    },
+
     onShow() {
       if (!wx.getStorageSync('token')) {
         wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/profile/profile' })
@@ -84,6 +91,34 @@ Component({
       if (this.data.hasMore && !this.data.loading && !this.data.loadingMore) {
         this.loadMyGoods(false, true)
       }
+    },
+
+    initSupportAuthorVideoAd() {
+      if (supportAuthorVideoAd || typeof wx.createRewardedVideoAd !== 'function') return
+
+      supportAuthorVideoAd = wx.createRewardedVideoAd({
+        adUnitId: SUPPORT_AUTHOR_AD_UNIT_ID
+      })
+      supportAuthorVideoAd.onLoad(() => {})
+      supportAuthorVideoAd.onError((err) => {
+        console.error('激励视频广告加载失败', err)
+      })
+      supportAuthorVideoAd.onClose((res) => {
+        if (!res || res.isEnded) {
+          wx.showToast({ title: '感谢支持作者', icon: 'success' })
+          return
+        }
+        wx.showToast({ title: '广告未完整观看', icon: 'none' })
+      })
+    },
+
+    destroySupportAuthorVideoAd() {
+      if (!supportAuthorVideoAd) return
+      supportAuthorVideoAd.offLoad()
+      supportAuthorVideoAd.offError()
+      supportAuthorVideoAd.offClose()
+      supportAuthorVideoAd.destroy()
+      supportAuthorVideoAd = null
     },
 
     async loadProfile() {
@@ -542,6 +577,7 @@ Component({
     },
 
     onUnload() {
+      this.destroySupportAuthorVideoAd()
       const hasUnsavedAvatar = this.data.avatarChanged
       if (hasUnsavedAvatar) {
         wx.showModal({
@@ -562,6 +598,34 @@ Component({
       wx.removeStorageSync('token')
       wx.removeStorageSync('user')
       wx.reLaunch({ url: '/pages/index/index' })
+    },
+
+    showSupportAuthor() {
+      if (typeof wx.createRewardedVideoAd !== 'function') {
+        wx.showModal({
+          title: '暂不支持',
+          content: '当前微信版本暂不支持激励视频广告，请升级微信后再试。',
+          showCancel: false,
+          confirmText: '知道了'
+        })
+        return
+      }
+
+      this.initSupportAuthorVideoAd()
+      if (!supportAuthorVideoAd) {
+        wx.showToast({ title: '广告暂不可用', icon: 'none' })
+        return
+      }
+
+      const videoAd = supportAuthorVideoAd
+      videoAd.show().catch(() => {
+        videoAd.load()
+          .then(() => videoAd.show())
+          .catch((err) => {
+            console.error('激励视频广告显示失败', err)
+            wx.showToast({ title: '广告暂时无法播放', icon: 'none' })
+          })
+      })
     },
 
     showFeedback() {
