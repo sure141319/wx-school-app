@@ -15,14 +15,14 @@ function cssBlock(selector) {
 
 assert.match(
   profileWxml,
-  /<text class="settings-code settings-code-account">账号<\/text>[\s\S]*?<text class="settings-label">绑定账号<\/text>/,
-  'account settings row should use a useful Chinese marker and label'
+  /<view class="settings-code settings-code-account">\s*<image class="settings-code-icon" src="\/static\/icon-account\.svg"[\s\S]*?<text class="settings-label">绑定账号<\/text>/,
+  'account settings row should use the account vector icon and label'
 )
 
 assert.match(
   profileWxml,
-  /<text class="settings-code settings-code-feedback">反馈<\/text>[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
-  'feedback settings row should use a useful Chinese marker and label'
+  /<view class="settings-code settings-code-feedback">\s*<image class="settings-code-icon" src="\/static\/icon-feedback\.svg"[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
+  'feedback settings row should use the feedback vector icon and label'
 )
 
 assert.doesNotMatch(
@@ -33,7 +33,7 @@ assert.doesNotMatch(
 
 assert.match(
   profileWxml,
-  /bindtap="openAccountBindModal"[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
+  /bindtap="openAccountBindModal"[\s\S]*?icon-account\.svg[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?icon-support\.svg[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?icon-feedback\.svg[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
   'support author row should sit between account binding and feedback settings'
 )
 

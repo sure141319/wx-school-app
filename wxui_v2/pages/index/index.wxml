@@ -26,9 +26,7 @@
 
   <view class="home-search-section">
     <view class="search-bar home-search-bar">
-      <view class="search-mark" aria-hidden="true">
-        <view class="search-mark-handle"></view>
-      </view>
+      <image class="home-search-icon" src="/static/icon-search.svg" mode="aspectFit" aria-hidden="true" />
       <input placeholder="搜课本、四六级耳机..." value="{{keyword}}" bindinput="onSearchInput" bindconfirm="onSearch" confirm-type="search" />
       <button class="search-action" bindtap="onSearch">搜索</button>
     </view>
@@ -76,7 +74,7 @@
   </view>
 
   <view wx:else class="home-empty">
-    <view class="empty-search-mark" aria-hidden="true"></view>
+    <image class="home-empty-icon" src="/static/icon-empty-search.svg" mode="aspectFit" aria-hidden="true" />
     <text class="empty-title">这一栏暂时空着</text>
     <text class="empty-desc">换个关键词或分类，也可以发布你的第一件闲置。</text>
     <button class="btn btn-primary btn-sm mt-16" bindtap="goToPublish">发布闲置</button>

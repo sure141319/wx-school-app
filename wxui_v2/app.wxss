@@ -39,8 +39,8 @@ page {
   --shadow-card: 0 16rpx 36rpx rgba(33, 78, 66, 0.08);
   --shadow-float: 0 24rpx 64rpx rgba(33, 78, 66, 0.16);
   /* Component palette. */
-  --hero-background: linear-gradient(118deg, #4A7966 0%, #557B67 68%, #5B7D61 100%);
-  --hero-border: #7C9D89;
+  --hero-background: linear-gradient(118deg, #628B77 0%, #719681 68%, #7E9F85 100%);
+  --hero-border: #A8C4B4;
   --hero-text: #FFFDF5;
   --hero-text-muted: rgba(255, 253, 245, 0.88);
   --hero-cycle-line: rgba(255, 253, 245, 0.16);
@@ -48,13 +48,17 @@ page {
   --hero-action-background: var(--campus-ginkgo-400);
   --hero-action-active: #C9AA54;
   --hero-action-text: var(--campus-pine-900);
-  --profile-ticket-background: linear-gradient(118deg, #4D7664 0%, #587C67 68%, #607A5D 100%);
-  --profile-ticket-border: #7D9B89;
+  --profile-ticket-background: linear-gradient(118deg, #668D79 0%, #779783 68%, #84A088 100%);
+  --profile-ticket-border: #AAC4B5;
   --profile-route-line: rgba(255, 253, 245, 0.17);
   --profile-route-node: rgba(230, 212, 154, 0.84);
   --publish-intro-background: var(--hero-background);
-  --publish-intro-border: #7C9D89;
+  --publish-intro-border: #A8C4B4;
   --publish-card-border: #CDD9D1;
+  --auth-control-border: #D5E1D9;
+  --auth-action-background: linear-gradient(135deg, #5E9275 0%, #72A887 100%);
+  --auth-action-active: #548468;
+  --auth-action-text: var(--hero-text);
   --button-primary-background: var(--color-primary);
   box-sizing: border-box;
   min-height: 100vh;
@@ -325,14 +329,25 @@ input, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0;
+  width: 64rpx;
+  min-width: 64rpx;
+  height: 56rpx;
   min-height: 56rpx;
-  padding: 0 22rpx;
+  flex: 0 0 64rpx;
+  padding: 0;
   border: 2rpx solid rgba(30, 94, 166, 0.22);
   border-radius: 999rpx;
   background: var(--color-primary-soft);
   color: var(--color-primary);
   font-size: 24rpx;
   font-weight: 600;
+}
+
+.btn-copy-icon {
+  width: 30rpx;
+  height: 30rpx;
+  flex: 0 0 30rpx;
 }
 
 .icon-btn {
@@ -792,25 +807,11 @@ input, textarea {
   box-shadow: 0 10rpx 28rpx rgba(53, 111, 93, 0.07);
 }
 
-.search-mark {
-  position: relative;
-  width: 30rpx;
-  height: 30rpx;
-  margin: 0 20rpx 0 24rpx;
-  flex: 0 0 30rpx;
-  border: 4rpx solid #5E707A;
-  border-radius: 999rpx;
-}
-
-.search-mark-handle {
-  position: absolute;
-  right: -10rpx;
-  bottom: -7rpx;
-  width: 14rpx;
-  height: 4rpx;
-  border-radius: 999rpx;
-  background: #5E707A;
-  transform: rotate(45deg);
+.home-search-icon {
+  width: 38rpx;
+  height: 38rpx;
+  margin: 0 18rpx 0 24rpx;
+  flex: 0 0 38rpx;
 }
 
 .search-action {
@@ -1007,13 +1008,10 @@ input, textarea {
   text-align: center;
 }
 
-.empty-search-mark {
-  width: 54rpx;
-  height: 54rpx;
+.home-empty-icon {
+  width: 112rpx;
+  height: 112rpx;
   margin-bottom: 22rpx;
-  border: 5rpx solid #8B9AA2;
-  border-radius: 999rpx;
-  box-shadow: 18rpx 18rpx 0 -13rpx #8B9AA2;
 }
 
 /* ===== Detail & Seller ===== */
@@ -1077,13 +1075,9 @@ input, textarea {
   background: rgba(46, 102, 81, 0.5);
 }
 
-.back-chevron {
-  width: 18rpx;
-  height: 18rpx;
-  margin-left: 6rpx;
-  border-bottom: 4rpx solid #FFFFFF;
-  border-left: 4rpx solid #FFFFFF;
-  transform: rotate(45deg);
+.back-icon {
+  width: 34rpx;
+  height: 34rpx;
 }
 
 .detail-nav-title {
@@ -1163,12 +1157,10 @@ input, textarea {
   font-weight: 600;
 }
 
-.detail-campus-dot {
-  width: 10rpx;
-  height: 10rpx;
+.detail-campus-icon {
+  width: 24rpx;
+  height: 24rpx;
   flex-shrink: 0;
-  border-radius: 999rpx;
-  background: var(--color-success);
 }
 
 .detail-title {
@@ -1306,13 +1298,22 @@ input, textarea {
 .seller-contact-value {
   display: block;
   overflow: hidden;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   color: var(--color-text-main);
   font-size: 26rpx;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.seller-copy-btn {
+  width: 56rpx;
+  min-width: 56rpx;
+  height: 48rpx;
+  min-height: 48rpx;
+  flex: 0 0 56rpx;
+  padding: 0;
 }
 
 .seller-contact-empty {
@@ -1337,13 +1338,11 @@ input, textarea {
   line-height: 1.45;
 }
 
-.trade-safety-dot {
-  width: 10rpx;
-  height: 10rpx;
-  margin-top: 9rpx;
+.trade-safety-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-top: 3rpx;
   flex-shrink: 0;
-  border-radius: 999rpx;
-  background: var(--color-success);
 }
 
 .detail-contact-dock {
@@ -1383,11 +1382,14 @@ input, textarea {
 
 .detail-contact-btn {
   display: flex;
-  min-width: 210rpx;
+  width: auto;
+  min-width: 116rpx;
   min-height: 76rpx;
+  flex: 0 0 116rpx;
   align-items: center;
   justify-content: center;
-  padding: 0 26rpx;
+  gap: 0;
+  padding: 0 30rpx;
   border-radius: 999rpx;
   background: var(--color-primary);
   color: #FFFFFF;
@@ -1491,12 +1493,10 @@ input, textarea {
   white-space: nowrap;
 }
 
-.publish-audit-dot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 999rpx;
-  background: var(--hero-cycle-highlight);
-  box-shadow: 0 0 0 6rpx rgba(212, 224, 181, 0.14);
+.publish-audit-icon {
+  width: 30rpx;
+  height: 30rpx;
+  flex: 0 0 30rpx;
 }
 
 .publish-form {
@@ -1703,12 +1703,10 @@ input, textarea {
 }
 
 .publish-price-symbol {
+  width: 28rpx;
+  height: 30rpx;
   flex: 0 0 auto;
-  color: var(--color-price);
-  font-family: "DIN Alternate", "Bahnschrift Condensed", sans-serif;
-  font-size: 28rpx;
-  font-weight: 800;
-  line-height: 1;
+  margin-top: 2rpx;
 }
 
 .publish-price-input {
@@ -1758,22 +1756,16 @@ input, textarea {
   font-size: 22rpx;
 }
 
-.publish-location-dot {
-  width: 10rpx;
-  height: 10rpx;
-  border: 2rpx solid #8998A0;
-  border-radius: 999rpx;
+.publish-location-icon {
+  width: 24rpx;
+  height: 24rpx;
+  flex: 0 0 24rpx;
 }
 
 .publish-location-active {
   border-color: var(--color-primary);
   color: var(--color-primary);
   font-weight: 700;
-}
-
-.publish-location-active .publish-location-dot {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
 }
 
 .publish-photo-count {
@@ -1843,34 +1835,21 @@ input, textarea {
 
 .photo-add text {
   position: absolute;
-  top: calc(50% + 22rpx);
+  top: calc(50% + 30rpx);
   left: 0;
   width: 100%;
+  font-size: 21rpx;
+  font-weight: 600;
+  line-height: 1;
   text-align: center;
 }
 
-.photo-add-mark {
+.photo-add-icon {
   position: absolute;
-  top: calc(50% - 24rpx);
-  left: calc(50% - 18rpx);
-  width: 36rpx;
-  height: 36rpx;
-}
-
-.photo-add-mark::before,
-.photo-add-mark::after {
-  position: absolute;
-  top: 16rpx;
-  left: 0;
-  width: 36rpx;
-  height: 4rpx;
-  border-radius: 999rpx;
-  background: #71818A;
-  content: "";
-}
-
-.photo-add-mark::after {
-  transform: rotate(90deg);
+  top: calc(50% - 42rpx);
+  left: calc(50% - 34rpx);
+  width: 68rpx;
+  height: 68rpx;
 }
 
 .del-btn {
@@ -1886,27 +1865,9 @@ input, textarea {
   background: rgba(46, 102, 81, 0.82);
 }
 
-.delete-mark {
-  position: relative;
-  width: 20rpx;
-  height: 20rpx;
-}
-
-.delete-mark::before,
-.delete-mark::after {
-  position: absolute;
-  top: 9rpx;
-  left: 0;
-  width: 20rpx;
-  height: 3rpx;
-  border-radius: 999rpx;
-  background: #FFFFFF;
-  content: "";
-  transform: rotate(45deg);
-}
-
-.delete-mark::after {
-  transform: rotate(-45deg);
+.delete-icon {
+  width: 22rpx;
+  height: 22rpx;
 }
 
 .cover-label {
@@ -2172,8 +2133,8 @@ input, textarea {
   background: rgba(255, 253, 245, 0.1);
 }
 
-.profile-ticket .chevron-mark {
-  border-color: var(--hero-text);
+.profile-ticket .chevron-icon {
+  opacity: 0.92;
 }
 
 .profile-ticket-footer {
@@ -2390,25 +2351,11 @@ input, textarea {
   color: var(--color-danger);
 }
 
-.profile-empty-mark {
-  position: relative;
-  width: 76rpx;
-  height: 58rpx;
-  margin-bottom: 8rpx;
-  border: 4rpx solid var(--color-primary);
-  border-radius: 18rpx;
-}
-
-.profile-empty-mark::before {
-  position: absolute;
-  top: -12rpx;
-  left: 20rpx;
-  width: 28rpx;
-  height: 18rpx;
-  border: 4rpx solid var(--color-primary);
-  border-bottom: 0;
-  border-radius: 7rpx 7rpx 0 0;
-  content: "";
+.profile-empty-icon {
+  display: block;
+  width: 112rpx;
+  height: 112rpx;
+  margin-bottom: 12rpx;
 }
 
 .settings-card {
@@ -2448,28 +2395,23 @@ input, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 68rpx;
-  height: 48rpx;
-  flex: 0 0 68rpx;
-  border: 2rpx solid #C8DFD1;
-  border-radius: 999rpx;
-  background: #ECF5EF;
+  width: 52rpx;
+  height: 52rpx;
+  flex: 0 0 52rpx;
   color: var(--color-primary);
-  font-size: 18rpx;
-  font-weight: 700;
-  letter-spacing: 0;
 }
 
 .settings-code-support {
-  border-color: #D5E6DD;
-  background: #F0F6F2;
-  color: var(--color-success);
+  color: #2F6F93;
 }
 
 .settings-code-feedback {
-  border-color: #E5D9C0;
-  background: #FAF6EC;
   color: var(--color-warning);
+}
+
+.settings-code-icon {
+  width: 42rpx;
+  height: 42rpx;
 }
 
 .settings-copy {
@@ -2504,13 +2446,14 @@ input, textarea {
   border-radius: 999rpx;
 }
 
-.chevron-mark {
-  width: 13rpx;
-  height: 13rpx;
-  margin-right: 5rpx;
-  border-top: 3rpx solid #74858E;
-  border-right: 3rpx solid #74858E;
-  transform: rotate(45deg);
+.chevron-icon {
+  width: 24rpx;
+  height: 24rpx;
+}
+
+.profile-ticket-chevron {
+  width: 26rpx;
+  height: 26rpx;
 }
 
 .profile-logout {
@@ -2753,39 +2696,34 @@ input, textarea {
   align-items: center;
   gap: 9rpx;
   padding: 0 16rpx;
-  border: 2rpx solid #D1DADD;
+  border: 2rpx solid var(--auth-control-border);
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--color-text-secondary);
+  background: rgba(255, 253, 245, 0.86);
+  color: var(--campus-pine-700);
   font-size: 22rpx;
   font-weight: 700;
 }
 
 .auth-back-btn {
+  height: 58rpx;
   width: 58rpx;
   justify-content: center;
   padding: 0;
+  line-height: 0;
 }
 
 .auth-back-icon {
-  width: 16rpx;
-  height: 16rpx;
-  border-bottom: 3rpx solid currentColor;
-  border-left: 3rpx solid currentColor;
-  transform: rotate(45deg);
+  width: 30rpx;
+  height: 30rpx;
 }
 
 .auth-title-block {
   display: flex;
-  height: 230rpx;
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  margin-top: 26rpx;
-  padding: 22rpx 28rpx;
-  border: 2rpx solid #C9DED1;
-  border-radius: 32rpx;
-  background: #E4F2E8;
+  margin-top: 38rpx;
+  padding: 0 32rpx;
   color: var(--color-text-main);
   text-align: center;
 }
@@ -2796,44 +2734,45 @@ input, textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 18rpx;
 }
 
 .auth-title-block .auth-eyebrow {
   display: block;
-  margin-bottom: 14rpx;
-  color: var(--color-text-main);
-  font-size: 44rpx;
+  margin-bottom: 0;
+  color: var(--campus-pine-800);
+  font-size: 56rpx;
   font-weight: 800;
-  line-height: 1.12;
+  line-height: 1.08;
   letter-spacing: 0;
 }
 
 .auth-title-main {
   display: block;
-  margin-top: 0;
-  margin-bottom: 12rpx;
-  color: var(--color-primary-dark);
-  font-size: 32rpx;
+  margin: 0;
+  color: var(--campus-pine-700);
+  font-size: 36rpx;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.22;
 }
 
 .auth-title-desc {
   display: block;
   color: var(--color-text-secondary);
-  font-size: 21rpx;
+  font-size: 22rpx;
   line-height: 1.4;
   text-align: center;
 }
 
 .login-wechat-section {
-  margin-top: 20rpx;
+  margin-top: 34rpx;
 }
 
 .login-wechat-hint {
   width: 100%;
   margin-top: 12rpx;
   padding: 0;
+  color: var(--campus-ink-500);
   font-size: 20rpx;
   line-height: 1.45;
   text-align: center;
@@ -2842,9 +2781,9 @@ input, textarea {
 .auth-form {
   margin-top: 20rpx;
   padding: 24rpx 24rpx 26rpx;
-  border: 2rpx solid #D8DFE1;
+  border: 2rpx solid var(--auth-control-border);
   border-radius: 30rpx;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 253, 252, 0.96);
   box-shadow: none;
 }
 
@@ -2852,8 +2791,32 @@ input, textarea {
   margin-top: 0;
 }
 
-.auth-register-link {
-  margin-top: 14rpx;
+.auth-login-links {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 18rpx;
+  margin-top: 22rpx;
+}
+
+.auth-login-link {
+  min-height: 40rpx;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  margin-top: 0;
+  padding: 0 4rpx;
+}
+
+.auth-login-divider {
+  position: relative;
+  top: 10rpx;
+  width: 2rpx;
+  height: 24rpx;
+  flex: 0 0 2rpx;
+  border-radius: 999rpx;
+  background: rgba(43, 98, 82, 0.28);
 }
 
 .auth-form .form-row {
@@ -2866,9 +2829,9 @@ input, textarea {
 
 .auth-form .input-field {
   height: 82rpx;
-  border-color: #D4DCDD;
+  border-color: var(--auth-control-border);
   border-radius: 26rpx;
-  background: #FBFCFC;
+  background: rgba(255, 255, 255, 0.9);
   font-size: 27rpx;
 }
 
@@ -2901,7 +2864,7 @@ input, textarea {
   align-items: center;
   gap: 16rpx;
   margin: 20rpx 0;
-  color: var(--color-text-soft);
+  color: var(--campus-ink-500);
   font-size: 21rpx;
 }
 
@@ -2910,7 +2873,7 @@ input, textarea {
   display: block;
   height: 2rpx;
   flex: 1;
-  background: #D9E0E2;
+  background: var(--auth-control-border);
   content: "";
 }
 
@@ -2922,31 +2885,33 @@ input, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14rpx;
+  gap: 12rpx;
   width: 100%;
   min-height: 86rpx;
-  border: 2rpx solid rgba(35, 139, 98, 0.28);
+  border: 2rpx solid var(--auth-control-border);
   border-radius: 999rpx;
-  background: #EAF5EF;
-  color: #176C4A;
+  background: rgba(255, 253, 252, 0.92);
+  color: var(--campus-pine-700);
   font-size: 27rpx;
   font-weight: 700;
+  line-height: 1;
 }
 
 .wechat-login-primary {
   min-height: 88rpx;
-  border: none;
+  border: 1rpx solid rgba(255, 255, 255, 0.24);
   border-radius: 999rpx;
-  background: var(--color-success);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #56B986 0%, #2E9669 46%, #1C7355 100%);
+  color: var(--auth-action-text);
   font-size: 27rpx;
-  box-shadow: 0 12rpx 28rpx rgba(35, 139, 98, 0.16);
+  box-shadow: 0 16rpx 30rpx rgba(31, 117, 87, 0.22), inset 0 2rpx 0 rgba(255, 255, 255, 0.24);
 }
 
 .wechat-login-primary .wechat-login-icon {
-  padding: 5rpx;
+  padding: 0;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.92);
+  background: transparent;
+  box-shadow: none;
 }
 
 .wechat-login-btn[disabled] {
@@ -2954,9 +2919,9 @@ input, textarea {
 }
 
 .wechat-login-icon {
-  width: 48rpx;
-  height: 48rpx;
-  flex: 0 0 48rpx;
+  width: 46rpx;
+  height: 46rpx;
+  flex: 0 0 46rpx;
 }
 
 .email-history {
@@ -3114,6 +3079,10 @@ input, textarea {
   width: 128rpx;
   height: 128rpx;
   font-size: 56rpx;
+}
+
+.empty-asset-icon {
+  background: transparent;
 }
 
 .empty-icon-sm {

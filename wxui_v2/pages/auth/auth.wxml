@@ -1,13 +1,7 @@
 <view class="auth-shell">
   <view class="auth-topbar">
     <view class="auth-head-btn auth-back-btn" bindtap="goBack" aria-label="返回">
-      <view class="auth-back-icon"></view>
-    </view>
-    <view class="auth-head-btn" bindtap="goToLogin" wx:if="{{mode === 'register'}}">
-      <text>去登录</text>
-    </view>
-    <view class="auth-head-btn" bindtap="goToLogin" wx:elif="{{mode === 'reset'}}">
-      <text>去登录</text>
+      <image class="auth-back-icon" src="/static/icon-chevron-left.svg" mode="aspectFit" aria-hidden="true" />
     </view>
   </view>
 
@@ -25,7 +19,7 @@
 
   <view wx:if="{{mode === 'login'}}" class="login-wechat-section">
     <button class="wechat-login-btn wechat-login-primary" disabled="{{wechatLoading || loading}}" loading="{{wechatLoading}}" bindtap="handleWechatLogin">
-      <image class="wechat-login-icon" src="/static/wx-login.png" mode="aspectFit" />
+      <image class="wechat-login-icon" src="/static/wx-login.svg" mode="aspectFit" aria-hidden="true" />
       <text>{{wechatLoading ? '微信登录中...' : '微信一键登录'}}</text>
     </button>
     <text class="field-hint login-wechat-hint">首次微信快捷登录后，请补充联系方式。</text>
@@ -59,11 +53,14 @@
       <button class="btn btn-primary btn-full" disabled="{{loading || !isLoginFormValid}}" loading="{{loading}}" bindtap="handleLogin">
         {{loading ? '登录中...' : '登录'}}
       </button>
-      <view class="text-link" bindtap="goToReset">
-        <text>忘记密码？</text>
-      </view>
-      <view class="text-link auth-register-link" bindtap="switchMode">
-        <text>去注册</text>
+      <view class="auth-login-links">
+        <view class="text-link auth-login-link" bindtap="goToReset">
+          <text>忘记密码？</text>
+        </view>
+        <view class="auth-login-divider"></view>
+        <view class="text-link auth-login-link" bindtap="switchMode">
+          <text>去注册</text>
+        </view>
       </view>
     </view>
   </block>
@@ -159,7 +156,9 @@
       <text class="modal-text">反馈 QQ 群：</text>
       <view class="modal-qq-row">
         <text class="modal-qq-number">1078739008</text>
-        <text class="btn-copy" bindtap="copyQQ">复制</text>
+        <view class="btn-copy" bindtap="copyQQ" aria-label="复制 QQ 群号">
+          <image class="btn-copy-icon" src="/static/icon-copy.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
       </view>
     </view>
     <view class="modal-footer">

@@ -1,11 +1,11 @@
 <view class="page-shell-plain publish-shell">
   <view class="publish-intro">
     <view class="publish-intro-copy">
-      <text class="publish-title">{{goodsId ? '更新这件闲置' : '发布一件闲置'}}</text>
-      <text class="publish-subtitle">按顺序补全信息，通过审核后会展示给同校同学。</text>
+      <text class="publish-title">{{goodsId ? '更新闲置' : '发布闲置'}}</text>
+      <text class="publish-subtitle">补全信息，通过审核后会展示给同校同学。</text>
     </view>
     <view class="publish-audit-stamp">
-      <view class="publish-audit-dot"></view>
+      <image class="publish-audit-icon" src="/static/icon-shield-light.svg" mode="aspectFit" aria-hidden="true" />
       <text>审核后展示</text>
     </view>
   </view>
@@ -22,12 +22,12 @@
         <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
           <image src="{{item.url}}" mode="aspectFill" />
           <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">
-            <view class="delete-mark"></view>
+            <image class="delete-icon" src="/static/icon-close-white.svg" mode="aspectFit" aria-hidden="true" />
           </view>
           <view wx:if="{{index === 0}}" class="cover-label">封面</view>
         </view>
         <view wx:if="{{form.photos.length < 3}}" class="photo-add" bindtap="chooseImages">
-          <view class="photo-add-mark"></view>
+          <image class="photo-add-icon" src="/static/icon-upload-photo.svg" mode="aspectFit" aria-hidden="true" />
           <text>添加照片</text>
         </view>
       </view>
@@ -40,7 +40,7 @@
         <view class="publish-price-cluster">
           <text class="publish-price-label">价格</text>
           <view class="publish-price-input-wrap">
-            <text class="publish-price-symbol">¥</text>
+            <image class="publish-price-symbol" src="/static/icon-price-yuan.svg" mode="aspectFit" aria-hidden="true" />
             <input class="publish-price-input" style="width: {{priceInputWidth}}rpx;" type="digit" maxlength="9" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
           </view>
         </view>
@@ -93,7 +93,7 @@
       <text class="publish-card-title">交易地点</text>
       <view class="publish-location-row">
         <view wx:for="{{locationOptions}}" wx:key="*this" class="publish-location {{form.campusLocation === item ? 'publish-location-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
-          <view class="publish-location-dot"></view>
+          <image class="publish-location-icon" src="{{form.campusLocation === item ? '/static/icon-location-active.svg' : '/static/icon-location.svg'}}" mode="aspectFit" aria-hidden="true" />
           <text>{{item}}</text>
         </view>
       </view>

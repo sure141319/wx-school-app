@@ -20,7 +20,7 @@
         <text class="profile-summary-caption">点此编辑资料与联系方式</text>
       </view>
       <view class="settings-arrow">
-        <view class="chevron-mark"></view>
+        <image class="chevron-icon profile-ticket-chevron" src="/static/icon-chevron-right-light.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
     <view class="profile-ticket-footer">
@@ -52,7 +52,7 @@
     </view>
 
     <view wx:elif="{{!goodsItems.length}}" class="empty-list">
-      <view class="profile-empty-mark"></view>
+      <image class="profile-empty-icon" src="/static/goods-bag.svg" mode="aspectFit" aria-hidden="true" />
       <text class="empty-title">还没有发布商品</text>
       <text class="empty-desc">把闲置书本、数码配件或生活用品发布给同校同学。</text>
       <navigator url="/pages/publish/publish" open-type="switchTab" class="btn btn-primary btn-sm mt-16">去发布</navigator>
@@ -91,41 +91,47 @@
     </view>
   </view>
 
-  <view class="settings-card profile-settings-panel">
+    <view class="settings-card profile-settings-panel">
     <view class="settings-item" bindtap="openAccountBindModal">
       <view class="settings-left">
-        <text class="settings-code settings-code-account">账号</text>
+        <view class="settings-code settings-code-account">
+          <image class="settings-code-icon" src="/static/icon-account.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
         <view class="settings-copy">
           <text class="settings-label">绑定账号</text>
           <text class="settings-desc">管理微信和 QQ 邮箱登录</text>
         </view>
       </view>
       <view class="settings-arrow">
-        <view class="chevron-mark"></view>
+        <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
     <view class="settings-item" bindtap="showSupportAuthor">
       <view class="settings-left">
-        <text class="settings-code settings-code-support">支持</text>
+        <view class="settings-code settings-code-support">
+          <image class="settings-code-icon" src="/static/icon-support.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
         <view class="settings-copy">
           <text class="settings-label">支持作者</text>
           <text class="settings-desc">观看一次激励视频</text>
         </view>
       </view>
       <view class="settings-arrow">
-        <view class="chevron-mark"></view>
+        <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
-        <text class="settings-code settings-code-feedback">反馈</text>
+        <view class="settings-code settings-code-feedback">
+          <image class="settings-code-icon" src="/static/icon-feedback.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
         <view class="settings-copy">
           <text class="settings-label">意见反馈</text>
           <text class="settings-desc">报告问题或提出建议</text>
         </view>
       </view>
       <view class="settings-arrow">
-        <view class="chevron-mark"></view>
+        <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
   </view>
@@ -251,7 +257,9 @@
       <text class="modal-text">反馈 QQ 群：</text>
       <view class="modal-qq-row">
         <text class="modal-qq-number">1078739008</text>
-        <text class="btn-copy" bindtap="copyQQ">复制</text>
+        <view class="btn-copy" bindtap="copyQQ" aria-label="复制 QQ 群号">
+          <image class="btn-copy-icon" src="/static/icon-copy.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
       </view>
       <view class="notice-box">
         <text class="notice-title">注意事项</text>

@@ -23,7 +23,7 @@
       <view class="detail-nav" style="padding-top: {{statusBarHeight}}px; height: {{navBarHeight}}px;">
         <view class="detail-nav-content" style="height: {{navContentHeight}}px;">
           <button class="detail-back-btn" bindtap="goBack" aria-label="返回">
-            <view class="back-chevron"></view>
+            <image class="back-icon" src="/static/icon-chevron-left-light.svg" mode="aspectFit" aria-hidden="true" />
           </button>
           <text class="detail-nav-title">商品详情</text>
         </view>
@@ -41,7 +41,7 @@
           <text class="detail-price">{{goods.price}}</text>
         </view>
         <view class="detail-campus-badge">
-          <view class="detail-campus-dot"></view>
+          <image class="detail-campus-icon" src="/static/icon-location-active.svg" mode="aspectFit" aria-hidden="true" />
           <text>{{goods.campusLocation || '校内交易'}}</text>
         </view>
       </view>
@@ -84,13 +84,17 @@
         <view wx:if="{{goods.seller.wechatId}}" class="seller-contact-row">
           <text class="seller-contact-label">微信</text>
           <text class="seller-contact-value">{{goods.seller.wechatId}}</text>
-          <button class="btn-copy" data-wechat-id="{{goods.seller.wechatId}}" bindtap="copyWechatId">复制</button>
+          <button class="btn-copy seller-copy-btn" data-wechat-id="{{goods.seller.wechatId}}" bindtap="copyWechatId" aria-label="复制微信">
+            <image class="btn-copy-icon" src="/static/icon-copy.svg" mode="aspectFit" aria-hidden="true" />
+          </button>
         </view>
 
         <view wx:if="{{goods.seller.qq}}" class="seller-contact-row">
           <text class="seller-contact-label">QQ</text>
           <text class="seller-contact-value">{{goods.seller.qq}}</text>
-          <button class="btn-copy" data-qq="{{goods.seller.qq}}" bindtap="copyQQ">复制</button>
+          <button class="btn-copy seller-copy-btn" data-qq="{{goods.seller.qq}}" bindtap="copyQQ" aria-label="复制 QQ">
+            <image class="btn-copy-icon" src="/static/icon-copy.svg" mode="aspectFit" aria-hidden="true" />
+          </button>
         </view>
       </view>
 
@@ -99,7 +103,7 @@
       </view>
 
       <view class="trade-safety-note">
-        <view class="trade-safety-dot"></view>
+        <image class="trade-safety-icon" src="/static/icon-shield.svg" mode="aspectFit" aria-hidden="true" />
         <text>优先选择校内公共场所交易，确认无误后再付款</text>
       </view>
     </view>
@@ -114,19 +118,25 @@
         class="detail-contact-btn"
         data-wechat-id="{{goods.seller.wechatId}}"
         bindtap="copyWechatId"
-      >复制微信</button>
+        aria-label="复制微信"
+      >
+        <text>复制</text>
+      </button>
       <button
         wx:else
         class="detail-contact-btn"
         data-qq="{{goods.seller.qq}}"
         bindtap="copyQQ"
-      >复制 QQ</button>
+        aria-label="复制 QQ"
+      >
+        <text>复制</text>
+      </button>
     </view>
   </view>
 </block>
 
 <view wx:else class="empty-wrap">
-  <view class="empty-icon">!</view>
+  <image class="empty-icon empty-asset-icon" src="/static/icon-warning.svg" mode="aspectFit" aria-hidden="true" />
   <text class="empty-title">{{info || '商品不存在或已下架'}}</text>
   <text class="empty-desc">回到首页看看其他同校好物。</text>
   <button class="btn btn-primary btn-sm" bindtap="goHome">返回首页</button>
