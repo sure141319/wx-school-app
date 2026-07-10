@@ -72,13 +72,13 @@
             </view>
             <text wx:if="{{item.status === 'REJECTED' && item.auditRemark}}" class="reject-reason">原因：{{item.auditRemark}}</text>
           </view>
-        </view>
-        <view class="actions-row profile-actions-row">
-          <button class="profile-action profile-action-primary" bindtap="editGoods" data-id="{{item.id}}">编辑信息</button>
+          <view class="actions-row profile-actions-row">
+            <button class="profile-action profile-action-primary" bindtap="editGoods" data-id="{{item.id}}">编辑</button>
           <button wx:if="{{item.status === 'ON_SALE' || item.status === 'OFF_SHELF'}}" class="profile-action" bindtap="toggleStatus" data-id="{{item.id}}" data-status="{{item.status}}">
             {{item.status === 'ON_SALE' ? '下架' : '上架'}}
           </button>
           <button class="profile-action profile-action-danger" bindtap="removeGoods" data-id="{{item.id}}">删除</button>
+          </view>
         </view>
       </view>
     </block>

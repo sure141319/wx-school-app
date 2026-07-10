@@ -1,28 +1,26 @@
 <view class="auth-shell">
   <view class="auth-topbar">
-    <view class="auth-head-btn" bindtap="goBack">
-      <text>返回</text>
+    <view class="auth-head-btn auth-back-btn" bindtap="goBack" aria-label="返回">
+      <view class="auth-back-icon"></view>
     </view>
-    <view class="auth-head-btn" bindtap="switchMode" wx:if="{{mode !== 'reset'}}">
-      <text>{{mode === 'login' ? '去注册' : '去登录'}}</text>
+    <view class="auth-head-btn" bindtap="goToLogin" wx:if="{{mode === 'register'}}">
+      <text>去登录</text>
     </view>
-    <view class="auth-head-btn" bindtap="goToLogin" wx:else>
+    <view class="auth-head-btn" bindtap="goToLogin" wx:elif="{{mode === 'reset'}}">
       <text>去登录</text>
     </view>
   </view>
 
   <view class="auth-title-block">
-    <view class="auth-brand-row">
-      <text class="auth-brand-code">校园闲置账号</text>
-      <view class="auth-brand-rule"></view>
+    <view class="auth-title-content">
+      <text class="auth-eyebrow">校园闲置平台</text>
+      <text class="display-title auth-title-main">
+        {{mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码'}}
+      </text>
+      <text class="helper-text auth-title-desc">
+        {{mode === 'login' ? 'QQ 邮箱登录，或使用微信快捷进入' : mode === 'register' ? '仅支持 QQ 邮箱注册，便于校内联系' : '通过 QQ 邮箱验证码重置密码'}}
+      </text>
     </view>
-    <text class="auth-eyebrow">校园闲置平台</text>
-    <text class="display-title auth-title-main">
-      {{mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码'}}
-    </text>
-    <text class="helper-text auth-title-desc">
-      {{mode === 'login' ? 'QQ 邮箱登录，或使用微信快捷进入' : mode === 'register' ? '仅支持 QQ 邮箱注册，便于校内联系' : '通过 QQ 邮箱验证码重置密码'}}
-    </text>
   </view>
 
   <view wx:if="{{mode === 'login'}}" class="login-wechat-section">
@@ -39,10 +37,6 @@
 
   <block wx:if="{{mode === 'login'}}">
     <view class="auth-form auth-form-login">
-      <view class="auth-form-stub">
-        <text>账号登录</text>
-        <text>邮箱登录</text>
-      </view>
       <view class="form-row relative">
         <text class="form-label">QQ 邮箱</text>
         <input class="input-field" value="{{loginForm.email}}" placeholder="请输入 xxx@qq.com" bindinput="onLoginEmailInput" bindfocus="showEmailHistory" bindblur="hideEmailHistory" />
@@ -68,15 +62,14 @@
       <view class="text-link" bindtap="goToReset">
         <text>忘记密码？</text>
       </view>
+      <view class="text-link auth-register-link" bindtap="switchMode">
+        <text>去注册</text>
+      </view>
     </view>
   </block>
 
   <block wx:elif="{{mode === 'register'}}">
     <view class="auth-form auth-form-register">
-      <view class="auth-form-stub">
-        <text>创建新账号</text>
-        <text>QQ 邮箱注册</text>
-      </view>
       <view class="form-row">
         <text class="form-label">QQ 邮箱</text>
         <view class="inline-row">
@@ -118,10 +111,6 @@
 
   <block wx:else>
     <view class="auth-form auth-form-reset">
-      <view class="auth-form-stub">
-        <text>找回账号</text>
-        <text>验证邮箱后重置</text>
-      </view>
       <view class="form-row">
         <text class="form-label">QQ 邮箱</text>
         <view class="inline-row">

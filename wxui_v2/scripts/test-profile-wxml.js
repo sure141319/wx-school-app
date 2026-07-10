@@ -36,8 +36,11 @@ assert.doesNotMatch(
 
 assert.match(
   wxml,
-  /class="actions-row profile-actions-row"[\s\S]*?class="profile-action profile-action-primary"[\s\S]*?class="profile-action profile-action-danger"/,
-  'profile goods actions should use a dedicated action band instead of crowding the title row'
+  /<view class="goods-line-main">[\s\S]*?<view class="goods-info">[\s\S]*?<view class="actions-row profile-actions-row">[\s\S]*?class="profile-action profile-action-primary"[\s\S]*?>编辑<\/[\s\S]*?class="profile-action profile-action-danger"/,
+  'profile goods actions should sit to the right of each listing with the concise 编辑 label'
 )
+
+assert.match(wxml, /class="goods-line-index">0{{index \+ 1}}<\//, 'profile goods rows should retain the compact visual index')
+assert.doesNotMatch(wxml, /class="profile-action profile-action-primary"[^>]*>编辑信息</, 'profile goods rows should use the concise 编辑 button label')
 
 console.log('profile wxml tests passed')
