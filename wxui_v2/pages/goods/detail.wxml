@@ -46,16 +46,13 @@
         </view>
       </view>
       <text class="detail-title">{{goods.title}}</text>
-      <view class="detail-meta-line">
-        <text wx:if="{{displayCreatedAt}}">{{displayCreatedAt}} 发布</text>
-        <text>建议当面验货</text>
-      </view>
       <view class="detail-tags">
         <view class="tag tag-cond">{{goods.conditionLevel || '成色未知'}}</view>
         <view wx:if="{{goods.category}}" class="tag tag-cat">{{goods.category.name}}</view>
         <view wx:if="{{goods.status !== 'ON_SALE'}}" class="status-tag status-{{goods.status}}">
           {{goods.status === 'OFF_SHELF' ? '已下架' : goods.status === 'PENDING_REVIEW' ? '审核中' : goods.status === 'REJECTED' ? '已驳回' : goods.status}}
         </view>
+        <text wx:if="{{displayCreatedAt}}" class="detail-created-at">{{displayCreatedAt}} 发布</text>
       </view>
     </view>
 

@@ -7,6 +7,7 @@ interface IndexPageData {
   loading: boolean
   loadingMore: boolean
   hasMore: boolean
+  total: number
   goodsItems: GoodsListItem[]
   leftGoods: GoodsListItem[]
   rightGoods: GoodsListItem[]
@@ -23,6 +24,7 @@ Component({
     loading: false,
     loadingMore: false,
     hasMore: true,
+    total: 0,
     goodsItems: [],
     leftGoods: [],
     rightGoods: [],
@@ -114,7 +116,7 @@ Component({
       const nextPage = resetPage ? 0 : this.data.page
 
       if (resetPage) {
-        this.setData({ loading: true, hasMore: true, statusText: '', page: 0 })
+        this.setData({ loading: true, hasMore: true, total: 0, statusText: '', page: 0 })
       } else if (append) {
         this.setData({ loadingMore: true })
       } else {
@@ -138,6 +140,7 @@ Component({
         if (!res.data?.success) {
           this.setData({
             statusText: res.data?.message || loadFailed('商品'),
+            total: 0,
             goodsItems: [],
             leftGoods: [],
             rightGoods: []
@@ -168,6 +171,7 @@ Component({
           goodsItems: allItems,
           leftGoods,
           rightGoods,
+          total,
           page: nextPage + 1,
           hasMore
         })
@@ -176,6 +180,7 @@ Component({
         if (!append) {
           this.setData({
             statusText: COMMON_MESSAGES.NETWORK_ERROR,
+            total: 0,
             goodsItems: [],
             leftGoods: [],
             rightGoods: []

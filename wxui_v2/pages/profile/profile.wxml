@@ -2,7 +2,13 @@
   <view class="profile-ticket">
     <view class="profile-ticket-topline">
       <text>校园卖家资料</text>
-      <text>校内流转</text>
+      <view class="profile-flow-label">
+        <view class="profile-flow-cycle" aria-hidden="true">
+          <view class="profile-flow-arrow profile-flow-arrow-forward"></view>
+          <view class="profile-flow-arrow profile-flow-arrow-return"></view>
+        </view>
+        <text>校内流转</text>
+      </view>
     </view>
     <view class="profile-summary" bindtap="openProfileEditor">
       <view class="avatar-btn profile-summary-avatar">
@@ -29,10 +35,9 @@
 
   <text wx:if="{{info && !showProfileModal}}" class="profile-page-message status-text-error">{{info}}</text>
 
-  <view class="profile-goods-panel">
+    <view class="profile-goods-panel">
     <view class="profile-section-head">
       <view>
-        <text class="profile-section-kicker">我的闲置</text>
         <text class="profile-section-title">我发布的商品</text>
       </view>
       <view class="profile-goods-count">

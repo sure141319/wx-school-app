@@ -1,7 +1,6 @@
 <view class="page-shell-plain publish-shell">
   <view class="publish-intro">
     <view class="publish-intro-copy">
-      <text class="publish-kicker">校内闲置发布</text>
       <text class="publish-title">{{goodsId ? '更新这件闲置' : '发布一件闲置'}}</text>
       <text class="publish-subtitle">按顺序补全信息，通过审核后会展示给同校同学。</text>
     </view>
@@ -14,121 +13,89 @@
   <view wx:if="{{loading}}" class="loading-text">正在加载商品信息...</view>
 
   <view class="publish-form">
-    <view class="publish-step">
-      <view class="publish-step-rail">
-        <text class="publish-step-no">01</text>
-        <view class="publish-step-line"></view>
+    <view wx:if="{{form.categoryId}}" class="publish-card publish-photo-card">
+      <view class="publish-card-head">
+        <text class="publish-card-title">商品图片</text>
+        <text class="publish-photo-count">{{form.photos.length}}/3</text>
       </view>
-      <view class="publish-step-main">
-        <view class="publish-step-head">
-          <view>
-            <text class="publish-step-title">这是什么</text>
-            <text class="publish-step-desc">先选分类，再写清商品信息</text>
+      <view class="photo-grid {{errors.photos ? 'photo-grid-error' : ''}}">
+        <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
+          <image src="{{item.url}}" mode="aspectFill" />
+          <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">
+            <view class="delete-mark"></view>
           </view>
-          <text wx:if="{{errors.categoryId}}" class="field-error">{{errors.categoryId}}</text>
+          <view wx:if="{{index === 0}}" class="cover-label">封面</view>
         </view>
-
-        <view class="publish-picker-grid category-picker-grid">
-          <view wx:for="{{categories}}" wx:key="id" class="publish-picker {{form.categoryId == item.id ? 'publish-picker-active' : ''}}" data-id="{{item.id}}" bindtap="chooseCategory">
-            {{item.name}}
-          </view>
-        </view>
-
-        <view wx:if="{{form.categoryId}}" class="publish-fields">
-          <view class="publish-field">
-            <view class="publish-field-head">
-              <text class="publish-field-label">标题</text>
-              <text class="char-count {{form.title.length >= 10 ? 'char-count-full' : ''}}">{{form.title.length}}/10</text>
-            </view>
-            <input class="publish-input" type="text" placeholder="例如：考研英语真题" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
-            <text wx:if="{{errors.title}}" class="field-error">{{errors.title}}</text>
-          </view>
-
-          <view class="publish-field">
-            <view class="publish-field-head">
-              <text class="publish-field-label">描述</text>
-              <text class="char-count {{form.description.length >= 50 ? 'char-count-full' : ''}}">{{form.description.length}}/50</text>
-            </view>
-            <textarea class="publish-textarea" placeholder="补充成色、配件和取货说明" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput"></textarea>
-            <text wx:if="{{errors.description}}" class="field-error">{{errors.description}}</text>
-          </view>
+        <view wx:if="{{form.photos.length < 3}}" class="photo-add" bindtap="chooseImages">
+          <view class="photo-add-mark"></view>
+          <text>添加照片</text>
         </view>
       </view>
+      <text class="publish-card-note">首图会作为商品封面，建议上传清晰实拍图。</text>
+      <text wx:if="{{errors.photos}}" class="field-error">{{errors.photos}}</text>
     </view>
 
-    <view class="publish-step">
-      <view class="publish-step-rail">
-        <text class="publish-step-no">02</text>
-        <view class="publish-step-line"></view>
-      </view>
-      <view class="publish-step-main">
-        <view class="publish-step-head">
-          <view>
-            <text class="publish-step-title">怎么交易</text>
-            <text class="publish-step-desc">填写价格、成色和见面地点</text>
-          </view>
-        </view>
-
-        <view class="publish-price-row {{errors.price ? 'publish-field-error' : ''}}">
+    <view class="publish-card publish-price-card">
+      <view class="publish-price-row {{errors.price ? 'publish-field-error' : ''}}">
+        <view class="publish-price-cluster">
           <text class="publish-price-label">价格</text>
           <view class="publish-price-input-wrap">
             <text class="publish-price-symbol">¥</text>
             <input class="publish-price-input" style="width: {{priceInputWidth}}rpx;" type="digit" maxlength="9" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
           </view>
         </view>
-        <text wx:if="{{errors.price}}" class="field-error publish-price-error">{{errors.price}}</text>
+      </view>
+      <text wx:if="{{errors.price}}" class="field-error publish-price-error">{{errors.price}}</text>
+    </view>
 
-        <view class="publish-subsection">
-          <text class="publish-field-label">成色</text>
-          <view class="publish-picker-grid condition-picker-grid">
-            <view wx:for="{{conditionOptions}}" wx:key="*this" class="publish-picker {{form.conditionLevel === item ? 'publish-picker-active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
-              {{item}}
-            </view>
-          </view>
-        </view>
-
-        <view class="publish-subsection">
-          <text class="publish-field-label">交易地点</text>
-          <view class="publish-location-row">
-            <view wx:for="{{locationOptions}}" wx:key="*this" class="publish-location {{form.campusLocation === item ? 'publish-location-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
-              <view class="publish-location-dot"></view>
-              <text>{{item}}</text>
-            </view>
-          </view>
+    <view class="publish-card publish-condition-card">
+      <text class="publish-card-title">成色</text>
+      <view class="publish-picker-grid condition-picker-grid">
+        <view wx:for="{{conditionOptions}}" wx:key="*this" class="publish-picker {{form.conditionLevel === item ? 'publish-picker-active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
+          {{item}}
         </view>
       </view>
     </view>
 
-    <view class="publish-step publish-step-last">
-      <view class="publish-step-rail">
-        <text class="publish-step-no">03</text>
+    <view class="publish-card publish-category-card">
+      <text class="publish-card-title">选择商品分类</text>
+      <view class="publish-picker-grid category-picker-grid">
+        <view wx:for="{{categories}}" wx:key="id" class="publish-picker {{form.categoryId == item.id ? 'publish-picker-active' : ''}}" data-id="{{item.id}}" bindtap="chooseCategory">
+          {{item.name}}
+        </view>
       </view>
-      <view class="publish-step-main">
-        <view class="publish-step-head">
-          <view>
-            <text class="publish-step-title">上传实拍</text>
-            <text class="publish-step-desc">首图会作为封面，最多上传 3 张</text>
+      <text wx:if="{{errors.categoryId}}" class="field-error">{{errors.categoryId}}</text>
+    </view>
+
+    <view wx:if="{{form.categoryId}}" class="publish-card publish-fields-card">
+      <view class="publish-fields">
+        <view class="publish-field">
+          <view class="publish-field-inline">
+            <text class="publish-field-label">标题</text>
+            <input class="publish-input" type="text" placeholder="例如：考研英语真题" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
+            <text class="char-count {{form.title.length >= 10 ? 'char-count-full' : ''}}">{{form.title.length}}/10</text>
           </view>
-          <text wx:if="{{form.categoryId}}" class="publish-photo-count">{{form.photos.length}} / 3</text>
+          <text wx:if="{{errors.title}}" class="field-error">{{errors.title}}</text>
         </view>
 
-        <view wx:if="{{form.categoryId}}" class="photo-grid {{errors.photos ? 'photo-grid-error' : ''}}">
-          <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
-            <image src="{{item.url}}" mode="aspectFill" />
-            <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">
-              <view class="delete-mark"></view>
-            </view>
-            <view wx:if="{{index === 0}}" class="cover-label">封面</view>
+        <view class="publish-field">
+          <view class="publish-field-inline">
+            <text class="publish-field-label">描述</text>
+            <textarea class="publish-textarea" placeholder="补充成色、配件和取货说明" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput"></textarea>
+            <text class="char-count {{form.description.length >= 50 ? 'char-count-full' : ''}}">{{form.description.length}}/50</text>
           </view>
-          <view wx:if="{{form.photos.length < 3}}" class="photo-add" bindtap="chooseImages">
-            <view class="photo-add-mark"></view>
-            <text>添加照片</text>
-          </view>
+          <text wx:if="{{errors.description}}" class="field-error">{{errors.description}}</text>
         </view>
-        <view wx:else class="publish-step-locked">
-          <text>选择商品分类后即可上传照片</text>
+      </view>
+    </view>
+
+    <view class="publish-card publish-location-card">
+      <text class="publish-card-title">交易地点</text>
+      <view class="publish-location-row">
+        <view wx:for="{{locationOptions}}" wx:key="*this" class="publish-location {{form.campusLocation === item ? 'publish-location-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
+          <view class="publish-location-dot"></view>
+          <text>{{item}}</text>
         </view>
-        <text wx:if="{{errors.photos}}" class="field-error">{{errors.photos}}</text>
       </view>
     </view>
   </view>

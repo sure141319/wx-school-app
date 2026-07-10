@@ -220,6 +220,8 @@ Component({
         'form.title': catName,
         'form.description': catName,
         'errors.categoryId': ''
+      }, () => {
+        wx.pageScrollTo({ scrollTop: 0, duration: 220 })
       })
     },
 

@@ -1,6 +1,10 @@
 <view class="page-shell market-shell">
   <view class="home-hero">
     <view class="market-stamp" aria-hidden="true">
+      <view class="market-stamp-orbit">
+        <view class="market-stamp-arrow market-stamp-arrow-forward"></view>
+        <view class="market-stamp-arrow market-stamp-arrow-return"></view>
+      </view>
       <text class="market-stamp-cn">循环</text>
       <text class="market-stamp-en">校内闲置</text>
     </view>
@@ -43,11 +47,7 @@
   </scroll-view>
 
   <view class="goods-section-head">
-    <view class="goods-section-title">
-      <text class="goods-section-kicker">同校新上架</text>
-      <text class="goods-section-name">刚刚上架</text>
-    </view>
-    <text wx:if="{{goodsItems.length}}" class="goods-count">{{goodsItems.length}} 件可逛</text>
+    <text wx:if="{{total > 0}}" class="goods-count">{{total}} 件可逛</text>
   </view>
 
   <text wx:if="{{statusText}}" class="status-line">{{statusText}}</text>

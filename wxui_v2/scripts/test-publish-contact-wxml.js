@@ -6,8 +6,14 @@ const wxml = fs.readFileSync(path.resolve(__dirname, '../pages/publish/publish.w
 
 assert.match(
   wxml,
-  /class="publish-step-no">01<[\s\S]*?class="publish-step-no">02<[\s\S]*?class="publish-step-no">03</,
-  'publish page should present the form as three real completion steps'
+  /<view wx:if="{{form\.categoryId}}" class="publish-card publish-photo-card">[\s\S]*?publish-price-card[\s\S]*?publish-condition-card[\s\S]*?publish-category-card[\s\S]*?publish-fields-card[\s\S]*?publish-location-card/,
+  'publish page should restore separate cards in the original product-photo-first order'
+)
+
+assert.doesNotMatch(
+  wxml,
+  /publish-step-no|publish-step-rail|publish-step-last|publish-photo-inline/,
+  'publish page should not retain the compact merged-step layout'
 )
 
 assert.match(

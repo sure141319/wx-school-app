@@ -16,6 +16,12 @@ assert.doesNotMatch(
   'profile page should not add decorative English copy or abbreviations'
 )
 
+assert.doesNotMatch(
+  wxml,
+  /我的闲置/,
+  'profile listings should not repeat the redundant 我的闲置 kicker above the section title'
+)
+
 assert.match(
   wxml,
   /<view class="profile-summary" bindtap="openProfileEditor">/,
