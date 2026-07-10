@@ -15,14 +15,20 @@ function cssBlock(selector) {
 
 assert.match(
   profileWxml,
-  /<text class="settings-icon settings-icon-account">@<\/text>\s*<text class="settings-label">绑定账号<\/text>/,
-  'account settings row should use dedicated icon and label classes for stable vertical alignment'
+  /<text class="settings-code settings-code-account">账号<\/text>[\s\S]*?<text class="settings-label">绑定账号<\/text>/,
+  'account settings row should use a useful Chinese marker and label'
 )
 
 assert.match(
   profileWxml,
-  /<text class="settings-icon settings-icon-feedback">\?<\/text>\s*<text class="settings-label">意见反馈<\/text>/,
-  'feedback settings row should use dedicated icon and label classes for stable vertical alignment'
+  /<text class="settings-code settings-code-feedback">反馈<\/text>[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
+  'feedback settings row should use a useful Chinese marker and label'
+)
+
+assert.doesNotMatch(
+  profileWxml,
+  />\s*(?:@|♥|\?|›)\s*</,
+  'profile settings should not rely on text glyphs or emoji for icons'
 )
 
 assert.match(

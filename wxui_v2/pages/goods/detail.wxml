@@ -4,31 +4,54 @@
 </view>
 
 <block wx:elif="{{goods}}">
-  <view class="page-shell-plain safe-bottom">
-    <view class="relative w-full">
-      <swiper class="detail-swiper" autoplay="{{false}}" bindchange="onSwiperChange">
+  <view class="page-shell-plain safe-bottom detail-page">
+    <view class="detail-media-stage">
+      <swiper
+        class="detail-swiper"
+        autoplay="{{false}}"
+        bindchange="onSwiperChange"
+      >
         <swiper-item wx:for="{{goods.imageUrls}}" wx:key="*this">
-          <image class="w-full h-full" src="{{item}}" mode="aspectFit" bindtap="previewImage" data-index="{{index}}" />
+          <image class="detail-image" src="{{item}}" mode="aspectFit" bindtap="previewImage" data-index="{{index}}" />
         </swiper-item>
         <swiper-item wx:if="{{!goods.imageUrls.length}}">
           <view class="cover-empty">暂无图片</view>
         </swiper-item>
       </swiper>
+
+      <view class="detail-media-shade"></view>
+      <view class="detail-nav" style="padding-top: {{statusBarHeight}}px; height: {{navBarHeight}}px;">
+        <view class="detail-nav-content" style="height: {{navContentHeight}}px;">
+          <button class="detail-back-btn" bindtap="goBack" aria-label="返回">
+            <view class="back-chevron"></view>
+          </button>
+          <text class="detail-nav-title">商品详情</text>
+        </view>
+      </view>
+
       <view wx:if="{{goods.imageUrls.length > 1}}" class="img-counter">
-        {{currentImgIndex + 1}}/{{goods.imageUrls.length}}
+        {{currentImgIndex + 1}} / {{goods.imageUrls.length}}
       </view>
     </view>
 
     <view class="detail-summary-card">
       <view class="detail-price-row">
-        <text class="text-base font-bold mr-4 text-price">¥</text>
-        <text class="detail-price text-price">{{goods.price}}</text>
+        <view class="detail-price-wrap">
+          <text class="detail-price-symbol">¥</text>
+          <text class="detail-price">{{goods.price}}</text>
+        </view>
+        <view class="detail-campus-badge">
+          <view class="detail-campus-dot"></view>
+          <text>{{goods.campusLocation || '校内交易'}}</text>
+        </view>
       </view>
       <text class="detail-title">{{goods.title}}</text>
-      <view wx:if="{{displayCreatedAt}}" class="detail-time">发布于 {{displayCreatedAt}}</view>
+      <view class="detail-meta-line">
+        <text wx:if="{{displayCreatedAt}}">{{displayCreatedAt}} 发布</text>
+        <text>建议当面验货</text>
+      </view>
       <view class="detail-tags">
         <view class="tag tag-cond">{{goods.conditionLevel || '成色未知'}}</view>
-        <view class="tag tag-loc">{{goods.campusLocation || '校内交易'}}</view>
         <view wx:if="{{goods.category}}" class="tag tag-cat">{{goods.category.name}}</view>
         <view wx:if="{{goods.status !== 'ON_SALE'}}" class="status-tag status-{{goods.status}}">
           {{goods.status === 'OFF_SHELF' ? '已下架' : goods.status === 'PENDING_REVIEW' ? '审核中' : goods.status === 'REJECTED' ? '已驳回' : goods.status}}
@@ -37,12 +60,18 @@
     </view>
 
     <view class="section-card detail-section-card">
-      <text class="section-label">商品描述</text>
-      <text class="section-body">{{goods.description || '暂无描述'}}</text>
+      <view class="detail-section-head">
+        <text class="section-label">商品描述</text>
+        <text class="detail-section-en">商品说明</text>
+      </view>
+      <text class="section-body">{{goods.description || '卖家暂未补充商品描述'}}</text>
     </view>
 
-    <view class="section-card detail-section-card">
-      <text class="section-label">卖家信息</text>
+    <view class="section-card detail-section-card seller-card">
+      <view class="detail-section-head">
+        <text class="section-label">卖家与联系</text>
+        <text class="detail-section-en">联系卖家</text>
+      </view>
       <view class="seller-head">
         <view class="seller-avatar">
           <image wx:if="{{goods.seller.avatarUrl}}" class="seller-avatar-img" src="{{goods.seller.avatarUrl}}" mode="aspectFill" />
@@ -50,7 +79,7 @@
         </view>
         <view class="seller-copy">
           <text class="seller-name">{{goods.seller.nickname}}</text>
-          <text class="seller-tip">建议校内当面交易，谨防线上诈骗</text>
+          <text class="seller-tip">联系方式由卖家填写，请先确认商品信息</text>
         </view>
       </view>
 
@@ -71,6 +100,30 @@
       <view wx:else class="seller-contact-empty">
         卖家暂未填写联系方式
       </view>
+
+      <view class="trade-safety-note">
+        <view class="trade-safety-dot"></view>
+        <text>优先选择校内公共场所交易，确认无误后再付款</text>
+      </view>
+    </view>
+
+    <view wx:if="{{goods.seller.wechatId || goods.seller.qq}}" class="detail-contact-dock">
+      <view class="detail-contact-copy">
+        <text class="detail-contact-title">想要这件闲置？</text>
+        <text class="detail-contact-sub">复制联系方式，和卖家聊聊</text>
+      </view>
+      <button
+        wx:if="{{goods.seller.wechatId}}"
+        class="detail-contact-btn"
+        data-wechat-id="{{goods.seller.wechatId}}"
+        bindtap="copyWechatId"
+      >复制微信</button>
+      <button
+        wx:else
+        class="detail-contact-btn"
+        data-qq="{{goods.seller.qq}}"
+        bindtap="copyQQ"
+      >复制 QQ</button>
     </view>
   </view>
 </block>

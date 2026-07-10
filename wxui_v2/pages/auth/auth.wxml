@@ -1,7 +1,7 @@
 <view class="auth-shell">
-  <view class="flex justify-between items-center">
+  <view class="auth-topbar">
     <view class="auth-head-btn" bindtap="goBack">
-      <text>‹ 返回</text>
+      <text>返回</text>
     </view>
     <view class="auth-head-btn" bindtap="switchMode" wx:if="{{mode !== 'reset'}}">
       <text>{{mode === 'login' ? '去注册' : '去登录'}}</text>
@@ -11,7 +11,11 @@
     </view>
   </view>
 
-  <view class="auth-title-block text-center">
+  <view class="auth-title-block">
+    <view class="auth-brand-row">
+      <text class="auth-brand-code">校园闲置账号</text>
+      <view class="auth-brand-rule"></view>
+    </view>
     <text class="auth-eyebrow">校园闲置平台</text>
     <text class="display-title auth-title-main">
       {{mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码'}}
@@ -35,6 +39,10 @@
 
   <block wx:if="{{mode === 'login'}}">
     <view class="auth-form auth-form-login">
+      <view class="auth-form-stub">
+        <text>账号登录</text>
+        <text>邮箱登录</text>
+      </view>
       <view class="form-row relative">
         <text class="form-label">QQ 邮箱</text>
         <input class="input-field" value="{{loginForm.email}}" placeholder="请输入 xxx@qq.com" bindinput="onLoginEmailInput" bindfocus="showEmailHistory" bindblur="hideEmailHistory" />
@@ -44,7 +52,7 @@
           </view>
           <view wx:for="{{savedEmails}}" wx:key="*this" class="email-history-item" catchtap="selectSavedEmail" data-email="{{item}}">
             <text class="text-base flex-1 text-text-main">{{item}}</text>
-            <text class="text-2xs text-text-soft">›</text>
+            <text class="email-history-use">使用</text>
           </view>
         </view>
         <text wx:if="{{loginForm.email && !loginEmailValid}}" class="field-error">请输入正确的 QQ 邮箱格式</text>
@@ -64,7 +72,11 @@
   </block>
 
   <block wx:elif="{{mode === 'register'}}">
-    <view class="auth-form">
+    <view class="auth-form auth-form-register">
+      <view class="auth-form-stub">
+        <text>创建新账号</text>
+        <text>QQ 邮箱注册</text>
+      </view>
       <view class="form-row">
         <text class="form-label">QQ 邮箱</text>
         <view class="inline-row">
@@ -105,7 +117,11 @@
   </block>
 
   <block wx:else>
-    <view class="auth-form">
+    <view class="auth-form auth-form-reset">
+      <view class="auth-form-stub">
+        <text>找回账号</text>
+        <text>验证邮箱后重置</text>
+      </view>
       <view class="form-row">
         <text class="form-label">QQ 邮箱</text>
         <view class="inline-row">
@@ -140,10 +156,10 @@
     </view>
   </block>
 
-  <text class="block mt-28 text-center text-xs message-slot {{message ? 'status-text-error' : 'status-text'}}">{{message || ' '}}</text>
+  <text class="auth-message message-slot {{message ? 'status-text-error' : 'status-text'}}">{{message || ' '}}</text>
 
-  <view class="flex justify-center mt-48 pb-32">
-    <text class="text-xs underline text-primary" bindtap="showFeedback">意见反馈</text>
+  <view class="auth-footer-link" bindtap="showFeedback">
+    <text>意见反馈</text>
   </view>
 
   <view class="modal-mask" wx:if="{{showFeedbackModal}}" bindtap="closeFeedback"></view>

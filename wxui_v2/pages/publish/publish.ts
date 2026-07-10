@@ -7,6 +7,17 @@ const app = getApp<{ globalData: { baseUrl: string } }>()
 
 const CONDITION_OPTIONS = ['全新', '9成新', '8成新', '7成新', '6成新及以下']
 const LOCATION_OPTIONS = ['本部', '东校区']
+const PRICE_INPUT_MIN_WIDTH = 104
+const PRICE_INPUT_MAX_WIDTH = 248
+const PRICE_GLYPH_WIDTH = 27
+
+function getPriceInputWidth(value: string) {
+  const displayValue = value || '0.00'
+  return Math.min(
+    PRICE_INPUT_MAX_WIDTH,
+    Math.max(PRICE_INPUT_MIN_WIDTH, displayValue.length * PRICE_GLYPH_WIDTH)
+  )
+}
 
 interface PublishPageData {
   goodsId: string
@@ -24,6 +35,7 @@ interface PublishPageData {
   categories: Category[]
   conditionOptions: string[]
   locationOptions: string[]
+  priceInputWidth: number
   form: PublishForm
   errors: Record<string, string>
 }
@@ -45,6 +57,7 @@ Component({
     categories: [],
     conditionOptions: CONDITION_OPTIONS,
     locationOptions: LOCATION_OPTIONS,
+    priceInputWidth: getPriceInputWidth(''),
     form: {
       title: '',
       description: '',
@@ -149,11 +162,13 @@ Component({
         }
         const goods = res.data?.data as unknown as GoodsItem | undefined
         if (!goods) return
+        const price = String(goods.price || '')
         this.setData({
+          priceInputWidth: getPriceInputWidth(price),
           form: {
             title: goods.title || '',
             description: goods.description || '',
-            price: String(goods.price || ''),
+            price,
             conditionLevel: goods.conditionLevel || CONDITION_OPTIONS[1],
             campusLocation: goods.campusLocation || LOCATION_OPTIONS[0],
             categoryId: String(goods.category?.id || ''),
@@ -171,7 +186,12 @@ Component({
     },
 
     onPriceInput(e: WechatMiniprogram.InputEvent) {
-      this.setData({ 'form.price': e.detail.value, 'errors.price': '' })
+      const price = e.detail.value
+      this.setData({
+        'form.price': price,
+        priceInputWidth: getPriceInputWidth(price),
+        'errors.price': ''
+      })
     },
 
     onTitleInput(e: WechatMiniprogram.InputEvent) {
@@ -340,6 +360,7 @@ Component({
       this.setData({
         goodsId: '',
         info: '',
+        priceInputWidth: getPriceInputWidth(''),
         form: {
           title: '',
           description: '',

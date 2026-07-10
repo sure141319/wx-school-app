@@ -10,6 +10,9 @@ interface DetailPageData {
   goodsId: string
   currentImgIndex: number
   displayCreatedAt: string
+  statusBarHeight: number
+  navContentHeight: number
+  navBarHeight: number
 }
 
 Component({
@@ -19,11 +22,15 @@ Component({
     info: '',
     goodsId: '',
     currentImgIndex: 0,
-    displayCreatedAt: ''
+    displayCreatedAt: '',
+    statusBarHeight: 20,
+    navContentHeight: 44,
+    navBarHeight: 64
   } as DetailPageData,
 
   methods: {
     onLoad(options: Record<string, string | undefined>) {
+      this.initNavigation()
       if (!options.id) {
         this.setData({ info: '商品不存在或已下架' })
         return
@@ -34,6 +41,35 @@ Component({
 
     goHome() {
       wx.switchTab({ url: '/pages/index/index' })
+    },
+
+    goBack() {
+      if (getCurrentPages().length > 1) {
+        wx.navigateBack({ delta: 1 })
+        return
+      }
+      this.goHome()
+    },
+
+    initNavigation() {
+      const systemInfo = wx.getSystemInfoSync()
+      const statusBarHeight = systemInfo.statusBarHeight || 20
+      let navContentHeight = 44
+
+      try {
+        const menuButton = wx.getMenuButtonBoundingClientRect()
+        if (menuButton && menuButton.height) {
+          navContentHeight = (menuButton.top - statusBarHeight) * 2 + menuButton.height
+        }
+      } catch (_err) {
+        navContentHeight = 44
+      }
+
+      this.setData({
+        statusBarHeight,
+        navContentHeight,
+        navBarHeight: statusBarHeight + navContentHeight
+      })
     },
 
     onSwiperChange(e: WechatMiniprogram.SwiperChangeEvent) {

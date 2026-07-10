@@ -1,5 +1,9 @@
-<view class="page-shell flex flex-col gap-24">
-  <view class="card p-28 profile-summary-card">
+<view class="page-shell profile-shell">
+  <view class="profile-ticket">
+    <view class="profile-ticket-topline">
+      <text>校园卖家资料</text>
+      <text>校内流转</text>
+    </view>
     <view class="profile-summary" bindtap="openProfileEditor">
       <view class="avatar-btn profile-summary-avatar">
         <image wx:if="{{displayAvatarUrl}}" src="{{displayAvatarUrl}}" mode="aspectFill" />
@@ -7,36 +11,43 @@
       </view>
       <view class="profile-summary-main">
         <text class="profile-summary-name">{{profile.nickname || '微信用户'}}</text>
-        <text class="helper-text">点击此处编辑资料与联系方式</text>
-        <view class="profile-contact-row">
-          <text wx:if="{{profile.wechatId}}" class="profile-contact-tag">微信已填</text>
-          <text wx:if="{{profile.qq}}" class="profile-contact-tag">QQ已填</text>
-          <text wx:if="{{!profile.wechatId && !profile.qq}}" class="profile-contact-empty">未填写联系方式</text>
-        </view>
+        <text class="profile-summary-caption">点此编辑资料与联系方式</text>
       </view>
-      <text class="settings-arrow">›</text>
+      <view class="settings-arrow">
+        <view class="chevron-mark"></view>
+      </view>
+    </view>
+    <view class="profile-ticket-footer">
+      <view class="profile-contact-row">
+        <text wx:if="{{profile.wechatId}}" class="profile-contact-tag">微信已填</text>
+        <text wx:if="{{profile.qq}}" class="profile-contact-tag">QQ 已填</text>
+        <text wx:if="{{!profile.wechatId && !profile.qq}}" class="profile-contact-empty">还没有填写联系方式</text>
+      </view>
+      <text class="profile-ticket-edit">编辑资料</text>
     </view>
   </view>
 
-  <text wx:if="{{info && !showProfileModal}}" class="block text-center text-2xs status-text-error">{{info}}</text>
+  <text wx:if="{{info && !showProfileModal}}" class="profile-page-message status-text-error">{{info}}</text>
 
-  <view class="card p-28">
-    <view class="card-head">
+  <view class="profile-goods-panel">
+    <view class="profile-section-head">
       <view>
-        <text class="section-title">我发布的商品</text>
-        <text class="helper-text mt-8">管理上下架、编辑和删除</text>
+        <text class="profile-section-kicker">我的闲置</text>
+        <text class="profile-section-title">我发布的商品</text>
       </view>
-      <view class="chip-count">
-        <text>{{goodsItems.length}} 件</text>
+      <view class="profile-goods-count">
+        <text class="profile-goods-count-value">{{goodsItems.length}}</text>
+        <text class="profile-goods-count-label">件闲置</text>
       </view>
     </view>
+    <text class="profile-section-desc">管理商品状态，也可以继续编辑信息</text>
 
     <view wx:if="{{loading}}" class="loading-text">
       <text>加载中...</text>
     </view>
 
     <view wx:elif="{{!goodsItems.length}}" class="empty-list">
-      <view class="empty-icon-sm">+</view>
+      <view class="profile-empty-mark"></view>
       <text class="empty-title">还没有发布商品</text>
       <text class="empty-desc">把闲置书本、数码配件或生活用品发布给同校同学。</text>
       <navigator url="/pages/publish/publish" open-type="switchTab" class="btn btn-primary btn-sm mt-16">去发布</navigator>
@@ -44,22 +55,25 @@
 
     <block wx:for="{{goodsItems}}" wx:key="id">
       <view class="goods-line">
-        <view class="goods-info">
-          <text class="goods-title-sm">{{item.title}}</text>
-          <view class="meta-row">
-            <text class="text-2xs text-price font-semibold">¥{{item.price}}</text>
-            <view class="status-tag status-{{item.status}}">
-              {{item.status === 'ON_SALE' ? '在售' : item.status === 'OFF_SHELF' ? '已下架' : item.status === 'PENDING_REVIEW' ? '审核中' : '已驳回'}}
+        <view class="goods-line-main">
+          <text class="goods-line-index">0{{index + 1}}</text>
+          <view class="goods-info">
+            <text class="goods-title-sm">{{item.title}}</text>
+            <view class="meta-row">
+              <text class="profile-goods-price">¥{{item.price}}</text>
+              <view class="status-tag status-{{item.status}}">
+                {{item.status === 'ON_SALE' ? '在售' : item.status === 'OFF_SHELF' ? '已下架' : item.status === 'PENDING_REVIEW' ? '审核中' : '已驳回'}}
+              </view>
             </view>
+            <text wx:if="{{item.status === 'REJECTED' && item.auditRemark}}" class="reject-reason">原因：{{item.auditRemark}}</text>
           </view>
-          <text wx:if="{{item.status === 'REJECTED' && item.auditRemark}}" class="reject-reason">原因：{{item.auditRemark}}</text>
         </view>
-        <view class="actions-row">
-          <view class="btn btn-sm btn-secondary" bindtap="editGoods" data-id="{{item.id}}">编辑</view>
-          <view wx:if="{{item.status === 'ON_SALE' || item.status === 'OFF_SHELF'}}" class="btn btn-sm" bindtap="toggleStatus" data-id="{{item.id}}" data-status="{{item.status}}">
+        <view class="actions-row profile-actions-row">
+          <button class="profile-action profile-action-primary" bindtap="editGoods" data-id="{{item.id}}">编辑信息</button>
+          <button wx:if="{{item.status === 'ON_SALE' || item.status === 'OFF_SHELF'}}" class="profile-action" bindtap="toggleStatus" data-id="{{item.id}}" data-status="{{item.status}}">
             {{item.status === 'ON_SALE' ? '下架' : '上架'}}
-          </view>
-          <view class="btn btn-sm btn-danger" bindtap="removeGoods" data-id="{{item.id}}">删除</view>
+          </button>
+          <button class="profile-action profile-action-danger" bindtap="removeGoods" data-id="{{item.id}}">删除</button>
         </view>
       </view>
     </block>
@@ -72,31 +86,46 @@
     </view>
   </view>
 
-  <view class="card settings-card">
+  <view class="settings-card profile-settings-panel">
     <view class="settings-item" bindtap="openAccountBindModal">
       <view class="settings-left">
-        <text class="settings-icon settings-icon-account">@</text>
-        <text class="settings-label">绑定账号</text>
+        <text class="settings-code settings-code-account">账号</text>
+        <view class="settings-copy">
+          <text class="settings-label">绑定账号</text>
+          <text class="settings-desc">管理微信和 QQ 邮箱登录</text>
+        </view>
       </view>
-      <text class="settings-arrow">›</text>
+      <view class="settings-arrow">
+        <view class="chevron-mark"></view>
+      </view>
     </view>
     <view class="settings-item" bindtap="showSupportAuthor">
       <view class="settings-left">
-        <text class="settings-icon settings-icon-support">♥</text>
-        <text class="settings-label">支持作者</text>
+        <text class="settings-code settings-code-support">支持</text>
+        <view class="settings-copy">
+          <text class="settings-label">支持作者</text>
+          <text class="settings-desc">观看一次激励视频</text>
+        </view>
       </view>
-      <text class="settings-arrow">›</text>
+      <view class="settings-arrow">
+        <view class="chevron-mark"></view>
+      </view>
     </view>
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
-        <text class="settings-icon settings-icon-feedback">?</text>
-        <text class="settings-label">意见反馈</text>
+        <text class="settings-code settings-code-feedback">反馈</text>
+        <view class="settings-copy">
+          <text class="settings-label">意见反馈</text>
+          <text class="settings-desc">报告问题或提出建议</text>
+        </view>
       </view>
-      <text class="settings-arrow">›</text>
+      <view class="settings-arrow">
+        <view class="chevron-mark"></view>
+      </view>
     </view>
   </view>
 
-  <button class="btn btn-ghost btn-full" bindtap="logout">退出登录</button>
+  <button class="profile-logout" bindtap="logout">退出当前账号</button>
 
   <view class="modal-mask" wx:if="{{showProfileModal}}" bindtap="closeProfileEditor"></view>
   <view class="modal-dialog profile-modal" wx:if="{{showProfileModal}}">
