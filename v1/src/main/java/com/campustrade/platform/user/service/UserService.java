@@ -63,7 +63,8 @@ public class UserService {
 
         boolean avatarChanged = avatarProvided && !newAvatarUrl.equals(user.getAvatarUrl());
         if (avatarChanged) {
-            uploadService.deleteObject(user.getAvatarUrl());
+            newAvatarUrl = uploadService.validateUploadedImageReference(requestedAvatarUrl, "avatar", userId);
+            uploadService.deleteObjectAfterCommit(user.getAvatarUrl());
         }
 
         String wechatId = normalizeOptional(request.wechatId(), user.getWechatId());

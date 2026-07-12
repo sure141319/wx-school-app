@@ -3,6 +3,7 @@ package com.campustrade.platform.message.service;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.common.PageResponse;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
+import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.service.GoodsService;
 import com.campustrade.platform.message.assembler.ConversationAssembler;
 import com.campustrade.platform.message.assembler.MessageAssembler;
@@ -52,6 +53,9 @@ public class MessageService {
     public ConversationResponseDTO startConversation(Long buyerId, Long goodsId) {
         userService.getById(buyerId);
         GoodsDO goods = goodsService.getById(goodsId);
+        if (goods.getStatus() != GoodsStatusEnum.ON_SALE) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "商品未上架，不能发起会话");
+        }
         if (goods.getSeller() != null && goods.getSeller().getId().equals(buyerId)) {
             throw new AppException(HttpStatus.BAD_REQUEST, "不能和自己发起会话");
         }

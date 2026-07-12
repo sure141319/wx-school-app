@@ -4,9 +4,11 @@ import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.service.GoodsService;
+import com.campustrade.platform.upload.service.UploadService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Transactional
@@ -33,9 +36,16 @@ class GoodsTimestampTimezoneTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @MockBean
+    private UploadService uploadService;
+
     @Test
     void createdAtUsesCurrentBeijingTimeWhenGoodsIsInserted() {
         Long sellerId = insertSeller();
+        String imageKey = "images/2026/07/goods/goods_u" + sellerId + "_20260712120000_a1b2c3.jpg";
+        String thumbnailKey = "images/2026/07/goods/thumbs/goods_u" + sellerId + "_20260712120000_a1b2c3_thumb.jpg";
+        when(uploadService.validateUploadedImageReference(imageKey, "goods", sellerId)).thenReturn(imageKey);
+        when(uploadService.validateUploadedThumbnailReference(thumbnailKey, "goods", sellerId)).thenReturn(thumbnailKey);
 
         LocalDateTime beforeBeijingNow = LocalDateTime.now(BEIJING_ZONE).minusSeconds(2);
         GoodsResponseDTO created = goodsService.create(sellerId, new GoodsSaveRequestDTO(
@@ -45,8 +55,8 @@ class GoodsTimestampTimezoneTest {
                 "全新",
                 "校内",
                 null,
-                List.of("images/2026/07/goods/beijing-time-test.jpg"),
-                List.of("images/2026/07/goods/thumbs/beijing-time-test_thumb.jpg")
+                List.of(imageKey),
+                List.of(thumbnailKey)
         ));
         GoodsDO saved = goodsMapper.findById(created.id());
         LocalDateTime afterBeijingNow = LocalDateTime.now(BEIJING_ZONE).plusSeconds(2);

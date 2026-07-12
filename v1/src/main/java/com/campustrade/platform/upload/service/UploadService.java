@@ -13,6 +13,8 @@ import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -440,6 +442,60 @@ public class UploadService {
         return result;
     }
 
+    public String validateUploadedImageReference(String urlOrObjectKey, String usage, Long userId) {
+        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, false);
+    }
+
+    public String validateUploadedThumbnailReference(String urlOrObjectKey, String usage, Long userId) {
+        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, true);
+    }
+
+    private String validateUploadedObjectReference(String urlOrObjectKey, String usage, Long userId, boolean thumbnail) {
+        String objectKey = extractObjectKey(urlOrObjectKey);
+        if (!StringUtils.hasText(objectKey)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片地址无效");
+        }
+        String normalizedUsage = normalizeUsage(usage);
+        if (!isOwnedUploadObjectKey(objectKey, normalizedUsage, userId, thumbnail)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "无权使用该图片");
+        }
+        ensureObjectExistsForReference(objectKey);
+        return objectKey;
+    }
+
+    private boolean isOwnedUploadObjectKey(String objectKey, String usage, Long userId, boolean thumbnail) {
+        if (userId == null || userId <= 0 || !StringUtils.hasText(objectKey)) {
+            return false;
+        }
+        String[] segments = objectKey.split("/");
+        int expectedLength = thumbnail ? 6 : 5;
+        if (segments.length != expectedLength) {
+            return false;
+        }
+        if (!"images".equals(segments[0])
+                || !segments[1].matches("^\\d{4}$")
+                || !segments[2].matches("^(0[1-9]|1[0-2])$")
+                || !usage.equals(segments[3])) {
+            return false;
+        }
+        String filename = thumbnail ? segments[5] : segments[4];
+        if (thumbnail && !"thumbs".equals(segments[4])) {
+            return false;
+        }
+        if (thumbnail && !filename.endsWith("_thumb." + THUMBNAIL_FORMAT)) {
+            return false;
+        }
+        return filename.startsWith(usage + "_u" + userId + "_");
+    }
+
+    private void ensureObjectExistsForReference(String objectKey) {
+        try {
+            getImageInfo(objectKey);
+        } catch (AppException ex) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片文件不存在或已失效", ex);
+        }
+    }
+
     public String getProxyUrl(String urlOrObjectKey) {
         if (!StringUtils.hasText(urlOrObjectKey)) {
             return urlOrObjectKey;
@@ -578,5 +634,21 @@ public class UploadService {
         } catch (Exception ex) {
             log.warn("Failed to delete object: {}", objectKey, ex);
         }
+    }
+
+    public void deleteObjectAfterCommit(String urlOrObjectKey) {
+        if (!StringUtils.hasText(urlOrObjectKey)) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            deleteObject(urlOrObjectKey);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                deleteObject(urlOrObjectKey);
+            }
+        });
     }
 }

@@ -102,6 +102,28 @@ class UserServiceTest {
     }
 
     @Test
+    void updateProfileValidatesChangedAvatarAndDefersOldObjectDeletion() {
+        Long userId = 1L;
+        String oldObjectKey = "images/2026/06/avatar/avatar_u1_20260601010101_abc123.jpg";
+        String newObjectKey = "images/2026/07/avatar/avatar_u1_20260712120000_a1b2c3.jpg";
+        String newProxyUrl = "http://localhost:8080/api/v1/images/2026/07/avatar/avatar_u1_20260712120000_a1b2c3.jpg";
+        UserDO existingUser = user(userId, "old-name", oldObjectKey);
+        UserDO updatedUser = user(userId, "new-name", newObjectKey);
+
+        when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
+        when(uploadService.extractObjectKey(newProxyUrl)).thenReturn(newObjectKey);
+        when(uploadService.validateUploadedImageReference(newProxyUrl, "avatar", userId)).thenReturn(newObjectKey);
+
+        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO("new-name", newProxyUrl, null, null));
+
+        assertEquals("new-name", result.getNickname());
+        verify(userMapper).updateProfile(userId, "new-name", newObjectKey, null, null);
+        verify(userMapper).updateAvatarAuditStatus(userId, ImageAuditStatusEnum.PENDING, null, null);
+        verify(uploadService).deleteObjectAfterCommit(oldObjectKey);
+        verify(uploadService, never()).deleteObject(any());
+    }
+
+    @Test
     void bindWechatStoresOpenidOnCurrentEmailAccount() {
         Long userId = 1L;
         UserDO existingUser = user(userId, "old-name", "images/avatar.jpg");
