@@ -12,6 +12,7 @@ const STATUS_META = {
 }
 
 const DEFAULT_API_BASE_URL = 'https://www.ahut-campus.site/api/v1'
+const BEIJING_TIME_ZONE = 'Asia/Shanghai'
 
 const state = {
   apiBaseUrl: normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || DEFAULT_API_BASE_URL),
@@ -1010,16 +1011,33 @@ function formatDate(value) {
   if (!value) {
     return '-'
   }
-  const parsed = new Date(value)
+
+  const text = String(value).trim()
+  const localDateTime = text.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/)
+  if (localDateTime) {
+    const [, , month, day, hour, minute] = localDateTime
+    return `${month}/${day} ${hour}:${minute}`
+  }
+
+  const parsed = new Date(text)
   if (Number.isNaN(parsed.getTime())) {
     return value
   }
-  return parsed.toLocaleString('zh-CN', {
+
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: BEIJING_TIME_ZONE,
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
-  })
+    minute: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(parsed)
+  return `${getDatePart(parts, 'month')}/${getDatePart(parts, 'day')} ${getDatePart(parts, 'hour')}:${getDatePart(parts, 'minute')}`
+}
+
+function getDatePart(parts, type) {
+  const part = parts.find(item => item.type === type)
+  return part ? part.value : ''
 }
 
 function formatContactValue(value) {
