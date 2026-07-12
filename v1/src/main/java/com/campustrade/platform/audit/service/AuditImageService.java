@@ -9,6 +9,7 @@ import com.campustrade.platform.audit.mapper.AuditImageMapper;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.common.PageResponse;
 import com.campustrade.platform.config.AppProperties;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
@@ -16,7 +17,6 @@ import com.campustrade.platform.goods.mapper.GoodsMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
 import com.campustrade.platform.user.mapper.UserMapper;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,23 +27,27 @@ import java.util.List;
 @Service
 public class AuditImageService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuditImageService.class);
+    private static final String BULK_REJECT_CONFIRMATION = "REJECT_ALL_APPROVED";
 
     private final AuditImageMapper auditImageMapper;
     private final GoodsMapper goodsMapper;
     private final UserMapper userMapper;
     private final UploadService uploadService;
     private final AppProperties appProperties;
+    private final GoodsListCacheInvalidator goodsListCacheInvalidator;
 
     public AuditImageService(AuditImageMapper auditImageMapper,
                              GoodsMapper goodsMapper,
                              UserMapper userMapper,
                              UploadService uploadService,
-                             AppProperties appProperties) {
+                             AppProperties appProperties,
+                             GoodsListCacheInvalidator goodsListCacheInvalidator) {
         this.auditImageMapper = auditImageMapper;
         this.goodsMapper = goodsMapper;
         this.userMapper = userMapper;
         this.uploadService = uploadService;
         this.appProperties = appProperties;
+        this.goodsListCacheInvalidator = goodsListCacheInvalidator;
     }
 
     @Transactional(readOnly = true)
@@ -63,28 +67,29 @@ public class AuditImageService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public AuditImageResponseDTO approve(Long reviewerUserId, Long imageId) {
         ensureReviewer(reviewerUserId);
         updateAuditStatus(imageId, reviewerUserId, ImageAuditStatusEnum.APPROVED, null);
-        tryApproveGoods(imageId);
+        if (tryApproveGoods(imageId)) {
+            goodsListCacheInvalidator.evictAfterCommit();
+        }
         return getAuditImageOrThrow(imageId);
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public AuditImageResponseDTO reject(Long reviewerUserId, Long imageId, String remark) {
         ensureReviewer(reviewerUserId);
         String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
         updateAuditStatus(imageId, reviewerUserId, ImageAuditStatusEnum.REJECTED, normalizedRemark);
         rejectGoods(imageId, normalizedRemark);
+        goodsListCacheInvalidator.evictAfterCommit();
         return getAuditImageOrThrow(imageId);
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
-    public int rejectAllApproved(Long reviewerUserId, String remark) {
+    public int rejectAllApproved(Long reviewerUserId, String remark, String confirmation) {
         ensureReviewer(reviewerUserId);
+        ensureBulkRejectConfirmed(confirmation);
         String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
 
         List<GoodsImageDO> approvedImages = goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.APPROVED);
@@ -94,11 +99,13 @@ public class AuditImageService {
             rejectGoods(image.getId(), normalizedRemark);
             count++;
         }
+        if (count > 0) {
+            goodsListCacheInvalidator.evictAfterCommit();
+        }
         return count;
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public ThumbnailBackfillResponseDTO backfillMissingThumbnails(Long reviewerUserId, int limit) {
         ensureReviewer(reviewerUserId);
 
@@ -121,6 +128,9 @@ public class AuditImageService {
                 log.warn("Failed to backfill thumbnail for image id {}: {}", image.getId(), ex.getMessage());
             }
         }
+        if (generated > 0) {
+            goodsListCacheInvalidator.evictAfterCommit();
+        }
 
         long remaining = goodsMapper.countImagesMissingThumbnails();
         return new ThumbnailBackfillResponseDTO(images.size(), generated, skipped, failed, remaining);
@@ -137,21 +147,23 @@ public class AuditImageService {
         goodsMapper.updateImageAudit(imageId, status, remark, reviewerUserId);
     }
 
-    private void tryApproveGoods(Long imageId) {
+    private boolean tryApproveGoods(Long imageId) {
         GoodsImageDO image = goodsMapper.findImageById(imageId);
         if (image == null) {
-            return;
+            return false;
         }
         Long goodsId = image.getGoodsId();
         int total = goodsMapper.countImagesByGoodsId(goodsId);
         if (total == 0) {
             goodsMapper.updateAuditStatus(goodsId, GoodsStatusEnum.ON_SALE, null);
-            return;
+            return true;
         }
         int approved = goodsMapper.countApprovedImagesByGoodsId(goodsId);
         if (approved == total) {
             goodsMapper.updateAuditStatus(goodsId, GoodsStatusEnum.ON_SALE, null);
+            return true;
         }
+        return false;
     }
 
     private void rejectGoods(Long imageId, String remark) {
@@ -212,6 +224,7 @@ public class AuditImageService {
     public AvatarAuditResponseDTO approveAvatar(Long reviewerUserId, Long userId) {
         ensureReviewer(reviewerUserId);
         updateAvatarAuditStatus(userId, reviewerUserId, ImageAuditStatusEnum.APPROVED, null);
+        goodsListCacheInvalidator.evictAfterCommit();
         return getAvatarAuditOrThrow(userId);
     }
 
@@ -220,12 +233,14 @@ public class AuditImageService {
         ensureReviewer(reviewerUserId);
         String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
         updateAvatarAuditStatus(userId, reviewerUserId, ImageAuditStatusEnum.REJECTED, normalizedRemark);
+        goodsListCacheInvalidator.evictAfterCommit();
         return getAvatarAuditOrThrow(userId);
     }
 
     @Transactional
-    public int rejectAllApprovedAvatars(Long reviewerUserId, String remark) {
+    public int rejectAllApprovedAvatars(Long reviewerUserId, String remark, String confirmation) {
         ensureReviewer(reviewerUserId);
+        ensureBulkRejectConfirmed(confirmation);
         String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
 
         List<UserDO> approvedUsers = userMapper.findByAvatarAuditStatus(ImageAuditStatusEnum.APPROVED);
@@ -233,6 +248,9 @@ public class AuditImageService {
         for (UserDO user : approvedUsers) {
             userMapper.updateAvatarAuditStatus(user.getId(), ImageAuditStatusEnum.REJECTED, normalizedRemark, reviewerUserId);
             count++;
+        }
+        if (count > 0) {
+            goodsListCacheInvalidator.evictAfterCommit();
         }
         return count;
     }
@@ -274,6 +292,12 @@ public class AuditImageService {
     private void ensureReviewer(Long reviewerUserId) {
         if (reviewerUserId == null || !appProperties.getImageAudit().getReviewerUserIds().contains(reviewerUserId)) {
             throw new AppException(HttpStatus.FORBIDDEN, "无权审核图片");
+        }
+    }
+
+    private void ensureBulkRejectConfirmed(String confirmation) {
+        if (!BULK_REJECT_CONFIRMATION.equals(confirmation)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "批量驳回需确认操作");
         }
     }
 }

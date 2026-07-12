@@ -61,7 +61,8 @@ public class AuditImageController {
             @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
         UserPrincipal principal = AuthUtils.currentUser();
         String remark = request == null ? null : request.remark();
-        int count = auditImageService.rejectAllApproved(principal.userId(), remark);
+        String confirmation = request == null ? null : request.confirmation();
+        int count = auditImageService.rejectAllApproved(principal.userId(), remark, confirmation);
         return ApiResponse.ok("已驳回 " + count + " 张图片", count);
     }
 
@@ -102,7 +103,8 @@ public class AuditImageController {
             @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
         UserPrincipal principal = AuthUtils.currentUser();
         String remark = request == null ? null : request.remark();
-        int count = auditImageService.rejectAllApprovedAvatars(principal.userId(), remark);
+        String confirmation = request == null ? null : request.confirmation();
+        int count = auditImageService.rejectAllApprovedAvatars(principal.userId(), remark, confirmation);
         return ApiResponse.ok("已驳回 " + count + " 个头像", count);
     }
 }

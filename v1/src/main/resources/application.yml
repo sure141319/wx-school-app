@@ -33,6 +33,14 @@ mybatis:
     default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 
+springdoc:
+  api-docs:
+    path: /api/v1/openapi.json
+  swagger-ui:
+    path: /api/v1/docs
+    operations-sorter: method
+    tags-sorter: alpha
+
 app:
   jwt-secret: ${JWT_SECRET}
   jwt-expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}

@@ -8,6 +8,7 @@ import com.campustrade.platform.category.service.CategoryService;
 import com.campustrade.platform.common.PageResponse;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.config.cache.CacheConfig;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
@@ -53,7 +54,7 @@ class GoodsListCacheTest {
 
     @Configuration
     @EnableConfigurationProperties(AppProperties.class)
-    @Import({CacheConfig.class, GoodsService.class, AuditImageService.class})
+    @Import({CacheConfig.class, GoodsListCacheInvalidator.class, GoodsService.class, AuditImageService.class})
     static class TestConfig {
     }
 

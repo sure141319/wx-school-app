@@ -5,6 +5,7 @@ import com.campustrade.platform.category.service.CategoryService;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.common.PageResponse;
 import com.campustrade.platform.config.AppProperties;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
@@ -17,7 +18,6 @@ import com.campustrade.platform.goods.mapper.GoodsMapper;
 import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.service.UserService;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -45,6 +45,7 @@ public class GoodsService {
     private final GoodsAssembler goodsAssembler;
     private final UploadService uploadService;
     private final AppProperties appProperties;
+    private final GoodsListCacheInvalidator goodsListCacheInvalidator;
 
     public GoodsService(GoodsMapper goodsMapper,
                         CategoryService categoryService,
@@ -52,7 +53,8 @@ public class GoodsService {
                         ConversationMapper conversationMapper,
                         GoodsAssembler goodsAssembler,
                         UploadService uploadService,
-                        AppProperties appProperties) {
+                        AppProperties appProperties,
+                        GoodsListCacheInvalidator goodsListCacheInvalidator) {
         this.goodsMapper = goodsMapper;
         this.categoryService = categoryService;
         this.userService = userService;
@@ -60,10 +62,10 @@ public class GoodsService {
         this.goodsAssembler = goodsAssembler;
         this.uploadService = uploadService;
         this.appProperties = appProperties;
+        this.goodsListCacheInvalidator = goodsListCacheInvalidator;
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public GoodsResponseDTO create(Long sellerId, GoodsSaveRequestDTO request) {
         userService.getById(sellerId);
 
@@ -86,7 +88,6 @@ public class GoodsService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public GoodsResponseDTO update(Long currentUserId, Long goodsId, GoodsSaveRequestDTO request) {
         GoodsDO existing = getGoodsOrThrow(goodsId);
         validateOwner(currentUserId, existing);
@@ -106,11 +107,11 @@ public class GoodsService {
         replaceImages(goodsId, currentUserId, request.imageUrls(), request.imageThumbnailUrls());
         resetImageAuditStatus(goodsId);
         tryAutoApprove(goodsId);
+        goodsListCacheInvalidator.evictAfterCommit();
         return getDetail(goodsId);
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public void delete(Long currentUserId, Long goodsId) {
         GoodsDO goods = getGoodsOrThrow(goodsId);
         if (!isReviewer(currentUserId)) {
@@ -125,23 +126,23 @@ public class GoodsService {
 
         conversationMapper.deleteByGoodsId(goodsId);
         goodsMapper.deleteById(goodsId);
+        if (goods.getStatus() == GoodsStatusEnum.ON_SALE) {
+            goodsListCacheInvalidator.evictAfterCommit();
+        }
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "goods:list", allEntries = true)
     public GoodsResponseDTO updateStatus(Long currentUserId, Long goodsId, GoodsStatusEnum status) {
         GoodsDO goods = getGoodsOrThrow(goodsId);
         validateOwner(currentUserId, goods);
         if (goods.getStatus() == status) {
             return getDetail(goodsId);
         }
-        if (goods.getStatus() == GoodsStatusEnum.OFF_SHELF && status == GoodsStatusEnum.OFF_SHELF) {
-            return getDetail(goodsId);
-        }
-        if (status == GoodsStatusEnum.ON_SALE && goods.getStatus() != GoodsStatusEnum.OFF_SHELF) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "当前状态不允许直接上架");
-        }
+        validateSellerStatusTransition(goodsId, goods.getStatus(), status);
         goodsMapper.updateStatus(goodsId, status);
+        if (affectsPublicList(goods.getStatus(), status)) {
+            goodsListCacheInvalidator.evictAfterCommit();
+        }
         return getDetail(goodsId);
     }
 
@@ -186,7 +187,7 @@ public class GoodsService {
         return PageResponse.of(items, total, page, size);
     }
 
-@Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public PageResponse<GoodsResponseDTO> myGoods(Long sellerId, int page, int size) {
         userService.getById(sellerId);
 
@@ -245,6 +246,29 @@ public class GoodsService {
 
     private boolean isReviewer(Long userId) {
         return userId != null && appProperties.getImageAudit().getReviewerUserIds().contains(userId);
+    }
+
+    private boolean affectsPublicList(GoodsStatusEnum oldStatus, GoodsStatusEnum newStatus) {
+        return oldStatus == GoodsStatusEnum.ON_SALE || newStatus == GoodsStatusEnum.ON_SALE;
+    }
+
+    private void validateSellerStatusTransition(Long goodsId, GoodsStatusEnum currentStatus, GoodsStatusEnum requestedStatus) {
+        if (currentStatus == GoodsStatusEnum.ON_SALE && requestedStatus == GoodsStatusEnum.OFF_SHELF) {
+            return;
+        }
+        if (currentStatus == GoodsStatusEnum.OFF_SHELF && requestedStatus == GoodsStatusEnum.ON_SALE) {
+            ensureAllImagesApprovedForSale(goodsId);
+            return;
+        }
+        throw new AppException(HttpStatus.BAD_REQUEST, "当前状态不允许该操作");
+    }
+
+    private void ensureAllImagesApprovedForSale(Long goodsId) {
+        int total = goodsMapper.countImagesByGoodsId(goodsId);
+        int approved = goodsMapper.countApprovedImagesByGoodsId(goodsId);
+        if (total == 0 || approved != total) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "商品图片未全部通过审核，不能上架");
+        }
     }
 
     private void replaceImages(Long goodsId, Long ownerUserId, List<String> imageUrls, List<String> imageThumbnailUrls) {

@@ -3,6 +3,7 @@ package com.campustrade.platform.goods.service;
 import com.campustrade.platform.category.service.CategoryService;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
@@ -34,12 +35,14 @@ class GoodsServiceVisibilityTest {
 
     private GoodsMapper goodsMapper;
     private GoodsAssembler goodsAssembler;
+    private GoodsListCacheInvalidator goodsListCacheInvalidator;
     private GoodsService goodsService;
 
     @BeforeEach
     void setUp() {
         goodsMapper = mock(GoodsMapper.class);
         goodsAssembler = mock(GoodsAssembler.class);
+        goodsListCacheInvalidator = mock(GoodsListCacheInvalidator.class);
 
         AppProperties appProperties = new AppProperties();
         appProperties.getImageAudit().setReviewerUserIds(List.of(1L));
@@ -51,7 +54,8 @@ class GoodsServiceVisibilityTest {
                 mock(ConversationMapper.class),
                 goodsAssembler,
                 mock(UploadService.class),
-                appProperties
+                appProperties,
+                goodsListCacheInvalidator
         );
     }
 
@@ -132,6 +136,53 @@ class GoodsServiceVisibilityTest {
         assertSame(internalResponse, response);
         verify(goodsAssembler).toResponse(goods);
         verify(goodsAssembler, never()).toPublicResponse(any());
+    }
+
+    @Test
+    void ownerCannotMovePendingGoodsToOffShelf() {
+        when(goodsMapper.findById(10L)).thenReturn(goods(10L, 20L, GoodsStatusEnum.PENDING_REVIEW));
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> goodsService.updateStatus(20L, 10L, GoodsStatusEnum.OFF_SHELF)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(goodsMapper, never()).updateStatus(10L, GoodsStatusEnum.OFF_SHELF);
+    }
+
+    @Test
+    void ownerCannotPutOffShelfGoodsOnSaleWhenImagesAreNotAllApproved() {
+        when(goodsMapper.findById(10L)).thenReturn(goods(10L, 20L, GoodsStatusEnum.OFF_SHELF));
+        when(goodsMapper.countImagesByGoodsId(10L)).thenReturn(2);
+        when(goodsMapper.countApprovedImagesByGoodsId(10L)).thenReturn(1);
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> goodsService.updateStatus(20L, 10L, GoodsStatusEnum.ON_SALE)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(goodsMapper, never()).updateStatus(10L, GoodsStatusEnum.ON_SALE);
+    }
+
+    @Test
+    void ownerCanPutOffShelfGoodsOnSaleWhenImagesAreAllApproved() {
+        GoodsDO offShelfGoods = goods(10L, 20L, GoodsStatusEnum.OFF_SHELF);
+        GoodsDO onSaleGoods = goods(10L, 20L, GoodsStatusEnum.ON_SALE);
+        GoodsResponseDTO internalResponse = new GoodsResponseDTO(
+                10L, "Mac", null, null, null, null, GoodsStatusEnum.ON_SALE, null, null, List.of(), List.of(), null, null, null
+        );
+        when(goodsMapper.findById(10L)).thenReturn(offShelfGoods, onSaleGoods);
+        when(goodsMapper.countImagesByGoodsId(10L)).thenReturn(2);
+        when(goodsMapper.countApprovedImagesByGoodsId(10L)).thenReturn(2);
+        when(goodsMapper.findImagesByGoodsId(10L)).thenReturn(List.of());
+        when(goodsAssembler.toResponse(onSaleGoods)).thenReturn(internalResponse);
+
+        GoodsResponseDTO response = goodsService.updateStatus(20L, 10L, GoodsStatusEnum.ON_SALE);
+
+        assertSame(internalResponse, response);
+        verify(goodsMapper).updateStatus(10L, GoodsStatusEnum.ON_SALE);
     }
 
     private GoodsDO goods(Long goodsId, Long sellerId, GoodsStatusEnum status) {

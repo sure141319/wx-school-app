@@ -3,34 +3,24 @@ package com.campustrade.platform.config.cache;
 import com.campustrade.platform.common.PageResponse;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.SerializationException;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CacheConfigTest {
 
     @Test
     void redisSerializerKeepsPageResponseType() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.activateDefaultTyping(
-                LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.EVERYTHING,
-                JsonTypeInfo.As.PROPERTY
-        );
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(mapper);
+        GenericJackson2JsonRedisSerializer serializer = CacheConfig.redisValueSerializer();
 
         PageResponse<GoodsListItemResponseDTO> original = PageResponse.of(
                 List.of(new GoodsListItemResponseDTO(
@@ -57,5 +47,15 @@ class CacheConfigTest {
         assertEquals(1, response.total());
         assertEquals(1, response.items().size());
         assertInstanceOf(GoodsListItemResponseDTO.class, response.items().get(0));
+    }
+
+    @Test
+    void redisSerializerRejectsTypesOutsideCacheAllowlist() {
+        GenericJackson2JsonRedisSerializer serializer = CacheConfig.redisValueSerializer();
+        byte[] payload = """
+                {"@class":"java.io.File","path":"application.yml"}
+                """.getBytes(StandardCharsets.UTF_8);
+
+        assertThrows(SerializationException.class, () -> serializer.deserialize(payload));
     }
 }

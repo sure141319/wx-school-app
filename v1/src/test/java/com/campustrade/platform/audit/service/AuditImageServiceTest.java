@@ -6,6 +6,7 @@ import com.campustrade.platform.audit.dto.response.ThumbnailBackfillResponseDTO;
 import com.campustrade.platform.audit.mapper.AuditImageMapper;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,13 +30,15 @@ class AuditImageServiceTest {
     private final GoodsMapper goodsMapper = mock(GoodsMapper.class);
     private final UserMapper userMapper = mock(UserMapper.class);
     private final UploadService uploadService = mock(UploadService.class);
+    private final GoodsListCacheInvalidator goodsListCacheInvalidator = mock(GoodsListCacheInvalidator.class);
     private final AppProperties appProperties = appProperties();
     private final AuditImageService service = new AuditImageService(
             auditImageMapper,
             goodsMapper,
             userMapper,
             uploadService,
-            appProperties
+            appProperties,
+            goodsListCacheInvalidator
     );
 
     @Test
@@ -117,6 +121,28 @@ class AuditImageServiceTest {
         assertEquals(2L, response.remaining());
         verify(goodsMapper, never()).updateImageThumbnail(10L, null);
         verify(goodsMapper, never()).updateImageThumbnail(11L, null);
+    }
+
+    @Test
+    void rejectAllApprovedRequiresExplicitConfirmation() {
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> service.rejectAllApproved(1L, "误操作", null)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(goodsMapper, never()).findImagesByAuditStatus(ImageAuditStatusEnum.APPROVED);
+    }
+
+    @Test
+    void rejectAllApprovedAvatarsRequiresExplicitConfirmation() {
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> service.rejectAllApprovedAvatars(1L, "误操作", "WRONG")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(userMapper, never()).findByAvatarAuditStatus(ImageAuditStatusEnum.APPROVED);
     }
 
     private GoodsImageDO image(Long id, String imageUrl) {

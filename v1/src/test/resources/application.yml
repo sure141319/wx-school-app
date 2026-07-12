@@ -15,6 +15,12 @@ spring:
       host: localhost
       port: 6379
 
+springdoc:
+  api-docs:
+    path: /api/v1/openapi.json
+  swagger-ui:
+    path: /api/v1/docs
+
 app:
   jwt-secret: test-secret-that-is-definitely-long-enough-and-not-base64!!!
   api-base-url: http://localhost:8080

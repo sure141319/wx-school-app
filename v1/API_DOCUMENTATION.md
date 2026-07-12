@@ -2,6 +2,8 @@
 
 > 版本: v1 | 基础路径: `/api/v1` | 协议: HTTPS | 数据格式: JSON
 
+> 契约来源：后端启动后会自动生成 OpenAPI 文档，`GET /api/v1/openapi.json` 为权威机器可读契约，`GET /api/v1/docs` 为 Swagger UI。本文档保留为人工阅读材料，发布前以 OpenAPI 输出为准。
+
 ---
 
 ## 目录
