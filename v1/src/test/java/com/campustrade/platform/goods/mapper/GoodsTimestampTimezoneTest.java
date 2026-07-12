@@ -1,0 +1,77 @@
+package com.campustrade.platform.goods.mapper;
+
+import com.campustrade.platform.goods.dataobject.GoodsDO;
+import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
+import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.service.GoodsService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@SpringBootTest
+@Transactional
+class GoodsTimestampTimezoneTest {
+
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
+
+    @Autowired
+    private GoodsMapper goodsMapper;
+
+    @Autowired
+    private GoodsService goodsService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Test
+    void createdAtUsesCurrentBeijingTimeWhenGoodsIsInserted() {
+        Long sellerId = insertSeller();
+
+        LocalDateTime beforeBeijingNow = LocalDateTime.now(BEIJING_ZONE).minusSeconds(2);
+        GoodsResponseDTO created = goodsService.create(sellerId, new GoodsSaveRequestDTO(
+                "北京时间测试商品",
+                "用于验证商品发布时间时区",
+                BigDecimal.valueOf(12.34),
+                "全新",
+                "校内",
+                null,
+                List.of("images/2026/07/goods/beijing-time-test.jpg"),
+                List.of("images/2026/07/goods/thumbs/beijing-time-test_thumb.jpg")
+        ));
+        GoodsDO saved = goodsMapper.findById(created.id());
+        LocalDateTime afterBeijingNow = LocalDateTime.now(BEIJING_ZONE).plusSeconds(2);
+
+        assertNotNull(saved);
+        assertNotNull(saved.getCreatedAt());
+        assertFalse(
+                saved.getCreatedAt().isBefore(beforeBeijingNow),
+                "商品 createdAt 不应早于插入前的北京时间窗口: " + saved.getCreatedAt()
+        );
+        assertFalse(
+                saved.getCreatedAt().isAfter(afterBeijingNow),
+                "商品 createdAt 不应晚于插入后的北京时间窗口: " + saved.getCreatedAt()
+        );
+    }
+
+    private Long insertSeller() {
+        jdbcTemplate.update("""
+                INSERT INTO users (email, password_hash, nickname, failed_login_count, created_at, updated_at)
+                VALUES (?, ?, ?, 0, NOW(), NOW())
+                """, "goods-timezone-test@qq.com", "hash", "测试卖家");
+        return jdbcTemplate.queryForObject(
+                "SELECT id FROM users WHERE email = ?",
+                Long.class,
+                "goods-timezone-test@qq.com"
+        );
+    }
+}

@@ -31,9 +31,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 public class GoodsService {
+
+    private static final ZoneId GOODS_TIME_ZONE = ZoneId.of("Asia/Shanghai");
 
     private final GoodsMapper goodsMapper;
     private final CategoryService categoryService;
@@ -73,6 +77,9 @@ public class GoodsService {
         goods.setConditionLevel(request.conditionLevel().trim());
         goods.setCampusLocation(request.campusLocation().trim());
         goods.setStatus(GoodsStatusEnum.PENDING_REVIEW);
+        LocalDateTime now = LocalDateTime.now(GOODS_TIME_ZONE);
+        goods.setCreatedAt(now);
+        goods.setUpdatedAt(now);
 
         goodsMapper.insert(goods);
         replaceImages(goods.getId(), request.imageUrls(), request.imageThumbnailUrls());

@@ -106,7 +106,7 @@
 
     <insert id="insert" parameterType="com.campustrade.platform.goods.dataobject.GoodsDO" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO goods_do (seller_id, category_id, title, description, price, condition_level, campus_location, status, audit_remark, created_at, updated_at)
-        VALUES (#{sellerId}, #{categoryId}, #{title}, #{description}, #{price}, #{conditionLevel}, #{campusLocation}, #{status}, #{auditRemark}, NOW(), NOW())
+        VALUES (#{sellerId}, #{categoryId}, #{title}, #{description}, #{price}, #{conditionLevel}, #{campusLocation}, #{status}, #{auditRemark}, #{createdAt}, #{updatedAt})
     </insert>
 
     <update id="update" parameterType="com.campustrade.platform.goods.dataobject.GoodsDO">
