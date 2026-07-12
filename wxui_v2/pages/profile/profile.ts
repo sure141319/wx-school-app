@@ -7,7 +7,10 @@ const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
 const QQ_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@qq\.com$/
 const SUPPORT_AUTHOR_AD_UNIT_ID = 'adunit-f3d20d1b06422a8d'
-const CAMPUS_OTHER_CODE_IMAGE = '/static/ahut-other-miniprogram-code.jpg'
+const CAMPUS_MINIPROGRAM_CODE_IMAGES = [
+  '/static/ahut-campus-miniprogram-code.jpg',
+  '/static/ahut-other-miniprogram-code.jpg'
+]
 
 let supportAuthorVideoAd: WechatMiniprogram.RewardedVideoAd | null = null
 
@@ -647,10 +650,11 @@ Component({
       this.setData({ showCampusOtherModal: false })
     },
 
-    previewCampusOtherCode() {
+    previewCampusOtherCode(e: WechatMiniprogram.TouchEvent) {
+      const current = (e.currentTarget.dataset.src as string) || CAMPUS_MINIPROGRAM_CODE_IMAGES[0]
       wx.previewImage({
-        urls: [CAMPUS_OTHER_CODE_IMAGE],
-        current: CAMPUS_OTHER_CODE_IMAGE
+        urls: CAMPUS_MINIPROGRAM_CODE_IMAGES,
+        current
       })
     },
 

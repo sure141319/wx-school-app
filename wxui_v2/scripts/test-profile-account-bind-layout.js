@@ -27,8 +27,8 @@ assert.match(
 
 assert.match(
   profileWxml,
-  /<view class="settings-code settings-code-campus">\s*<image class="settings-code-icon" src="\/static\/icon-miniprogram\.svg"[\s\S]*?<text class="settings-label">校内其他<\/text>/,
-  'campus other settings row should use a campus vector icon and label'
+  /<view class="settings-code settings-code-campus">\s*<image class="settings-code-icon" src="\/static\/icon-miniprogram\.svg"[\s\S]*?<text class="settings-label">校内小程序<\/text>/,
+  'campus mini program settings row should use a campus vector icon and label'
 )
 
 assert.doesNotMatch(
@@ -39,8 +39,8 @@ assert.doesNotMatch(
 
 assert.match(
   profileWxml,
-  /bindtap="openAccountBindModal"[\s\S]*?icon-account\.svg[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?icon-support\.svg[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?icon-feedback\.svg[\s\S]*?<text class="settings-label">意见反馈<\/text>[\s\S]*?bindtap="showCampusOther"[\s\S]*?icon-miniprogram\.svg[\s\S]*?<text class="settings-label">校内其他<\/text>/,
-  'support author, feedback, and campus other rows should keep the requested settings order'
+  /bindtap="openAccountBindModal"[\s\S]*?icon-account\.svg[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?icon-support\.svg[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?icon-feedback\.svg[\s\S]*?<text class="settings-label">意见反馈<\/text>[\s\S]*?bindtap="showCampusOther"[\s\S]*?icon-miniprogram\.svg[\s\S]*?<text class="settings-label">校内小程序<\/text>/,
+  'support author, feedback, and campus mini program rows should keep the requested settings order'
 )
 
 assert.match(
@@ -93,8 +93,8 @@ assert.match(
 
 assert.match(
   profileTs,
-  /const CAMPUS_OTHER_CODE_IMAGE = '\/static\/ahut-other-miniprogram-code\.jpg'/,
-  'campus other mini program code image should be configured as a local static asset'
+  /const CAMPUS_MINIPROGRAM_CODE_IMAGES = \[\s*'\/static\/ahut-campus-miniprogram-code\.jpg',\s*'\/static\/ahut-other-miniprogram-code\.jpg'\s*\]/,
+  'campus mini program code images should be configured as local static assets'
 )
 
 assert.match(
@@ -105,8 +105,14 @@ assert.match(
 
 assert.match(
   profileWxml,
-  /wx:if="{{showCampusOtherModal}}"[\s\S]*?<view class="modal-title">校内其他<\/view>[\s\S]*?src="\/static\/ahut-other-miniprogram-code\.jpg"[\s\S]*?这是安工大其他学生开发的小程序/,
-  'campus other modal should display the provided mini program code and explanation'
+  /wx:if="{{showCampusOtherModal}}"[\s\S]*?<view class="modal-title">校内小程序<\/view>[\s\S]*?安工大校内小程序，长按可识别前往\/转发给校友[\s\S]*?src="\/static\/ahut-campus-miniprogram-code\.jpg"[\s\S]*?src="\/static\/ahut-other-miniprogram-code\.jpg"/,
+  'campus mini program modal should display both mini program codes and the requested explanation'
+)
+
+assert.match(
+  profileWxml,
+  /show-menu-by-longpress="true"[\s\S]*?data-src="\/static\/ahut-campus-miniprogram-code\.jpg"[\s\S]*?show-menu-by-longpress="true"[\s\S]*?data-src="\/static\/ahut-other-miniprogram-code\.jpg"/,
+  'both campus mini program codes should support long press recognition and sharing'
 )
 
 assert.doesNotMatch(
@@ -123,8 +129,23 @@ assert.match(
 
 assert.match(
   cssBlock('.campus-other-code'),
-  /width:\s*460rpx/,
-  'campus other mini program code should render large enough to scan'
+  /width:\s*260rpx/,
+  'campus mini program codes should render side by side within the modal'
+)
+
+const campusCodeImageNames = [
+  'ahut-campus-miniprogram-code.jpg',
+  'ahut-other-miniprogram-code.jpg'
+]
+const campusCodeTotalBytes = campusCodeImageNames.reduce((total, fileName) => {
+  const filePath = path.resolve(__dirname, '../static', fileName)
+  assert.ok(fs.existsSync(filePath), `${fileName} should exist in static assets`)
+  return total + fs.statSync(filePath).size
+}, 0)
+
+assert.ok(
+  campusCodeTotalBytes < 200 * 1024,
+  `campus mini program code images should stay under 200K total, got ${campusCodeTotalBytes} bytes`
 )
 
 console.log('profile account bind layout tests passed')
