@@ -3,6 +3,7 @@ package com.campustrade.platform.user.assembler;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
+import com.campustrade.platform.user.dto.response.PublicSellerResponseDTO;
 import com.campustrade.platform.user.dto.response.UserProfileResponseDTO;
 import com.campustrade.platform.user.dto.response.UserSummaryResponseDTO;
 import org.springframework.stereotype.Component;
@@ -45,6 +46,18 @@ public class UserProfileAssembler {
                 user.getNickname(),
                 visibleAvatar.url(),
                 visibleAvatar.source()
+        );
+    }
+
+    public PublicSellerResponseDTO toPublicSellerResponse(UserDO user) {
+        VisibleAvatar visibleAvatar = toVisibleAvatar(user);
+        return new PublicSellerResponseDTO(
+                user.getId(),
+                user.getNickname(),
+                visibleAvatar.url(),
+                visibleAvatar.source(),
+                user.getWechatId(),
+                user.getQq()
         );
     }
 

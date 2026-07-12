@@ -6,6 +6,7 @@ import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.PublicGoodsResponseDTO;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
 import org.springframework.stereotype.Component;
@@ -47,6 +48,27 @@ public class GoodsAssembler {
                         .map(GoodsImageDO::getImageUrl)
                         .toList(),
                 goods.getAuditRemark(),
+                goods.getCreatedAt(),
+                goods.getUpdatedAt()
+        );
+    }
+
+    public PublicGoodsResponseDTO toPublicResponse(GoodsDO goods) {
+        CategoryResponseDTO categoryResponse = goods.getCategory() == null ? null : categoryAssembler.toResponse(goods.getCategory());
+        return new PublicGoodsResponseDTO(
+                goods.getId(),
+                goods.getTitle(),
+                goods.getDescription(),
+                goods.getPrice(),
+                goods.getConditionLevel(),
+                goods.getCampusLocation(),
+                goods.getStatus(),
+                categoryResponse,
+                userProfileAssembler.toPublicSellerResponse(goods.getSeller()),
+                goods.getImages().stream()
+                        .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                        .map(this::toVisibleImageUrl)
+                        .toList(),
                 goods.getCreatedAt(),
                 goods.getUpdatedAt()
         );

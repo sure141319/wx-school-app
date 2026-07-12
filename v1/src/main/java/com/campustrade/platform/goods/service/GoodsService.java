@@ -16,7 +16,6 @@ import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
 import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
-import com.campustrade.platform.user.dataobject.UserDO;
 import com.campustrade.platform.user.service.UserService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -154,6 +153,17 @@ public class GoodsService {
     }
 
     @Transactional(readOnly = true)
+    public Object getDetailForViewer(Long goodsId, Long viewerUserId) {
+        GoodsDO goods = getGoodsOrThrow(goodsId);
+        boolean privileged = canViewInternalDetail(viewerUserId, goods);
+        if (!privileged && goods.getStatus() != GoodsStatusEnum.ON_SALE) {
+            throw new AppException(HttpStatus.NOT_FOUND, "商品不存在或未上架");
+        }
+        goods.setImages(goodsMapper.findImagesByGoodsId(goodsId));
+        return privileged ? goodsAssembler.toResponse(goods) : goodsAssembler.toPublicResponse(goods);
+    }
+
+    @Transactional(readOnly = true)
     public GoodsDO getById(Long goodsId) {
         return getGoodsOrThrow(goodsId);
     }
@@ -161,14 +171,15 @@ public class GoodsService {
     @Transactional(readOnly = true)
     @Cacheable(
             cacheNames = "goods:list",
-            key = "new org.springframework.cache.interceptor.SimpleKey(#keyword == null ? null : #keyword.trim(), #categoryId, #status == null ? null : #status.name(), #page, #size)"
+            key = "new org.springframework.cache.interceptor.SimpleKey(#keyword == null ? null : #keyword.trim(), #categoryId, #status == null ? 'ON_SALE' : #status.name(), #page, #size)"
     )
     public PageResponse<GoodsListItemResponseDTO> list(String keyword, Long categoryId, GoodsStatusEnum status, int page, int size) {
         int offset = page * size;
         String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        GoodsStatusEnum effectiveStatus = publicListStatus(status);
 
-        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeyword, categoryId, status, size, offset);
-        long total = goodsMapper.countSearch(normalizedKeyword, categoryId, status);
+        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeyword, categoryId, effectiveStatus, size, offset);
+        long total = goodsMapper.countSearch(normalizedKeyword, categoryId, effectiveStatus);
         attachCoverImages(goodsList);
 
         List<GoodsListItemResponseDTO> items = goodsList.stream().map(goodsAssembler::toListItemResponse).toList();
@@ -212,6 +223,24 @@ public class GoodsService {
         if (sellerId == null || !sellerId.equals(userId)) {
             throw new AppException(HttpStatus.FORBIDDEN, "无权操作该商品");
         }
+    }
+
+    private boolean canViewInternalDetail(Long userId, GoodsDO goods) {
+        if (userId == null) {
+            return false;
+        }
+        Long sellerId = goods.getSellerId();
+        if (sellerId == null && goods.getSeller() != null) {
+            sellerId = goods.getSeller().getId();
+        }
+        return userId.equals(sellerId) || isReviewer(userId);
+    }
+
+    private GoodsStatusEnum publicListStatus(GoodsStatusEnum requestedStatus) {
+        if (requestedStatus == null || requestedStatus == GoodsStatusEnum.ON_SALE) {
+            return GoodsStatusEnum.ON_SALE;
+        }
+        throw new AppException(HttpStatus.BAD_REQUEST, "公开列表仅支持查看在售商品");
     }
 
     private boolean isReviewer(Long userId) {

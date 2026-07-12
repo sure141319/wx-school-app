@@ -17,5 +17,13 @@ public final class AuthUtils {
         }
         return principal;
     }
+
+    public static UserPrincipal currentUserOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+            return null;
+        }
+        return principal;
+    }
 }
 

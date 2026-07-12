@@ -48,8 +48,10 @@ public class GoodsController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<GoodsResponseDTO> detail(@PathVariable Long id) {
-        return ApiResponse.ok(goodsService.getDetail(id));
+    public ApiResponse<?> detail(@PathVariable Long id) {
+        UserPrincipal principal = AuthUtils.currentUserOrNull();
+        Long viewerUserId = principal == null ? null : principal.userId();
+        return ApiResponse.ok(goodsService.getDetailForViewer(id, viewerUserId));
     }
 
     @PostMapping
