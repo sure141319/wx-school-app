@@ -6,10 +6,13 @@ import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
+import com.campustrade.platform.goods.dataobject.GoodsImageDO;
+import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.dto.response.PublicGoodsResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
+import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
 import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
@@ -19,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +39,7 @@ class GoodsServiceVisibilityTest {
 
     private GoodsMapper goodsMapper;
     private GoodsAssembler goodsAssembler;
+    private UploadService uploadService;
     private GoodsListCacheInvalidator goodsListCacheInvalidator;
     private GoodsService goodsService;
 
@@ -42,6 +47,7 @@ class GoodsServiceVisibilityTest {
     void setUp() {
         goodsMapper = mock(GoodsMapper.class);
         goodsAssembler = mock(GoodsAssembler.class);
+        uploadService = mock(UploadService.class);
         goodsListCacheInvalidator = mock(GoodsListCacheInvalidator.class);
 
         AppProperties appProperties = new AppProperties();
@@ -53,7 +59,7 @@ class GoodsServiceVisibilityTest {
                 mock(UserService.class),
                 mock(ConversationMapper.class),
                 goodsAssembler,
-                mock(UploadService.class),
+                uploadService,
                 appProperties,
                 goodsListCacheInvalidator
         );
@@ -185,6 +191,43 @@ class GoodsServiceVisibilityTest {
         verify(goodsMapper).updateStatus(10L, GoodsStatusEnum.ON_SALE);
     }
 
+    @Test
+    void updateAllowsKeepingLegacyImagesAlreadyAttachedToGoods() {
+        String legacyKey = "images/2026/04/legacy.jpg";
+        String legacyProxyUrl = "https://www.ahut-campus.site/api/v1/images/2026/04/legacy.jpg";
+        GoodsDO existing = goods(10L, 20L, GoodsStatusEnum.ON_SALE);
+        GoodsDO updated = goods(10L, 20L, GoodsStatusEnum.PENDING_REVIEW);
+        GoodsImageDO legacyImage = image(5L, 10L, legacyKey, ImageAuditStatusEnum.APPROVED);
+        GoodsResponseDTO response = new GoodsResponseDTO(
+                10L, "Mac", null, null, null, null, GoodsStatusEnum.PENDING_REVIEW, null, null, List.of(), List.of(), null, null, null
+        );
+        when(goodsMapper.findById(10L)).thenReturn(existing, updated);
+        when(goodsMapper.findImagesByGoodsId(10L)).thenReturn(List.of(legacyImage), List.of(legacyImage), List.of(legacyImage));
+        when(uploadService.extractObjectKey(legacyProxyUrl)).thenReturn(legacyKey);
+        when(goodsMapper.countImagesByGoodsId(10L)).thenReturn(1);
+        when(goodsMapper.countApprovedImagesByGoodsId(10L)).thenReturn(0);
+        when(goodsAssembler.toResponse(updated)).thenReturn(response);
+
+        GoodsResponseDTO result = goodsService.update(
+                20L,
+                10L,
+                new GoodsSaveRequestDTO(
+                        "Mac",
+                        "desc",
+                        BigDecimal.valueOf(9.9),
+                        "new",
+                        "campus",
+                        null,
+                        List.of(legacyProxyUrl),
+                        null
+                )
+        );
+
+        assertSame(response, result);
+        verify(uploadService, never()).validateUploadedImageReference(legacyProxyUrl, "goods", 20L);
+        verify(goodsMapper, never()).deleteImageById(5L);
+    }
+
     private GoodsDO goods(Long goodsId, Long sellerId, GoodsStatusEnum status) {
         UserDO seller = new UserDO();
         seller.setId(sellerId);
@@ -195,5 +238,15 @@ class GoodsServiceVisibilityTest {
         goods.setSeller(seller);
         goods.setStatus(status);
         return goods;
+    }
+
+    private GoodsImageDO image(Long imageId, Long goodsId, String imageUrl, ImageAuditStatusEnum auditStatus) {
+        GoodsImageDO image = new GoodsImageDO();
+        image.setId(imageId);
+        image.setGoodsId(goodsId);
+        image.setImageUrl(imageUrl);
+        image.setSortOrder(0);
+        image.setAuditStatus(auditStatus);
+        return image;
     }
 }

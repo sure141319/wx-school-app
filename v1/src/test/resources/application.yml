@@ -41,3 +41,5 @@ app:
     expire-minutes: 5
     resend-cooldown-seconds: 60
     hourly-limit: 8
+    max-attempts: 5
+    attempt-prefix: "auth:code:attempt:"

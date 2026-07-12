@@ -9,7 +9,6 @@ import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.dto.response.AuthResponseDTO;
 import com.campustrade.platform.auth.dto.response.SendCodeResponseDTO;
 import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
-import com.campustrade.platform.auth.store.VerificationCodeStore;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.security.JwtTokenProvider;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
@@ -40,7 +38,7 @@ public class AuthService {
     private final AppProperties appProperties;
     private final AuthAssembler authAssembler;
     private final UserProfileAssembler userProfileAssembler;
-    private final VerificationCodeStore verificationCodeStore;
+    private final VerificationCodeService verificationCodeService;
     private final WechatSessionClient wechatSessionClient;
 
     public AuthService(UserMapper userMapper,
@@ -50,7 +48,7 @@ public class AuthService {
                        AppProperties appProperties,
                        AuthAssembler authAssembler,
                        UserProfileAssembler userProfileAssembler,
-                       VerificationCodeStore verificationCodeStore,
+                       VerificationCodeService verificationCodeService,
                        WechatSessionClient wechatSessionClient) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
@@ -59,7 +57,7 @@ public class AuthService {
         this.appProperties = appProperties;
         this.authAssembler = authAssembler;
         this.userProfileAssembler = userProfileAssembler;
-        this.verificationCodeStore = verificationCodeStore;
+        this.verificationCodeService = verificationCodeService;
         this.wechatSessionClient = wechatSessionClient;
     }
 
@@ -78,25 +76,10 @@ public class AuthService {
             throw new AppException(HttpStatus.NOT_FOUND, "邮箱未注册");
         }
 
-        try {
-            checkCooldown(email, purpose);
-            checkHourlyLimit(email, purpose);
-        } catch (RuntimeException ex) {
-            throw new AppException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "验证码服务暂时不可用: " + rootCauseMessage(ex),
-                    ex);
-        }
+        verificationCodeService.ensureCanSend(email, purpose);
 
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-        try {
-            saveCode(email, purpose, code);
-        } catch (RuntimeException ex) {
-            throw new AppException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "验证码服务暂时不可用: " + rootCauseMessage(ex),
-                    ex);
-        }
+        verificationCodeService.saveCode(email, purpose, code);
 
         boolean delivered = mailService.sendVerificationCode(email, code, purpose);
         if (!delivered) {
@@ -112,7 +95,7 @@ public class AuthService {
             throw new AppException(HttpStatus.CONFLICT, "邮箱已注册");
         }
 
-        validateCode(email, request.code(), VerificationPurposeEnum.REGISTER);
+        verificationCodeService.validateCode(email, request.code(), VerificationPurposeEnum.REGISTER);
 
         UserDO user = new UserDO();
         user.setEmail(email);
@@ -179,7 +162,7 @@ public class AuthService {
             throw new AppException(HttpStatus.NOT_FOUND, "邮箱未注册");
         }
 
-        validateCode(email, request.code(), VerificationPurposeEnum.RESET_PASSWORD);
+        verificationCodeService.validateCode(email, request.code(), VerificationPurposeEnum.RESET_PASSWORD);
 
         userMapper.updatePasswordAndUnlock(user.getId(), passwordEncoder.encode(request.newPassword()), 0, null);
     }
@@ -191,66 +174,6 @@ public class AuthService {
             throw new AppException(HttpStatus.NOT_FOUND, "用户不存在");
         }
         return userProfileAssembler.toResponse(user);
-    }
-
-    private void validateCode(String email, String inputCode, VerificationPurposeEnum purpose) {
-        String key = codeKey(email, purpose);
-        String code = verificationCodeStore.get(key);
-        if (code == null) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "验证码不存在或已过期");
-        }
-        if (!code.equals(inputCode)) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "验证码错误");
-        }
-        verificationCodeStore.delete(key);
-    }
-
-    private void checkCooldown(String email, VerificationPurposeEnum purpose) {
-        Long ttl = verificationCodeStore.getExpire(codeKey(email, purpose));
-        if (ttl != null && ttl > cooldownSeconds()) {
-            throw new AppException(HttpStatus.TOO_MANY_REQUESTS, "请求验证码过于频繁，请稍后再试");
-        }
-    }
-
-    private void checkHourlyLimit(String email, VerificationPurposeEnum purpose) {
-        String value = verificationCodeStore.get(limitKey(email, purpose));
-        int count;
-        if (value == null) {
-            count = 0;
-        } else {
-            try {
-                count = Integer.parseInt(value);
-            } catch (NumberFormatException ex) {
-                verificationCodeStore.delete(limitKey(email, purpose));
-                count = 0;
-            }
-        }
-        if (count >= appProperties.getVerificationCode().getHourlyLimit()) {
-            throw new AppException(HttpStatus.TOO_MANY_REQUESTS, "验证码请求次数已超过每小时上限");
-        }
-    }
-
-    private void saveCode(String email, VerificationPurposeEnum purpose, String code) {
-        verificationCodeStore.set(codeKey(email, purpose), code, codeTtl());
-        verificationCodeStore.increment(limitKey(email, purpose), Duration.ofHours(1));
-    }
-
-    private Duration codeTtl() {
-        return Duration.ofMinutes(appProperties.getVerificationCode().getExpireMinutes());
-    }
-
-    private long cooldownSeconds() {
-        long ttl = codeTtl().getSeconds();
-        long cooldown = appProperties.getVerificationCode().getResendCooldownSeconds();
-        return Math.max(ttl - cooldown, 0);
-    }
-
-    private String codeKey(String email, VerificationPurposeEnum purpose) {
-        return appProperties.getVerificationCode().getKeyPrefix() + purpose.name() + ":" + email;
-    }
-
-    private String limitKey(String email, VerificationPurposeEnum purpose) {
-        return appProperties.getVerificationCode().getLimitPrefix() + purpose.name() + ":" + email;
     }
 
     private String normalizeEmail(String email) {
@@ -265,14 +188,5 @@ public class AuthService {
         int suffixLength = Math.min(4, openid.length());
         String suffix = openid.substring(openid.length() - suffixLength);
         return "微信用户" + suffix;
-    }
-
-    private String rootCauseMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current.getCause() != null && current.getCause() != current) {
-            current = current.getCause();
-        }
-        String message = current.getMessage();
-        return message == null || message.isBlank() ? current.getClass().getSimpleName() : message;
     }
 }

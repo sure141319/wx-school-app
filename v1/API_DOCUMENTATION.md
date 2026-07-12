@@ -172,7 +172,8 @@ POST /api/v1/auth/email-code
 - 重置密码场景：邮箱不存在时拒绝发送
 - 验证码有效期 5 分钟
 - 重发冷却 60 秒
-- 每小时限制 8 次请求
+- 每小时限制 6 次请求
+- 单个验证码最多允许错误 5 次，超过后需重新获取
 
 ---
 
@@ -857,7 +858,7 @@ POST /api/v1/uploads/image
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `file` | `MultipartFile` | 是 | 图片文件，最大 10MB |
+| `file` | `MultipartFile` | 是 | 图片文件，最大 10MB；仅支持 jpg/jpeg/png/webp/heic/heif，并校验 MIME 与文件头 |
 
 **响应示例**:
 ```json

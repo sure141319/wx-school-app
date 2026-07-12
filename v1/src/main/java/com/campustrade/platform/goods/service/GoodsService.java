@@ -273,26 +273,26 @@ public class GoodsService {
 
     private void replaceImages(Long goodsId, Long ownerUserId, List<String> imageUrls, List<String> imageThumbnailUrls) {
         List<GoodsImageDO> oldImages = goodsMapper.findImagesByGoodsId(goodsId);
+        Map<String, GoodsImageDO> oldKeyMap = new HashMap<>();
+        for (GoodsImageDO image : oldImages) {
+            oldKeyMap.put(image.getImageUrl(), image);
+        }
 
         Set<String> newKeys = new LinkedHashSet<>();
         Map<String, String> thumbnailByImageKey = new HashMap<>();
         if (imageUrls != null) {
             for (int i = 0; i < imageUrls.size(); i++) {
                 String url = imageUrls.get(i);
-                String key = uploadService.validateUploadedImageReference(url.trim(), "goods", ownerUserId);
+                String key = normalizeImageReference(url, oldKeyMap, ownerUserId);
                 if (StringUtils.hasText(key)) {
                     newKeys.add(key);
-                    String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i, ownerUserId);
+                    GoodsImageDO existingImage = oldKeyMap.get(key);
+                    String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i, existingImage, ownerUserId);
                     if (StringUtils.hasText(thumbnailKey)) {
                         thumbnailByImageKey.put(key, thumbnailKey);
                     }
                 }
             }
-        }
-
-        Map<String, GoodsImageDO> oldKeyMap = new HashMap<>();
-        for (GoodsImageDO image : oldImages) {
-            oldKeyMap.put(image.getImageUrl(), image);
         }
 
         for (GoodsImageDO oldImage : oldImages) {
@@ -329,7 +329,19 @@ public class GoodsService {
         }
     }
 
-    private String extractThumbnailKey(List<String> imageThumbnailUrls, int index, Long ownerUserId) {
+    private String normalizeImageReference(String url, Map<String, GoodsImageDO> oldKeyMap, Long ownerUserId) {
+        String trimmedUrl = url.trim();
+        String objectKey = uploadService.extractObjectKey(trimmedUrl);
+        if (StringUtils.hasText(objectKey) && oldKeyMap.containsKey(objectKey)) {
+            return objectKey;
+        }
+        return uploadService.validateUploadedImageReference(trimmedUrl, "goods", ownerUserId);
+    }
+
+    private String extractThumbnailKey(List<String> imageThumbnailUrls,
+                                       int index,
+                                       GoodsImageDO existingImage,
+                                       Long ownerUserId) {
         if (imageThumbnailUrls == null || index >= imageThumbnailUrls.size()) {
             return null;
         }
@@ -337,7 +349,14 @@ public class GoodsService {
         if (!StringUtils.hasText(thumbnailUrl)) {
             return null;
         }
-        return uploadService.validateUploadedThumbnailReference(thumbnailUrl.trim(), "goods", ownerUserId);
+        String trimmedThumbnailUrl = thumbnailUrl.trim();
+        String thumbnailKey = uploadService.extractObjectKey(trimmedThumbnailUrl);
+        if (existingImage != null
+                && StringUtils.hasText(thumbnailKey)
+                && thumbnailKey.equals(existingImage.getThumbnailUrl())) {
+            return thumbnailKey;
+        }
+        return uploadService.validateUploadedThumbnailReference(trimmedThumbnailUrl, "goods", ownerUserId);
     }
 
     private void resetImageAuditStatus(Long goodsId) {

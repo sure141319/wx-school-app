@@ -3,11 +3,10 @@ package com.campustrade.platform.user.service;
 import com.campustrade.platform.auth.dto.request.BindEmailRequestDTO;
 import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
+import com.campustrade.platform.auth.service.VerificationCodeService;
 import com.campustrade.platform.auth.service.WechatSession;
 import com.campustrade.platform.auth.service.WechatSessionClient;
-import com.campustrade.platform.auth.store.VerificationCodeStore;
 import com.campustrade.platform.common.AppException;
-import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
@@ -28,21 +27,18 @@ public class UserService {
     private final UploadService uploadService;
     private final WechatSessionClient wechatSessionClient;
     private final PasswordEncoder passwordEncoder;
-    private final VerificationCodeStore verificationCodeStore;
-    private final AppProperties appProperties;
+    private final VerificationCodeService verificationCodeService;
 
     public UserService(UserMapper userMapper,
                        UploadService uploadService,
                        WechatSessionClient wechatSessionClient,
                        PasswordEncoder passwordEncoder,
-                       VerificationCodeStore verificationCodeStore,
-                       AppProperties appProperties) {
+                       VerificationCodeService verificationCodeService) {
         this.userMapper = userMapper;
         this.uploadService = uploadService;
         this.wechatSessionClient = wechatSessionClient;
         this.passwordEncoder = passwordEncoder;
-        this.verificationCodeStore = verificationCodeStore;
-        this.appProperties = appProperties;
+        this.verificationCodeService = verificationCodeService;
     }
 
     @Transactional(readOnly = true)
@@ -119,7 +115,7 @@ public class UserService {
             throw new AppException(HttpStatus.CONFLICT, "该邮箱已注册，请使用账号合并");
         }
 
-        validateBindEmailCode(email, request.code());
+        verificationCodeService.validateCode(email, request.code(), VerificationPurposeEnum.BIND_EMAIL);
         String passwordHash = passwordEncoder.encode(request.password());
         userMapper.updateEmailAndPassword(userId, email, passwordHash, 0, null);
         return getById(userId);
@@ -128,22 +124,6 @@ public class UserService {
     private String normalizeAvatarObjectKey(String avatarUrl) {
         String objectKey = uploadService.extractObjectKey(avatarUrl);
         return objectKey == null ? avatarUrl : objectKey;
-    }
-
-    private void validateBindEmailCode(String email, String inputCode) {
-        String key = codeKey(email, VerificationPurposeEnum.BIND_EMAIL);
-        String code = verificationCodeStore.get(key);
-        if (code == null) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "验证码不存在或已过期");
-        }
-        if (!code.equals(inputCode)) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "验证码错误");
-        }
-        verificationCodeStore.delete(key);
-    }
-
-    private String codeKey(String email, VerificationPurposeEnum purpose) {
-        return appProperties.getVerificationCode().getKeyPrefix() + purpose.name() + ":" + email;
     }
 
     private String normalizeEmail(String email) {

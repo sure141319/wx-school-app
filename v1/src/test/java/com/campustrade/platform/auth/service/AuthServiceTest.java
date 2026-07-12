@@ -1,8 +1,11 @@
 package com.campustrade.platform.auth.service;
 
 import com.campustrade.platform.auth.assembler.AuthAssembler;
+import com.campustrade.platform.auth.dto.request.SendCodeRequestDTO;
 import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.dto.response.AuthResponseDTO;
+import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
+import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.security.JwtTokenProvider;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
@@ -11,13 +14,17 @@ import com.campustrade.platform.user.dto.response.UserProfileResponseDTO;
 import com.campustrade.platform.user.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,6 +39,7 @@ class AuthServiceTest {
     private final AppProperties appProperties = new AppProperties();
     private final AuthAssembler authAssembler = mock(AuthAssembler.class);
     private final UserProfileAssembler userProfileAssembler = mock(UserProfileAssembler.class);
+    private final VerificationCodeService verificationCodeService = mock(VerificationCodeService.class);
     private final WechatSessionClient wechatSessionClient = mock(WechatSessionClient.class);
     private final AuthService authService = new AuthService(
             userMapper,
@@ -41,9 +49,24 @@ class AuthServiceTest {
             appProperties,
             authAssembler,
             userProfileAssembler,
-            null,
+            verificationCodeService,
             wechatSessionClient
     );
+
+    @Test
+    void sendVerificationCodePreservesRateLimitStatus() {
+        doThrow(new AppException(HttpStatus.TOO_MANY_REQUESTS, "请求验证码过于频繁，请稍后再试"))
+                .when(verificationCodeService)
+                .ensureCanSend("student@qq.com", VerificationPurposeEnum.REGISTER);
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> authService.sendVerificationCode(new SendCodeRequestDTO(" Student@qq.com ", VerificationPurposeEnum.REGISTER))
+        );
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatus());
+        verify(mailService, never()).sendVerificationCode(anyString(), anyString(), any());
+    }
 
     @Test
     void wechatLoginCreatesUserWhenOpenidIsNew() {

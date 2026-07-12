@@ -43,10 +43,14 @@ public class AppProperties {
         private int resendCooldownSeconds = 60;
         @Min(1)
         private int hourlyLimit = 8;
+        @Min(1)
+        private int maxAttempts = 5;
         @NotBlank
         private String keyPrefix = "auth:code:";
         @NotBlank
         private String limitPrefix = "auth:code:limit:";
+        @NotBlank
+        private String attemptPrefix = "auth:code:attempt:";
     }
 
     @Getter

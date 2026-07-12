@@ -2,11 +2,11 @@ package com.campustrade.platform.user.service;
 
 import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.dto.request.BindEmailRequestDTO;
+import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
 import com.campustrade.platform.auth.service.WechatSession;
 import com.campustrade.platform.auth.service.WechatSessionClient;
-import com.campustrade.platform.auth.store.VerificationCodeStore;
+import com.campustrade.platform.auth.service.VerificationCodeService;
 import com.campustrade.platform.common.AppException;
-import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
@@ -32,15 +32,13 @@ class UserServiceTest {
     private final UploadService uploadService = mock(UploadService.class);
     private final WechatSessionClient wechatSessionClient = mock(WechatSessionClient.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-    private final VerificationCodeStore verificationCodeStore = mock(VerificationCodeStore.class);
-    private final AppProperties appProperties = new AppProperties();
+    private final VerificationCodeService verificationCodeService = mock(VerificationCodeService.class);
     private final UserService userService = new UserService(
             userMapper,
             uploadService,
             wechatSessionClient,
             passwordEncoder,
-            verificationCodeStore,
-            appProperties
+            verificationCodeService
     );
 
     @Test
@@ -171,7 +169,6 @@ class UserServiceTest {
 
         when(userMapper.findById(userId)).thenReturn(existingUser, boundUser);
         when(userMapper.findByEmail("student@qq.com")).thenReturn(null);
-        when(verificationCodeStore.get("auth:code:BIND_EMAIL:student@qq.com")).thenReturn("123456");
         when(passwordEncoder.encode("secret123")).thenReturn("encoded-password");
 
         UserDO result = userService.bindEmail(
@@ -181,7 +178,11 @@ class UserServiceTest {
 
         assertEquals("student@qq.com", result.getEmail());
         verify(userMapper).updateEmailAndPassword(userId, "student@qq.com", "encoded-password", 0, null);
-        verify(verificationCodeStore).delete("auth:code:BIND_EMAIL:student@qq.com");
+        verify(verificationCodeService).validateCode(
+                "student@qq.com",
+                "123456",
+                VerificationPurposeEnum.BIND_EMAIL
+        );
     }
 
     @Test
