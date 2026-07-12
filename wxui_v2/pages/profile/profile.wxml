@@ -134,6 +134,20 @@
         <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
+    <view class="settings-item" bindtap="showCampusOther">
+      <view class="settings-left">
+        <view class="settings-code settings-code-campus">
+          <image class="settings-code-icon" src="/static/icon-miniprogram.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
+        <view class="settings-copy">
+          <text class="settings-label">校内其他</text>
+          <text class="settings-desc">安工大同学开发的小程序</text>
+        </view>
+      </view>
+      <view class="settings-arrow">
+        <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
+      </view>
+    </view>
   </view>
 
   <button class="profile-logout" bindtap="logout">退出当前账号</button>
@@ -269,6 +283,18 @@
     </view>
     <view class="modal-footer">
       <button class="btn btn-primary btn-full" bindtap="closeFeedback">知道了</button>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showCampusOtherModal}}" bindtap="closeCampusOther"></view>
+  <view class="modal-dialog campus-other-modal" wx:if="{{showCampusOtherModal}}">
+    <view class="modal-title">校内其他</view>
+    <view class="modal-body campus-other-body">
+      <image class="campus-other-code" src="/static/ahut-other-miniprogram-code.jpg" mode="aspectFit" show-menu-by-longpress="true" bindtap="previewCampusOtherCode" />
+      <text class="modal-text campus-other-text">这是安工大其他学生开发的小程序，感兴趣可以扫码了解。</text>
+    </view>
+    <view class="modal-footer">
+      <button class="btn btn-primary btn-full" bindtap="closeCampusOther">知道了</button>
     </view>
   </view>
 </view>

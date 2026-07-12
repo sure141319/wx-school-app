@@ -25,6 +25,12 @@ assert.match(
   'feedback settings row should use the feedback vector icon and label'
 )
 
+assert.match(
+  profileWxml,
+  /<view class="settings-code settings-code-campus">\s*<image class="settings-code-icon" src="\/static\/icon-miniprogram\.svg"[\s\S]*?<text class="settings-label">校内其他<\/text>/,
+  'campus other settings row should use a campus vector icon and label'
+)
+
 assert.doesNotMatch(
   profileWxml,
   />\s*(?:@|♥|\?|›)\s*</,
@@ -33,8 +39,8 @@ assert.doesNotMatch(
 
 assert.match(
   profileWxml,
-  /bindtap="openAccountBindModal"[\s\S]*?icon-account\.svg[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?icon-support\.svg[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?icon-feedback\.svg[\s\S]*?<text class="settings-label">意见反馈<\/text>/,
-  'support author row should sit between account binding and feedback settings'
+  /bindtap="openAccountBindModal"[\s\S]*?icon-account\.svg[\s\S]*?<text class="settings-label">绑定账号<\/text>[\s\S]*?bindtap="showSupportAuthor"[\s\S]*?icon-support\.svg[\s\S]*?<text class="settings-label">支持作者<\/text>[\s\S]*?bindtap="showFeedback"[\s\S]*?icon-feedback\.svg[\s\S]*?<text class="settings-label">意见反馈<\/text>[\s\S]*?bindtap="showCampusOther"[\s\S]*?icon-miniprogram\.svg[\s\S]*?<text class="settings-label">校内其他<\/text>/,
+  'support author, feedback, and campus other rows should keep the requested settings order'
 )
 
 assert.match(
@@ -85,6 +91,24 @@ assert.match(
   'profile page should destroy the support author rewarded video ad on unload'
 )
 
+assert.match(
+  profileTs,
+  /const CAMPUS_OTHER_CODE_IMAGE = '\/static\/ahut-other-miniprogram-code\.jpg'/,
+  'campus other mini program code image should be configured as a local static asset'
+)
+
+assert.match(
+  profileTs,
+  /showCampusOther\(\)[\s\S]*?showCampusOtherModal:\s*true/,
+  'campus other tap handler should open its mini program code modal'
+)
+
+assert.match(
+  profileWxml,
+  /wx:if="{{showCampusOtherModal}}"[\s\S]*?<view class="modal-title">校内其他<\/view>[\s\S]*?src="\/static\/ahut-other-miniprogram-code\.jpg"[\s\S]*?这是安工大其他学生开发的小程序/,
+  'campus other modal should display the provided mini program code and explanation'
+)
+
 assert.doesNotMatch(
   cssBlock('.wechat-bind-row'),
   /border|background|border-radius/,
@@ -95,6 +119,12 @@ assert.match(
   cssBlock('.wechat-bind-status'),
   /line-height:\s*1/,
   'bound status text should use a tight line-height so it aligns with row titles'
+)
+
+assert.match(
+  cssBlock('.campus-other-code'),
+  /width:\s*460rpx/,
+  'campus other mini program code should render large enough to scan'
 )
 
 console.log('profile account bind layout tests passed')

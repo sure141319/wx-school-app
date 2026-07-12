@@ -4,7 +4,10 @@ import com.campustrade.platform.config.AppProperties;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,6 +40,28 @@ class UploadServiceKeyTest {
     }
 
     @Test
+    void buildObjectKeyUsesBeijingTimeForUploadPathAndFilename() throws Exception {
+        UploadService service = newService();
+
+        Field timeZone = UploadService.class.getDeclaredField("UPLOAD_TIME_ZONE");
+        timeZone.setAccessible(true);
+        assertEquals(ZoneId.of("Asia/Shanghai"), timeZone.get(null));
+
+        String key = buildObjectKey(
+                service,
+                ".jpg",
+                "goods",
+                3L,
+                LocalDateTime.of(2026, 7, 12, 1, 2, 3)
+        );
+
+        assertTrue(
+                key.matches("^images/2026/07/goods/goods_u3_20260712010203_[0-9a-f]{6}\\.jpg$"),
+                "upload object key should format the Beijing upload time in both directory and filename: " + key
+        );
+    }
+
+    @Test
     void buildThumbnailObjectKeyKeepsThumbsUnderUsageDirectory() throws Exception {
         UploadService service = newService();
 
@@ -63,6 +88,22 @@ class UploadServiceKeyTest {
         );
         method.setAccessible(true);
         return (String) method.invoke(service, extension, usage, userId);
+    }
+
+    private static String buildObjectKey(UploadService service,
+                                         String extension,
+                                         String usage,
+                                         Long userId,
+                                         LocalDateTime uploadTime) throws Exception {
+        Method method = UploadService.class.getDeclaredMethod(
+                "buildObjectKey",
+                String.class,
+                String.class,
+                Long.class,
+                LocalDateTime.class
+        );
+        method.setAccessible(true);
+        return (String) method.invoke(service, extension, usage, userId, uploadTime);
     }
 
     private static String buildThumbnailObjectKey(UploadService service, String objectKey) throws Exception {

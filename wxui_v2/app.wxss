@@ -2409,6 +2409,10 @@ input, textarea {
   color: var(--color-warning);
 }
 
+.settings-code-campus {
+  color: var(--color-success);
+}
+
 .settings-code-icon {
   width: 42rpx;
   height: 42rpx;
@@ -2770,10 +2774,10 @@ input, textarea {
 
 .login-wechat-hint {
   width: 100%;
-  margin-top: 12rpx;
+  margin-top: 16rpx;
   padding: 0;
   color: var(--campus-ink-500);
-  font-size: 20rpx;
+  font-size: 21rpx;
   line-height: 1.45;
   text-align: center;
 }
@@ -2878,33 +2882,33 @@ input, textarea {
 }
 
 .auth-divider-account {
-  margin: 20rpx 0 18rpx;
+  margin: 24rpx 0 18rpx;
 }
 
 .wechat-login-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  gap: 16rpx;
   width: 100%;
   min-height: 86rpx;
   border: 2rpx solid var(--auth-control-border);
   border-radius: 999rpx;
   background: rgba(255, 253, 252, 0.92);
   color: var(--campus-pine-700);
-  font-size: 27rpx;
-  font-weight: 700;
+  font-size: 31rpx;
+  font-weight: 800;
   line-height: 1;
 }
 
 .wechat-login-primary {
-  min-height: 88rpx;
+  min-height: 104rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.24);
   border-radius: 999rpx;
   background: linear-gradient(135deg, #56B986 0%, #2E9669 46%, #1C7355 100%);
   color: var(--auth-action-text);
-  font-size: 27rpx;
-  box-shadow: 0 16rpx 30rpx rgba(31, 117, 87, 0.22), inset 0 2rpx 0 rgba(255, 255, 255, 0.24);
+  font-size: 32rpx;
+  box-shadow: 0 18rpx 34rpx rgba(31, 117, 87, 0.24), inset 0 2rpx 0 rgba(255, 255, 255, 0.24);
 }
 
 .wechat-login-primary .wechat-login-icon {
@@ -2919,9 +2923,9 @@ input, textarea {
 }
 
 .wechat-login-icon {
-  width: 46rpx;
-  height: 46rpx;
-  flex: 0 0 46rpx;
+  width: 56rpx;
+  height: 56rpx;
+  flex: 0 0 56rpx;
 }
 
 .email-history {
@@ -3186,4 +3190,30 @@ input, textarea {
   color: var(--color-text-secondary);
   font-size: 24rpx;
   line-height: 1.6;
+}
+
+.campus-other-modal {
+  width: 86%;
+  max-width: 640rpx;
+}
+
+.campus-other-body {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding-top: 8rpx;
+}
+
+.campus-other-code {
+  width: 460rpx;
+  max-width: 100%;
+  height: 460rpx;
+  border: 2rpx solid #EEF2F6;
+  border-radius: 24rpx;
+  background: #FFFFFF;
+}
+
+.campus-other-text {
+  margin: 20rpx 0 0;
+  text-align: center;
 }

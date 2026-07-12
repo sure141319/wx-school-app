@@ -7,6 +7,7 @@ const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
 const QQ_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@qq\.com$/
 const SUPPORT_AUTHOR_AD_UNIT_ID = 'adunit-f3d20d1b06422a8d'
+const CAMPUS_OTHER_CODE_IMAGE = '/static/ahut-other-miniprogram-code.jpg'
 
 let supportAuthorVideoAd: WechatMiniprogram.RewardedVideoAd | null = null
 
@@ -31,6 +32,7 @@ interface ProfilePageData {
   showProfileModal: boolean
   showAccountBindModal: boolean
   showFeedbackModal: boolean
+  showCampusOtherModal: boolean
   bindEmailForm: {
     email: string
     code: string
@@ -63,6 +65,7 @@ Component({
     showProfileModal: false,
     showAccountBindModal: false,
     showFeedbackModal: false,
+    showCampusOtherModal: false,
     bindEmailForm: {
       email: '',
       code: '',
@@ -634,6 +637,21 @@ Component({
 
     closeFeedback() {
       this.setData({ showFeedbackModal: false })
+    },
+
+    showCampusOther() {
+      this.setData({ showCampusOtherModal: true })
+    },
+
+    closeCampusOther() {
+      this.setData({ showCampusOtherModal: false })
+    },
+
+    previewCampusOtherCode() {
+      wx.previewImage({
+        urls: [CAMPUS_OTHER_CODE_IMAGE],
+        current: CAMPUS_OTHER_CODE_IMAGE
+      })
     },
 
     copyQQ() {

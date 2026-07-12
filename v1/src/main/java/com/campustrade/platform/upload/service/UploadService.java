@@ -29,7 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 public class UploadService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif");
+    private static final ZoneId UPLOAD_TIME_ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final DateTimeFormatter OBJECT_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String USAGE_AVATAR = "avatar";
@@ -258,8 +259,12 @@ public class UploadService {
     }
 
     private String buildObjectKey(String extension, String usage, Long userId) {
+        return buildObjectKey(extension, usage, userId, LocalDateTime.now(UPLOAD_TIME_ZONE));
+    }
+
+    private String buildObjectKey(String extension, String usage, Long userId, LocalDateTime uploadTime) {
         String normalizedUsage = normalizeUsage(usage);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime now = uploadTime == null ? LocalDateTime.now(UPLOAD_TIME_ZONE) : uploadTime;
         String prefix = now.format(OBJECT_PREFIX_FORMATTER);
         String timestamp = now.format(OBJECT_TIMESTAMP_FORMATTER);
         String randomSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
