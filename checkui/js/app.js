@@ -407,7 +407,9 @@ async function handleRejectAll() {
       : '/audit/images/avatars/reject-all-approved'
     const result = await request(apiPath, {
       method: 'POST',
-      body: {}
+      body: {
+        confirmation: 'REJECT_ALL_APPROVED'
+      }
     })
     showToast(`已驳回 ${result} 张图片`, 'success')
     state.page = 0
