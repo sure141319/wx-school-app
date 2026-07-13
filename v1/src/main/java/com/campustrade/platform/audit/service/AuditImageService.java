@@ -27,7 +27,7 @@ import java.util.List;
 @Service
 public class AuditImageService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuditImageService.class);
-    private static final String BULK_APPROVE_CONFIRMATION = "APPROVE_ALL_PENDING";
+    private static final String BULK_APPROVE_CONFIRMATION = "APPROVE_ALL_REJECTED";
     private static final String BULK_REJECT_CONFIRMATION = "REJECT_ALL_APPROVED";
 
     private final AuditImageMapper auditImageMapper;
@@ -78,14 +78,14 @@ public class AuditImageService {
     }
 
     @Transactional
-    public int approveAllPending(Long reviewerUserId, String confirmation) {
+    public int approveAllRejected(Long reviewerUserId, String confirmation) {
         ensureReviewer(reviewerUserId);
         ensureBulkApproveConfirmed(confirmation);
 
-        List<GoodsImageDO> pendingImages = goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.PENDING);
+        List<GoodsImageDO> rejectedImages = goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.REJECTED);
         int count = 0;
         boolean goodsStatusChanged = false;
-        for (GoodsImageDO image : pendingImages) {
+        for (GoodsImageDO image : rejectedImages) {
             goodsMapper.updateImageAudit(image.getId(), ImageAuditStatusEnum.APPROVED, null, reviewerUserId);
             goodsStatusChanged = tryApproveGoods(image.getId()) || goodsStatusChanged;
             count++;

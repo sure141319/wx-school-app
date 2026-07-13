@@ -394,7 +394,7 @@ async function handleApproveAll() {
     return
   }
 
-  const confirmed = confirm(`确定要通过全部 ${state.total} 张图片吗？此操作将处理全部待审核记录。`)
+  const confirmed = confirm(`确定要通过全部 ${state.total} 张已驳回图片吗？此操作将重新审核全部已驳回记录。`)
   if (!confirmed) {
     return
   }
@@ -404,10 +404,10 @@ async function handleApproveAll() {
   els.approveAllBtn.textContent = '处理中...'
 
   try {
-    const result = await request('/audit/images/approve-all-pending', {
+    const result = await request('/audit/images/approve-all-rejected', {
       method: 'POST',
       body: {
-        confirmation: 'APPROVE_ALL_PENDING'
+        confirmation: 'APPROVE_ALL_REJECTED'
       }
     })
     showToast(`已通过 ${result} 张图片`, 'success')
@@ -703,7 +703,7 @@ function renderFilterState() {
     button.classList.toggle('is-active', button.dataset.status === state.status)
   })
   els.summaryStatus.textContent = getStatusMeta(state.status).label
-  els.approveAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'PENDING'
+  els.approveAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'REJECTED'
   els.rejectAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'APPROVED'
 }
 

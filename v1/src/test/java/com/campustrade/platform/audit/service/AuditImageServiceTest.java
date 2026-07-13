@@ -125,29 +125,31 @@ class AuditImageServiceTest {
     }
 
     @Test
-    void approveAllPendingRequiresExplicitConfirmation() {
+    void approveAllRejectedRequiresExplicitConfirmation() {
         AppException exception = assertThrows(
                 AppException.class,
-                () -> service.approveAllPending(1L, null)
+                () -> service.approveAllRejected(1L, null)
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        verify(goodsMapper, never()).findImagesByAuditStatus(ImageAuditStatusEnum.PENDING);
+        verify(goodsMapper, never()).findImagesByAuditStatus(ImageAuditStatusEnum.REJECTED);
     }
 
     @Test
-    void approveAllPendingApprovesImagesAndPublishesCompletedGoods() {
+    void approveAllRejectedApprovesImagesAndPublishesCompletedGoods() {
         GoodsImageDO first = image(10L, "images/first.jpg");
         first.setGoodsId(20L);
+        first.setAuditStatus(ImageAuditStatusEnum.REJECTED);
         GoodsImageDO second = image(11L, "images/second.jpg");
         second.setGoodsId(20L);
-        when(goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.PENDING)).thenReturn(List.of(first, second));
+        second.setAuditStatus(ImageAuditStatusEnum.REJECTED);
+        when(goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.REJECTED)).thenReturn(List.of(first, second));
         when(goodsMapper.findImageById(10L)).thenReturn(first);
         when(goodsMapper.findImageById(11L)).thenReturn(second);
         when(goodsMapper.countImagesByGoodsId(20L)).thenReturn(2);
         when(goodsMapper.countApprovedImagesByGoodsId(20L)).thenReturn(1, 2);
 
-        int count = service.approveAllPending(1L, "APPROVE_ALL_PENDING");
+        int count = service.approveAllRejected(1L, "APPROVE_ALL_REJECTED");
 
         assertEquals(2, count);
         verify(goodsMapper).updateImageAudit(10L, ImageAuditStatusEnum.APPROVED, null, 1L);

@@ -48,12 +48,12 @@ public class AuditImageController {
         return ApiResponse.ok("图片审核通过", auditImageService.approve(principal.userId(), imageId));
     }
 
-    @PostMapping("/approve-all-pending")
-    public ApiResponse<Integer> approveAllPending(
+    @PostMapping("/approve-all-rejected")
+    public ApiResponse<Integer> approveAllRejected(
             @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
         UserPrincipal principal = AuthUtils.currentUser();
         String confirmation = request == null ? null : request.confirmation();
-        int count = auditImageService.approveAllPending(principal.userId(), confirmation);
+        int count = auditImageService.approveAllRejected(principal.userId(), confirmation);
         return ApiResponse.ok("已通过 " + count + " 张图片", count);
     }
 

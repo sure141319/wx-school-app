@@ -51,16 +51,16 @@ class AuditImageControllerTest {
     }
 
     @Test
-    void approveAllPendingUsesCurrentReviewerAndConfirmation() {
+    void approveAllRejectedUsesCurrentReviewerAndConfirmation() {
         authenticateReviewer();
-        ImageRejectRequestDTO request = new ImageRejectRequestDTO(null, "APPROVE_ALL_PENDING");
-        when(auditImageService.approveAllPending(1L, "APPROVE_ALL_PENDING")).thenReturn(3);
+        ImageRejectRequestDTO request = new ImageRejectRequestDTO(null, "APPROVE_ALL_REJECTED");
+        when(auditImageService.approveAllRejected(1L, "APPROVE_ALL_REJECTED")).thenReturn(3);
 
-        ApiResponse<Integer> response = controller.approveAllPending(request);
+        ApiResponse<Integer> response = controller.approveAllRejected(request);
 
         assertEquals("已通过 3 张图片", response.message());
         assertEquals(3, response.data());
-        verify(auditImageService).approveAllPending(1L, "APPROVE_ALL_PENDING");
+        verify(auditImageService).approveAllRejected(1L, "APPROVE_ALL_REJECTED");
     }
 
     private void authenticateReviewer() {
