@@ -53,15 +53,6 @@
         WHERE wechat_openid = #{wechatOpenid}
     </select>
 
-    <select id="findByAvatarAuditStatus" resultMap="UserResultMap">
-        SELECT id, wechat_openid, email, password_hash, nickname, avatar_url, wechat_id, qq,
-               avatar_audit_status, avatar_audit_remark, avatar_audited_by, avatar_audited_at,
-               failed_login_count, locked_until, created_at, updated_at
-        FROM users
-        WHERE avatar_audit_status = #{avatarAuditStatus}
-        ORDER BY avatar_audited_at DESC
-    </select>
-
     <select id="findById" resultMap="ProfileResultMap">
         SELECT id, wechat_openid, email, nickname, avatar_url, wechat_id, qq, avatar_audit_status, avatar_audit_remark, avatar_audited_by, avatar_audited_at, created_at, updated_at
         FROM users

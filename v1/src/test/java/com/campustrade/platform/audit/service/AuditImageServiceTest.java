@@ -8,6 +8,7 @@ import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
+import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
 import com.campustrade.platform.upload.service.UploadService;
@@ -124,6 +125,38 @@ class AuditImageServiceTest {
     }
 
     @Test
+    void approveAllPendingRequiresExplicitConfirmation() {
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> service.approveAllPending(1L, null)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(goodsMapper, never()).findImagesByAuditStatus(ImageAuditStatusEnum.PENDING);
+    }
+
+    @Test
+    void approveAllPendingApprovesImagesAndPublishesCompletedGoods() {
+        GoodsImageDO first = image(10L, "images/first.jpg");
+        first.setGoodsId(20L);
+        GoodsImageDO second = image(11L, "images/second.jpg");
+        second.setGoodsId(20L);
+        when(goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.PENDING)).thenReturn(List.of(first, second));
+        when(goodsMapper.findImageById(10L)).thenReturn(first);
+        when(goodsMapper.findImageById(11L)).thenReturn(second);
+        when(goodsMapper.countImagesByGoodsId(20L)).thenReturn(2);
+        when(goodsMapper.countApprovedImagesByGoodsId(20L)).thenReturn(1, 2);
+
+        int count = service.approveAllPending(1L, "APPROVE_ALL_PENDING");
+
+        assertEquals(2, count);
+        verify(goodsMapper).updateImageAudit(10L, ImageAuditStatusEnum.APPROVED, null, 1L);
+        verify(goodsMapper).updateImageAudit(11L, ImageAuditStatusEnum.APPROVED, null, 1L);
+        verify(goodsMapper).updateAuditStatus(20L, GoodsStatusEnum.ON_SALE, null);
+        verify(goodsListCacheInvalidator).evictAfterCommit();
+    }
+
+    @Test
     void rejectAllApprovedRequiresExplicitConfirmation() {
         AppException exception = assertThrows(
                 AppException.class,
@@ -132,17 +165,6 @@ class AuditImageServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(goodsMapper, never()).findImagesByAuditStatus(ImageAuditStatusEnum.APPROVED);
-    }
-
-    @Test
-    void rejectAllApprovedAvatarsRequiresExplicitConfirmation() {
-        AppException exception = assertThrows(
-                AppException.class,
-                () -> service.rejectAllApprovedAvatars(1L, "误操作", "WRONG")
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        verify(userMapper, never()).findByAvatarAuditStatus(ImageAuditStatusEnum.APPROVED);
     }
 
     private GoodsImageDO image(Long id, String imageUrl) {

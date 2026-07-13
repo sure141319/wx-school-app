@@ -1,5 +1,6 @@
 package com.campustrade.platform.audit.controller;
 
+import com.campustrade.platform.audit.dto.request.ImageRejectRequestDTO;
 import com.campustrade.platform.audit.dto.response.ThumbnailBackfillResponseDTO;
 import com.campustrade.platform.audit.service.AuditImageService;
 import com.campustrade.platform.common.ApiResponse;
@@ -47,6 +48,19 @@ class AuditImageControllerTest {
         assertEquals("历史缩略图回填完成", response.message());
         assertEquals(payload, response.data());
         verify(auditImageService).backfillMissingThumbnails(1L, 20);
+    }
+
+    @Test
+    void approveAllPendingUsesCurrentReviewerAndConfirmation() {
+        authenticateReviewer();
+        ImageRejectRequestDTO request = new ImageRejectRequestDTO(null, "APPROVE_ALL_PENDING");
+        when(auditImageService.approveAllPending(1L, "APPROVE_ALL_PENDING")).thenReturn(3);
+
+        ApiResponse<Integer> response = controller.approveAllPending(request);
+
+        assertEquals("已通过 3 张图片", response.message());
+        assertEquals(3, response.data());
+        verify(auditImageService).approveAllPending(1L, "APPROVE_ALL_PENDING");
     }
 
     private void authenticateReviewer() {

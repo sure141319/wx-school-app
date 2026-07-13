@@ -48,6 +48,15 @@ public class AuditImageController {
         return ApiResponse.ok("图片审核通过", auditImageService.approve(principal.userId(), imageId));
     }
 
+    @PostMapping("/approve-all-pending")
+    public ApiResponse<Integer> approveAllPending(
+            @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        String confirmation = request == null ? null : request.confirmation();
+        int count = auditImageService.approveAllPending(principal.userId(), confirmation);
+        return ApiResponse.ok("已通过 " + count + " 张图片", count);
+    }
+
     @PostMapping("/{imageId}/reject")
     public ApiResponse<AuditImageResponseDTO> reject(@PathVariable Long imageId,
                                                      @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
@@ -98,13 +107,4 @@ public class AuditImageController {
         return ApiResponse.ok("头像已驳回", auditImageService.rejectAvatar(principal.userId(), userId, remark));
     }
 
-    @PostMapping("/avatars/reject-all-approved")
-    public ApiResponse<Integer> rejectAllApprovedAvatars(
-            @Valid @RequestBody(required = false) ImageRejectRequestDTO request) {
-        UserPrincipal principal = AuthUtils.currentUser();
-        String remark = request == null ? null : request.remark();
-        String confirmation = request == null ? null : request.confirmation();
-        int count = auditImageService.rejectAllApprovedAvatars(principal.userId(), remark, confirmation);
-        return ApiResponse.ok("已驳回 " + count + " 个头像", count);
-    }
 }

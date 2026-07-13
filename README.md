@@ -123,6 +123,8 @@ python -m http.server 5173     # 启动静态文件服务
 - `GET /audit/images` — 商品图片审核队列
 - `POST /audit/images/{id}/approve` — 通过图片
 - `POST /audit/images/{id}/reject` — 驳回图片
+- `POST /audit/images/approve-all-pending` — 批量通过全部待审核图片（需确认标识）
+- `POST /audit/images/reject-all-approved` — 批量驳回全部已通过图片（需确认标识）
 - `GET /audit/images/avatars` — 头像审核队列
 - `POST /audit/images/avatars/{userId}/approve` — 通过头像
 - `POST /audit/images/avatars/{userId}/reject` — 驳回头像

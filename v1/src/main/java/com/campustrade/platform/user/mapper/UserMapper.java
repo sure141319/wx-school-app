@@ -6,7 +6,6 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Mapper
 public interface UserMapper {
@@ -16,8 +15,6 @@ public interface UserMapper {
     UserDO findByEmail(@Param("email") String email);
 
     UserDO findByWechatOpenid(@Param("wechatOpenid") String wechatOpenid);
-
-    List<UserDO> findByAvatarAuditStatus(@Param("avatarAuditStatus") ImageAuditStatusEnum avatarAuditStatus);
 
     int countByEmail(@Param("email") String email);
 

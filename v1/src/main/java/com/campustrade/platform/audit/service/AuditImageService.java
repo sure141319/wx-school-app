@@ -27,6 +27,7 @@ import java.util.List;
 @Service
 public class AuditImageService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuditImageService.class);
+    private static final String BULK_APPROVE_CONFIRMATION = "APPROVE_ALL_PENDING";
     private static final String BULK_REJECT_CONFIRMATION = "REJECT_ALL_APPROVED";
 
     private final AuditImageMapper auditImageMapper;
@@ -74,6 +75,25 @@ public class AuditImageService {
             goodsListCacheInvalidator.evictAfterCommit();
         }
         return getAuditImageOrThrow(imageId);
+    }
+
+    @Transactional
+    public int approveAllPending(Long reviewerUserId, String confirmation) {
+        ensureReviewer(reviewerUserId);
+        ensureBulkApproveConfirmed(confirmation);
+
+        List<GoodsImageDO> pendingImages = goodsMapper.findImagesByAuditStatus(ImageAuditStatusEnum.PENDING);
+        int count = 0;
+        boolean goodsStatusChanged = false;
+        for (GoodsImageDO image : pendingImages) {
+            goodsMapper.updateImageAudit(image.getId(), ImageAuditStatusEnum.APPROVED, null, reviewerUserId);
+            goodsStatusChanged = tryApproveGoods(image.getId()) || goodsStatusChanged;
+            count++;
+        }
+        if (goodsStatusChanged) {
+            goodsListCacheInvalidator.evictAfterCommit();
+        }
+        return count;
     }
 
     @Transactional
@@ -237,24 +257,6 @@ public class AuditImageService {
         return getAvatarAuditOrThrow(userId);
     }
 
-    @Transactional
-    public int rejectAllApprovedAvatars(Long reviewerUserId, String remark, String confirmation) {
-        ensureReviewer(reviewerUserId);
-        ensureBulkRejectConfirmed(confirmation);
-        String normalizedRemark = StringUtils.hasText(remark) ? remark.trim() : null;
-
-        List<UserDO> approvedUsers = userMapper.findByAvatarAuditStatus(ImageAuditStatusEnum.APPROVED);
-        int count = 0;
-        for (UserDO user : approvedUsers) {
-            userMapper.updateAvatarAuditStatus(user.getId(), ImageAuditStatusEnum.REJECTED, normalizedRemark, reviewerUserId);
-            count++;
-        }
-        if (count > 0) {
-            goodsListCacheInvalidator.evictAfterCommit();
-        }
-        return count;
-    }
-
     private void updateAvatarAuditStatus(Long userId,
                                          Long reviewerUserId,
                                          ImageAuditStatusEnum status,
@@ -292,6 +294,12 @@ public class AuditImageService {
     private void ensureReviewer(Long reviewerUserId) {
         if (reviewerUserId == null || !appProperties.getImageAudit().getReviewerUserIds().contains(reviewerUserId)) {
             throw new AppException(HttpStatus.FORBIDDEN, "无权审核图片");
+        }
+    }
+
+    private void ensureBulkApproveConfirmed(String confirmation) {
+        if (!BULK_APPROVE_CONFIRMATION.equals(confirmation)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "批量通过需确认操作");
         }
     }
 

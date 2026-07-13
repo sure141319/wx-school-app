@@ -1163,6 +1163,42 @@ POST /api/v1/audit/images/{imageId}/reject
 
 ---
 
+### 8.4 批量通过待审核图片
+
+```
+POST /api/v1/audit/images/approve-all-pending
+```
+
+接口会处理全部 `PENDING` 商品图片，不限于审核台当前页。商品的全部图片通过后，商品状态会自动更新为在售。
+
+**请求体**:
+
+| 字段 | 类型 | 必填 | 校验规则 |
+|------|------|------|----------|
+| `confirmation` | `string` | 是 | 必须为 `APPROVE_ALL_PENDING` |
+
+**请求示例**:
+
+```json
+{
+  "confirmation": "APPROVE_ALL_PENDING"
+}
+```
+
+**图片响应示例**:
+
+```json
+{
+  "success": true,
+  "message": "已通过 12 张图片",
+  "data": 12
+}
+```
+
+未提供正确确认标识时返回 `400 Bad Request`，消息为“批量通过需确认操作”。
+
+---
+
 ## 接口总览表
 
 | # | 方法 | 路径 | 认证 | 说明 |
@@ -1198,3 +1234,8 @@ POST /api/v1/audit/images/{imageId}/reject
 | 29 | `GET` | `/api/v1/audit/images` | 需要 | 待审核图片列表 |
 | 30 | `POST` | `/api/v1/audit/images/{id}/approve` | 需要 | 通过图片 |
 | 31 | `POST` | `/api/v1/audit/images/{id}/reject` | 需要 | 驳回图片 |
+| 32 | `POST` | `/api/v1/audit/images/approve-all-pending` | 需要 | 批量通过待审核图片 |
+| 33 | `POST` | `/api/v1/audit/images/reject-all-approved` | 需要 | 批量驳回已通过图片 |
+| 34 | `GET` | `/api/v1/audit/images/avatars` | 需要 | 头像审核列表 |
+| 35 | `POST` | `/api/v1/audit/images/avatars/{userId}/approve` | 需要 | 通过头像 |
+| 36 | `POST` | `/api/v1/audit/images/avatars/{userId}/reject` | 需要 | 驳回头像 |

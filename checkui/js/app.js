@@ -47,6 +47,7 @@ const els = {
   statusFilters: document.querySelector('#statusFilters'),
   refreshBtn: document.querySelector('#refreshBtn'),
   pageSizeSelect: document.querySelector('#pageSizeSelect'),
+  approveAllBtn: document.querySelector('#approveAllBtn'),
   rejectAllBtn: document.querySelector('#rejectAllBtn'),
   searchInput: document.querySelector('#searchInput'),
   clearSearchBtn: document.querySelector('#clearSearchBtn'),
@@ -79,6 +80,7 @@ function boot() {
   els.logoutBtn.addEventListener('click', handleLogout)
   els.refreshBtn.addEventListener('click', () => loadQueue({ keepSelection: true }))
   els.pageSizeSelect.addEventListener('change', handlePageSizeChange)
+  els.approveAllBtn.addEventListener('click', handleApproveAll)
   els.rejectAllBtn.addEventListener('click', handleRejectAll)
   els.prevPageBtn.addEventListener('click', handlePrevPage)
   els.nextPageBtn.addEventListener('click', handleNextPage)
@@ -387,6 +389,39 @@ function saveRemarkToHistory(remark) {
   localStorage.setItem(STORAGE_KEYS.remarkHistory, JSON.stringify(state.remarkHistory))
 }
 
+async function handleApproveAll() {
+  if (!state.token || state.actionLoading) {
+    return
+  }
+
+  const confirmed = confirm(`确定要通过全部 ${state.total} 张图片吗？此操作将处理全部待审核记录。`)
+  if (!confirmed) {
+    return
+  }
+
+  state.actionLoading = true
+  els.approveAllBtn.disabled = true
+  els.approveAllBtn.textContent = '处理中...'
+
+  try {
+    const result = await request('/audit/images/approve-all-pending', {
+      method: 'POST',
+      body: {
+        confirmation: 'APPROVE_ALL_PENDING'
+      }
+    })
+    showToast(`已通过 ${result} 张图片`, 'success')
+    state.page = 0
+    await loadQueue()
+  } catch (error) {
+    showToast(error.message || UI_MESSAGES.ACTION_FAILED, 'error')
+  } finally {
+    state.actionLoading = false
+    els.approveAllBtn.disabled = false
+    els.approveAllBtn.textContent = '全部通过'
+  }
+}
+
 async function handleRejectAll() {
   if (!state.token || state.actionLoading) {
     return
@@ -402,10 +437,7 @@ async function handleRejectAll() {
   els.rejectAllBtn.textContent = '处理中...'
 
   try {
-    const apiPath = state.currentTab === 'goods'
-      ? '/audit/images/reject-all-approved'
-      : '/audit/images/avatars/reject-all-approved'
-    const result = await request(apiPath, {
+    const result = await request('/audit/images/reject-all-approved', {
       method: 'POST',
       body: {
         confirmation: 'REJECT_ALL_APPROVED'
@@ -671,7 +703,8 @@ function renderFilterState() {
     button.classList.toggle('is-active', button.dataset.status === state.status)
   })
   els.summaryStatus.textContent = getStatusMeta(state.status).label
-  els.rejectAllBtn.hidden = state.status !== 'APPROVED'
+  els.approveAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'PENDING'
+  els.rejectAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'APPROVED'
 }
 
 function renderQueue(message) {
