@@ -19,6 +19,21 @@ assert.match(
 )
 assert.match(
   detailTs,
+  /CONTACT_EMAIL_AD_UNIT_ID = 'adunit-6fbfdd44c8cbdc8b'/,
+  'contact email flow should use the configured rewarded video ad unit'
+)
+assert.match(
+  detailTs,
+  /content: '观看广告后可开启此功能（1天内有效），感谢支持。'[\s\S]*?confirmText: '是'[\s\S]*?cancelText: '否'/,
+  'first use should ask whether to watch the ad with the requested copy and choices'
+)
+assert.match(
+  detailTs,
+  /CONTACT_EMAIL_AD_REWARD_STORAGE_KEY = `contactEmailAdReward:\$\{CONTACT_EMAIL_AD_UNIT_ID\}`/,
+  'reward cache should be scoped to the active ad unit so stale rewards do not skip confirmation'
+)
+assert.match(
+  detailTs,
   /if \(!res \|\| res\.isEnded\) \{[\s\S]*?saveContactEmailAdReward\(\)[\s\S]*?sendContactEmail\(\)/,
   'only a completed rewarded video should grant the reward and trigger sending'
 )

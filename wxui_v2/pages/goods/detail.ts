@@ -2,8 +2,8 @@ import { request } from '../../utils/request'
 import { COMMON_MESSAGES, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
-const CONTACT_EMAIL_AD_UNIT_ID = 'adunit-f3d20d1b06422a8d'
-const CONTACT_EMAIL_AD_REWARD_STORAGE_KEY = 'contactEmailAdReward'
+const CONTACT_EMAIL_AD_UNIT_ID = 'adunit-6fbfdd44c8cbdc8b'
+const CONTACT_EMAIL_AD_REWARD_STORAGE_KEY = `contactEmailAdReward:${CONTACT_EMAIL_AD_UNIT_ID}`
 const CONTACT_EMAIL_AD_REWARD_TTL = 24 * 60 * 60 * 1000
 
 let contactEmailVideoAd: WechatMiniprogram.RewardedVideoAd | null = null
@@ -310,9 +310,10 @@ Component({
 
     confirmWatchAdAndSend() {
       wx.showModal({
-        title: '一键发邮箱',
-        content: '观看一次广告即可自动发送邮件通知卖家。看完后24小时内再次发送无需观看广告。',
-        confirmText: '观看并发送',
+        title: '提示',
+        content: '观看广告后可开启此功能（1天内有效），感谢支持。',
+        confirmText: '是',
+        cancelText: '否',
         success: (res) => {
           if (res.confirm) this.showContactEmailVideoAd()
         }
