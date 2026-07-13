@@ -110,10 +110,19 @@
 
     <view class="detail-contact-dock">
       <view class="detail-contact-copy">
-        <text class="detail-contact-title">想要这件闲置？</text>
-        <text class="detail-contact-sub">一键发邮件通知卖家</text>
+        <text class="detail-contact-title">{{isOwnGoods ? '这是你发布的商品' : '想要这件闲置？'}}</text>
+        <text class="detail-contact-sub">{{isOwnGoods ? '前往我的页面管理商品' : '一键发邮件通知卖家'}}</text>
       </view>
       <button
+        wx:if="{{isOwnGoods}}"
+        class="detail-contact-btn"
+        bindtap="goMyGoods"
+        aria-label="管理自己的商品"
+      >
+        <text>去管理</text>
+      </button>
+      <button
+        wx:else
         class="detail-contact-btn"
         loading="{{checkingContactEmail || sendingContactEmail || contactAdShowing}}"
         disabled="{{checkingContactEmail || sendingContactEmail || contactAdShowing}}"

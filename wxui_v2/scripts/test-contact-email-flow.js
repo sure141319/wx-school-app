@@ -29,6 +29,16 @@ assert.match(
 )
 assert.match(
   detailTs,
+  /isCurrentUsersGoods\(goods\?: GoodsItem\)[\s\S]*?userId === String\(sellerId\)/,
+  'detail page should identify goods published by the current account'
+)
+assert.match(
+  detailTs,
+  /if \(eligibility\.ownGoods\) \{[\s\S]*?isOwnGoods: true[\s\S]*?这是你发布的商品/,
+  'server eligibility should provide a fallback own-goods guard'
+)
+assert.match(
+  detailTs,
   /\/goods\/\$\{this\.data\.goodsId\}\/contact-email`[\s\S]*?method: 'POST'/,
   'completed flow should call the authenticated contact email endpoint'
 )
@@ -41,6 +51,11 @@ assert.doesNotMatch(
   detailWxml,
   /<view wx:if="{{goods\.seller\.wechatId \|\| goods\.seller\.qq}}" class="detail-contact-dock">/,
   'email action should stay visible so missing seller email can be explained on tap'
+)
+assert.match(
+  detailWxml,
+  /wx:if="{{isOwnGoods}}"[\s\S]*?bindtap="goMyGoods"[\s\S]*?<text>去管理<\/text>[\s\S]*?wx:else[\s\S]*?bindtap="contactSellerByEmail"/,
+  'own goods should replace the email action with a management action'
 )
 
 console.log('contact email flow tests passed')

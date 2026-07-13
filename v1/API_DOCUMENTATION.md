@@ -608,7 +608,8 @@ GET /api/v1/goods/{id}/contact-email-eligibility
   "message": "操作成功",
   "data": {
     "buyerEmailBound": true,
-    "sellerEmailBound": true
+    "sellerEmailBound": true,
+    "ownGoods": false
   }
 }
 ```
@@ -631,6 +632,7 @@ POST /api/v1/goods/{id}/contact-email
 |--------|------|
 | `400` | `请先绑定邮箱` |
 | `400` | `卖家未绑定邮箱，无法发送` |
+| `400` | `不能联系自己发布的商品` |
 | `404` | `商品不存在或未上架` |
 | `503` | `邮件发送失败，请稍后重试` |
 

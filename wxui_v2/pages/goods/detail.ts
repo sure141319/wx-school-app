@@ -26,6 +26,7 @@ interface DetailPageData {
   checkingContactEmail: boolean
   sendingContactEmail: boolean
   contactAdShowing: boolean
+  isOwnGoods: boolean
 }
 
 Component({
@@ -41,7 +42,8 @@ Component({
     navBarHeight: 64,
     checkingContactEmail: false,
     sendingContactEmail: false,
-    contactAdShowing: false
+    contactAdShowing: false,
+    isOwnGoods: false
   } as DetailPageData,
 
   methods: {
@@ -157,7 +159,8 @@ Component({
 
         this.setData({
           goods: goods || null,
-          displayCreatedAt: this.formatCreatedAt(goods?.createdAt)
+          displayCreatedAt: this.formatCreatedAt(goods?.createdAt),
+          isOwnGoods: this.isCurrentUsersGoods(goods)
         })
       } catch (_err) {
         this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
@@ -214,8 +217,22 @@ Component({
       })
     },
 
+    isCurrentUsersGoods(goods?: GoodsItem): boolean {
+      const userId = this.getCurrentUserId()
+      const sellerId = goods && goods.seller && goods.seller.id
+      return Boolean(userId && sellerId !== undefined && sellerId !== null && userId === String(sellerId))
+    },
+
+    goMyGoods() {
+      wx.switchTab({ url: '/pages/profile/profile' })
+    },
+
     async contactSellerByEmail() {
       if (this.data.checkingContactEmail || this.data.sendingContactEmail || this.data.contactAdShowing) return
+      if (this.data.isOwnGoods) {
+        this.goMyGoods()
+        return
+      }
       if (!wx.getStorageSync('token')) {
         this.showLoginRequired()
         return
@@ -233,6 +250,11 @@ Component({
         }
 
         const eligibility = res.data.data
+        if (eligibility.ownGoods) {
+          this.setData({ isOwnGoods: true })
+          wx.showToast({ title: '这是你发布的商品', icon: 'none' })
+          return
+        }
         if (!eligibility.buyerEmailBound) {
           this.showBuyerEmailRequired()
           return
@@ -280,6 +302,7 @@ Component({
         success: (res) => {
           if (!res.confirm) return
           wx.setStorageSync('openAccountBindModal', true)
+          wx.setStorageSync('openEmailBindForm', true)
           wx.switchTab({ url: '/pages/profile/profile' })
         }
       })

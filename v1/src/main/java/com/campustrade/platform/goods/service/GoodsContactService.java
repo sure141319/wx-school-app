@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Objects;
+
 @Service
 public class GoodsContactService {
 
@@ -32,12 +34,16 @@ public class GoodsContactService {
         ContactContext context = loadContext(buyerId, goodsId);
         return new ContactEmailEligibilityResponseDTO(
                 StringUtils.hasText(context.buyer().getEmail()),
-                StringUtils.hasText(context.seller().getEmail())
+                StringUtils.hasText(context.seller().getEmail()),
+                isOwnGoods(context)
         );
     }
 
     public void sendContactEmail(Long buyerId, Long goodsId) {
         ContactContext context = loadContext(buyerId, goodsId);
+        if (isOwnGoods(context)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "不能联系自己发布的商品");
+        }
         if (!StringUtils.hasText(context.buyer().getEmail())) {
             throw new AppException(HttpStatus.BAD_REQUEST, "请先绑定邮箱");
         }
@@ -69,6 +75,10 @@ public class GoodsContactService {
             seller = userService.getById(goods.getSellerId());
         }
         return new ContactContext(goods, buyer, seller);
+    }
+
+    private boolean isOwnGoods(ContactContext context) {
+        return Objects.equals(context.buyer().getId(), context.seller().getId());
     }
 
     private record ContactContext(GoodsDO goods, UserDO buyer, UserDO seller) {

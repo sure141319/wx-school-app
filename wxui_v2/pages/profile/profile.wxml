@@ -236,9 +236,15 @@
               {{unbindingEmail ? '解绑中' : '解绑'}}
             </button>
           </view>
+          <view wx:else class="account-bind-state-actions">
+            <text class="account-bind-unbound-status">未绑定</text>
+            <button class="account-bind-toggle-button" disabled="{{sendingBindEmailCode || bindingEmail}}" bindtap="toggleBindEmailForm">
+              {{showBindEmailForm ? '收起' : '去绑定'}}
+            </button>
+          </view>
         </view>
         <text wx:if="{{profile.email}}" class="wechat-bind-desc">{{profile.email}} 可用于邮箱密码登录</text>
-        <block wx:else>
+        <block wx:elif="{{showBindEmailForm}}">
           <view class="contact-modal-field">
             <text class="form-label">QQ邮箱</text>
             <view class="inline-row">
@@ -260,6 +266,7 @@
             {{bindingEmail ? '绑定中...' : '绑定QQ邮箱'}}
           </button>
         </block>
+        <text wx:else class="wechat-bind-desc account-bind-empty-desc">绑定后可使用邮箱密码登录，也可接收买家联系提醒</text>
       </view>
 
       <text wx:if="{{accountBindMessage}}" class="block mt-16 text-center text-2xs status-text-error">{{accountBindMessage}}</text>

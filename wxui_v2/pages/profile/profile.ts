@@ -36,6 +36,7 @@ interface ProfilePageData {
   accountMergeHint: boolean
   showProfileModal: boolean
   showAccountBindModal: boolean
+  showBindEmailForm: boolean
   showFeedbackModal: boolean
   showCampusOtherModal: boolean
   bindEmailForm: {
@@ -71,6 +72,7 @@ Component({
     accountMergeHint: false,
     showProfileModal: false,
     showAccountBindModal: false,
+    showBindEmailForm: false,
     showFeedbackModal: false,
     showCampusOtherModal: false,
     bindEmailForm: {
@@ -94,11 +96,20 @@ Component({
         return
       }
       const shouldOpenAccountBindModal = Boolean(wx.getStorageSync('openAccountBindModal'))
+      const shouldOpenEmailBindForm = Boolean(wx.getStorageSync('openEmailBindForm'))
       if (shouldOpenAccountBindModal) {
         wx.removeStorageSync('openAccountBindModal')
       }
+      if (shouldOpenEmailBindForm) {
+        wx.removeStorageSync('openEmailBindForm')
+      }
       this.loadProfile().then(() => {
-        if (shouldOpenAccountBindModal) this.openAccountBindModal()
+        if (shouldOpenAccountBindModal) {
+          this.openAccountBindModal()
+          if (shouldOpenEmailBindForm && !this.data.profile.email) {
+            this.setData({ showBindEmailForm: true })
+          }
+        }
       })
       this.loadMyGoods(true)
     },
@@ -344,6 +355,7 @@ Component({
     openAccountBindModal() {
       this.setData({
         showAccountBindModal: true,
+        showBindEmailForm: false,
         accountBindMessage: '',
         accountMergeHint: false,
         bindEmailForm: {
@@ -359,6 +371,7 @@ Component({
       if (this.data.bindingWechat || this.data.unbindingWechat || this.data.sendingBindEmailCode || this.data.bindingEmail || this.data.unbindingEmail) return
       this.setData({
         showAccountBindModal: false,
+        showBindEmailForm: false,
         accountBindMessage: '',
         accountMergeHint: false,
         bindEmailForm: {
@@ -435,6 +448,15 @@ Component({
         success: (res) => {
           if (res.confirm) this.unbindWechat()
         }
+      })
+    },
+
+    toggleBindEmailForm() {
+      if (this.data.profile.email || this.data.sendingBindEmailCode || this.data.bindingEmail) return
+      this.setData({
+        showBindEmailForm: !this.data.showBindEmailForm,
+        accountBindMessage: '',
+        accountMergeHint: false
       })
     },
 
@@ -534,6 +556,7 @@ Component({
             profile,
             profileDraft: { ...profile },
             bindEmailForm: { email: profile.email || email, code: '', password: '' },
+            showBindEmailForm: false,
             accountBindMessage: '',
             accountMergeHint: false
           })
@@ -587,6 +610,7 @@ Component({
           profile,
           profileDraft: { ...profile },
           bindEmailForm: { email: '', code: '', password: '' },
+          showBindEmailForm: false,
           accountBindMessage: ''
         })
         wx.showToast({ title: '邮箱已解绑', icon: 'success' })

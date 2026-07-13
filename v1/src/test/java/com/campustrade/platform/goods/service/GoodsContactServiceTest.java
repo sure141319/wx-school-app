@@ -38,6 +38,7 @@ class GoodsContactServiceTest {
 
         assertTrue(result.buyerEmailBound());
         assertTrue(result.sellerEmailBound());
+        assertFalse(result.ownGoods());
     }
 
     @Test
@@ -50,6 +51,18 @@ class GoodsContactServiceTest {
 
         assertFalse(result.buyerEmailBound());
         assertTrue(result.sellerEmailBound());
+        assertFalse(result.ownGoods());
+    }
+
+    @Test
+    void eligibilityIdentifiesTheSellersOwnGoods() {
+        UserDO seller = user(2L, "卖家", "seller@qq.com");
+        GoodsDO goods = goods(seller);
+        stubContext(seller, goods);
+
+        ContactEmailEligibilityResponseDTO result = contactService.getEligibility(2L, 10L);
+
+        assertTrue(result.ownGoods());
     }
 
     @Test
@@ -79,6 +92,25 @@ class GoodsContactServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
         assertEquals("请先绑定邮箱", ex.getMessage());
+        verify(mailService, never()).sendGoodsContactNotification(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
+    }
+
+    @Test
+    void sendContactEmailRejectsTheSellersOwnGoodsBeforeSending() {
+        UserDO seller = user(2L, "卖家", "seller@qq.com");
+        GoodsDO goods = goods(seller);
+        stubContext(seller, goods);
+
+        AppException ex = assertThrows(AppException.class, () -> contactService.sendContactEmail(2L, 10L));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("不能联系自己发布的商品", ex.getMessage());
         verify(mailService, never()).sendGoodsContactNotification(
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),

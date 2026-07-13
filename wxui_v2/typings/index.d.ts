@@ -84,6 +84,7 @@ interface UserProfile {
 interface ContactEmailEligibility {
   buyerEmailBound: boolean
   sellerEmailBound: boolean
+  ownGoods: boolean
 }
 
 interface UploadResult {

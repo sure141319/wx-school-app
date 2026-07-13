@@ -2669,26 +2669,55 @@ input, textarea {
   gap: 14rpx;
 }
 
-.account-unbind-button {
+.account-unbind-button,
+.account-bind-toggle-button {
+  display: inline-flex;
+  box-sizing: border-box;
   min-width: 92rpx;
+  height: 54rpx;
   min-height: 54rpx;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   padding: 0 18rpx;
-  border: 2rpx solid #F1C7C2;
   border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.account-unbind-button {
+  border: 2rpx solid #F1C7C2;
   background: #FFF7F6;
   color: #B42318;
-  font-size: 22rpx;
+}
+
+.account-bind-toggle-button {
+  border: 2rpx solid rgba(46, 150, 105, 0.24);
+  background: #EEF7F2;
+  color: var(--color-primary-dark);
+}
+
+.account-unbind-button[disabled],
+.account-bind-toggle-button[disabled] {
+  opacity: 0.58;
+}
+
+.account-unbind-button::after,
+.account-bind-toggle-button::after {
+  border: 0;
+}
+
+.account-bind-unbound-status {
+  color: var(--color-text-muted);
+  font-size: 24rpx;
   font-weight: 700;
   line-height: 1;
 }
 
-.account-unbind-button[disabled] {
-  opacity: 0.58;
-}
-
-.account-unbind-button::after {
-  border: 0;
+.account-bind-empty-desc {
+  margin-top: 12rpx;
 }
 
 .auth-back-btn {
