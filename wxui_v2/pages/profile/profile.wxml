@@ -218,14 +218,24 @@
           <button wx:if="{{!profile.wechatOpenid}}" class="btn btn-secondary btn-sm wechat-bind-button" loading="{{bindingWechat}}" disabled="{{bindingWechat}}" bindtap="bindWechat">
             {{bindingWechat ? '绑定中...' : '绑定微信'}}
           </button>
-          <text wx:else class="wechat-bind-status">已绑定</text>
+          <view wx:else class="account-bind-state-actions">
+            <text class="wechat-bind-status">已绑定</text>
+            <button class="account-unbind-button" loading="{{unbindingWechat}}" disabled="{{unbindingWechat || unbindingEmail}}" bindtap="confirmUnbindWechat">
+              {{unbindingWechat ? '解绑中' : '解绑'}}
+            </button>
+          </view>
         </view>
       </view>
 
       <view class="account-bind-section">
         <view class="account-bind-head">
           <text class="wechat-bind-title">QQ邮箱账号</text>
-          <text wx:if="{{profile.email}}" class="wechat-bind-status">已绑定</text>
+          <view wx:if="{{profile.email}}" class="account-bind-state-actions">
+            <text class="wechat-bind-status">已绑定</text>
+            <button class="account-unbind-button" loading="{{unbindingEmail}}" disabled="{{unbindingEmail || unbindingWechat}}" bindtap="confirmUnbindEmail">
+              {{unbindingEmail ? '解绑中' : '解绑'}}
+            </button>
+          </view>
         </view>
         <text wx:if="{{profile.email}}" class="wechat-bind-desc">{{profile.email}} 可用于邮箱密码登录</text>
         <block wx:else>
@@ -259,7 +269,7 @@
       </view>
     </view>
     <view class="modal-footer">
-      <button class="btn btn-primary btn-full" disabled="{{bindingWechat || sendingBindEmailCode || bindingEmail}}" bindtap="closeAccountBindModal">知道了</button>
+      <button class="btn btn-primary btn-full" disabled="{{bindingWechat || unbindingWechat || sendingBindEmailCode || bindingEmail || unbindingEmail}}" bindtap="closeAccountBindModal">知道了</button>
     </view>
   </view>
 

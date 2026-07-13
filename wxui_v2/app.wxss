@@ -1383,9 +1383,9 @@ input, textarea {
 .detail-contact-btn {
   display: flex;
   width: auto;
-  min-width: 116rpx;
+  min-width: 152rpx;
   min-height: 76rpx;
-  flex: 0 0 116rpx;
+  flex: 0 0 152rpx;
   align-items: center;
   justify-content: center;
   gap: 0;
@@ -1399,6 +1399,12 @@ input, textarea {
 
 .detail-contact-btn:active {
   background: var(--color-primary-dark);
+}
+
+.detail-contact-btn[disabled] {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  opacity: 0.72;
 }
 
 /* ===== Publish ===== */
@@ -2586,6 +2592,35 @@ input, textarea {
   font-size: 24rpx;
   font-weight: 700;
   line-height: 1;
+}
+
+.account-bind-state-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.account-unbind-button {
+  min-width: 92rpx;
+  min-height: 54rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border: 2rpx solid #F1C7C2;
+  border-radius: 999rpx;
+  background: #FFF7F6;
+  color: #B42318;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.account-unbind-button[disabled] {
+  opacity: 0.58;
+}
+
+.account-unbind-button::after {
+  border: 0;
 }
 
 .profile-modal-footer {

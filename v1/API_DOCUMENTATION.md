@@ -128,6 +128,7 @@
 |----|------|
 | `REGISTER` | 注册验证 |
 | `RESET_PASSWORD` | 重置密码验证 |
+| `BIND_EMAIL` | 绑定邮箱验证 |
 
 ---
 
@@ -361,7 +362,7 @@ GET /api/v1/goods?status=ON_SALE&page=0&size=24&keyword=教材&categoryId=1
         "campusLocation": "图书馆",
         "status": "ON_SALE",
         "category": { "id": 1, "name": "书籍", "sortOrder": 1 },
-        "seller": { "id": 2, "email": "...", "nickname": "卖家", "avatarUrl": "..." },
+        "seller": { "id": 2, "nickname": "卖家", "avatarUrl": "..." },
         "imageUrls": ["https://...", "https://..."],
         "createdAt": "2026-04-01T10:00:00",
         "updatedAt": "2026-04-01T10:00:00"
@@ -402,7 +403,7 @@ GET /api/v1/goods/{id}
     "campusLocation": "图书馆",
     "status": "ON_SALE",
     "category": { "id": 1, "name": "书籍", "sortOrder": 1 },
-    "seller": { "id": 2, "email": "...", "nickname": "卖家", "avatarUrl": "..." },
+    "seller": { "id": 2, "nickname": "卖家", "avatarUrl": "..." },
     "imageUrls": ["https://...", "https://..."],
     "createdAt": "2026-04-01T10:00:00",
     "updatedAt": "2026-04-01T10:00:00"
@@ -590,6 +591,60 @@ GET /api/v1/goods/mine
 
 ---
 
+### 2.8 查询联系邮件资格
+
+```
+GET /api/v1/goods/{id}/contact-email-eligibility
+```
+
+**权限**: 需要 JWT Token
+
+该接口只返回买卖双方是否绑定邮箱，不返回任何真实邮箱地址。
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "data": {
+    "buyerEmailBound": true,
+    "sellerEmailBound": true
+  }
+}
+```
+
+---
+
+### 2.9 发送联系邮件
+
+```
+POST /api/v1/goods/{id}/contact-email
+```
+
+**权限**: 需要 JWT Token
+
+后端重新校验商品状态和买卖双方邮箱，再向卖家发送购买意向邮件；邮件的回复地址为买家邮箱。
+
+**失败场景**:
+
+| 状态码 | 消息 |
+|--------|------|
+| `400` | `请先绑定邮箱` |
+| `400` | `卖家未绑定邮箱，无法发送` |
+| `404` | `商品不存在或未上架` |
+| `503` | `邮件发送失败，请稍后重试` |
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "邮件发送成功",
+  "data": null
+}
+```
+
+---
+
 ## 3. 分类接口 `/categories`
 
 > 所有分类接口均为**公开接口**。
@@ -675,6 +730,58 @@ PUT /api/v1/users/me
   }
 }
 ```
+
+---
+
+### 4.3 绑定微信登录
+
+```
+POST /api/v1/users/me/wechat-bind
+```
+
+**请求体**:
+```json
+{
+  "code": "wx.login 返回的临时 code"
+}
+```
+
+---
+
+### 4.4 解绑微信登录
+
+```
+DELETE /api/v1/users/me/wechat-bind
+```
+
+邮箱已绑定时允许解绑；如果微信是账号唯一登录方式，返回 `400` 和 `请先绑定邮箱，再解绑微信`。
+
+---
+
+### 4.5 绑定 QQ 邮箱
+
+```
+POST /api/v1/users/me/email-bind
+```
+
+**请求体**:
+```json
+{
+  "email": "123456@qq.com",
+  "code": "123456",
+  "password": "secret123"
+}
+```
+
+---
+
+### 4.6 解绑 QQ 邮箱
+
+```
+DELETE /api/v1/users/me/email-bind
+```
+
+微信已绑定时允许解绑，并同时清除原邮箱密码；如果邮箱是账号唯一登录方式，返回 `400` 和 `请先绑定微信，再解绑邮箱`。
 
 ---
 
@@ -1065,21 +1172,27 @@ POST /api/v1/audit/images/{imageId}/reject
 | 5 | `GET` | `/api/v1/auth/me` | 需要 | 获取当前用户信息 |
 | 6 | `GET` | `/api/v1/goods` | 公开 | 搜索/列表商品 |
 | 7 | `GET` | `/api/v1/goods/{id}` | 公开 | 商品详情 |
-| 8 | `POST` | `/api/v1/goods` | 需要 | 发布商品 |
-| 9 | `PUT` | `/api/v1/goods/{id}` | 需要 | 更新商品 |
-| 10 | `DELETE` | `/api/v1/goods/{id}` | 需要 | 删除商品 |
-| 11 | `PATCH` | `/api/v1/goods/{id}/status` | 需要 | 更新商品状态 |
-| 12 | `GET` | `/api/v1/goods/mine` | 需要 | 我的商品列表 |
-| 13 | `GET` | `/api/v1/categories` | 公开 | 获取全部分类 |
-| 14 | `GET` | `/api/v1/users/me` | 需要 | 获取个人资料 |
-| 15 | `PUT` | `/api/v1/users/me` | 需要 | 更新个人资料 |
-| 16 | `POST` | `/api/v1/messages/conversations` | 需要 | 发起会话 |
-| 17 | `GET` | `/api/v1/messages/conversations` | 需要 | 获取会话列表 |
-| 18 | `GET` | `/api/v1/messages/conversations/{id}/messages` | 需要 | 获取会话消息 |
-| 19 | `POST` | `/api/v1/messages/messages` | 需要 | 发送消息 |
-| 20 | `POST` | `/api/v1/uploads/image` | 需要 | 上传图片 |
-| 21 | `POST` | `/api/v1/uploads/presign/batch` | 需要 | 批量生成预签名 URL |
-| 22 | `GET` | `/api/v1/images/{year}/{month}/{filename}` | 公开 | 获取图片 |
-| 23 | `GET` | `/api/v1/audit/images` | 需要 | 待审核图片列表 |
-| 24 | `POST` | `/api/v1/audit/images/{id}/approve` | 需要 | 通过图片 |
-| 25 | `POST` | `/api/v1/audit/images/{id}/reject` | 需要 | 驳回图片 |
+| 8 | `GET` | `/api/v1/goods/{id}/contact-email-eligibility` | 需要 | 查询联系邮件资格 |
+| 9 | `POST` | `/api/v1/goods/{id}/contact-email` | 需要 | 发送联系邮件 |
+| 10 | `POST` | `/api/v1/goods` | 需要 | 发布商品 |
+| 11 | `PUT` | `/api/v1/goods/{id}` | 需要 | 更新商品 |
+| 12 | `DELETE` | `/api/v1/goods/{id}` | 需要 | 删除商品 |
+| 13 | `PATCH` | `/api/v1/goods/{id}/status` | 需要 | 更新商品状态 |
+| 14 | `GET` | `/api/v1/goods/mine` | 需要 | 我的商品列表 |
+| 15 | `GET` | `/api/v1/categories` | 公开 | 获取全部分类 |
+| 16 | `GET` | `/api/v1/users/me` | 需要 | 获取个人资料 |
+| 17 | `PUT` | `/api/v1/users/me` | 需要 | 更新个人资料 |
+| 18 | `POST` | `/api/v1/users/me/wechat-bind` | 需要 | 绑定微信登录 |
+| 19 | `DELETE` | `/api/v1/users/me/wechat-bind` | 需要 | 解绑微信登录 |
+| 20 | `POST` | `/api/v1/users/me/email-bind` | 需要 | 绑定 QQ 邮箱 |
+| 21 | `DELETE` | `/api/v1/users/me/email-bind` | 需要 | 解绑 QQ 邮箱 |
+| 22 | `POST` | `/api/v1/messages/conversations` | 需要 | 发起会话 |
+| 23 | `GET` | `/api/v1/messages/conversations` | 需要 | 获取会话列表 |
+| 24 | `GET` | `/api/v1/messages/conversations/{id}/messages` | 需要 | 获取会话消息 |
+| 25 | `POST` | `/api/v1/messages/messages` | 需要 | 发送消息 |
+| 26 | `POST` | `/api/v1/uploads/image` | 需要 | 上传图片 |
+| 27 | `POST` | `/api/v1/uploads/presign/batch` | 需要 | 批量生成预签名 URL |
+| 28 | `GET` | `/api/v1/images/{year}/{month}/{filename}` | 公开 | 获取图片 |
+| 29 | `GET` | `/api/v1/audit/images` | 需要 | 待审核图片列表 |
+| 30 | `POST` | `/api/v1/audit/images/{id}/approve` | 需要 | 通过图片 |
+| 31 | `POST` | `/api/v1/audit/images/{id}/reject` | 需要 | 驳回图片 |

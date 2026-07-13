@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/goods/*/contact-email-eligibility").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/goods/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/images/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/messages/**").authenticated()

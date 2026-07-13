@@ -34,4 +34,16 @@ assert.match(
   'account binding modal should expose a bindEmail tap target'
 )
 
+assert.match(
+  wxml,
+  /bindtap="confirmUnbindWechat"/,
+  'bound WeChat login should expose a guarded unbind action'
+)
+
+assert.match(
+  wxml,
+  /bindtap="confirmUnbindEmail"/,
+  'bound email login should expose a guarded unbind action'
+)
+
 console.log('profile wechat bind wxml tests passed')

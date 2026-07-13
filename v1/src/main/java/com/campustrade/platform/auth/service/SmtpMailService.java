@@ -10,8 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 
 @Service
@@ -42,6 +44,29 @@ public class SmtpMailService implements MailService {
             return true;
         } catch (MessagingException | UnsupportedEncodingException | RuntimeException ex) {
             log.error("Failed to send mail to {}: {}", email, ex.getMessage(), ex);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean sendGoodsContactNotification(String sellerEmail,
+                                                String buyerEmail,
+                                                String buyerNickname,
+                                                String goodsTitle,
+                                                BigDecimal goodsPrice) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(new InternetAddress(resolveFromAddress(), SENDER_DISPLAY_NAME, StandardCharsets.UTF_8.name()));
+            helper.setTo(sellerEmail);
+            helper.setReplyTo(buyerEmail);
+            helper.setSubject(PLATFORM_NAME + " - 有买家想联系你");
+            helper.setText(buildGoodsContactHtml(buyerEmail, buyerNickname, goodsTitle, goodsPrice), true);
+            mailSender.send(message);
+            log.info("Goods contact notification sent to seller for goods {}", sanitizeLogValue(goodsTitle));
+            return true;
+        } catch (MessagingException | UnsupportedEncodingException | RuntimeException ex) {
+            log.error("Failed to send goods contact notification: {}", ex.getMessage(), ex);
             return false;
         }
     }
@@ -126,5 +151,61 @@ public class SmtpMailService implements MailService {
                 </body>
                 </html>
                 """.formatted(PLATFORM_NAME, purposeText, code, expireMinutes, PLATFORM_NAME);
+    }
+
+    private String buildGoodsContactHtml(String buyerEmail,
+                                         String buyerNickname,
+                                         String goodsTitle,
+                                         BigDecimal goodsPrice) {
+        String safeBuyerEmail = HtmlUtils.htmlEscape(buyerEmail);
+        String safeBuyerNickname = HtmlUtils.htmlEscape(buyerNickname);
+        String safeGoodsTitle = HtmlUtils.htmlEscape(goodsTitle);
+        String safeGoodsPrice = HtmlUtils.htmlEscape(goodsPrice == null ? "面议" : "¥" + goodsPrice.stripTrailingZeros().toPlainString());
+        return """
+                <!doctype html>
+                <html lang="zh-CN">
+                <body style="margin:0;padding:0;background:#f3f6f4;font-family:Arial,'Microsoft YaHei','PingFang SC',sans-serif;color:#1f2937;">
+                  <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" border="0" style="width:100%%;background:#f3f6f4;padding:32px 12px;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" border="0" style="width:100%%;max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                          <tr><td style="height:6px;background:#2e9669;font-size:0;line-height:6px;">&nbsp;</td></tr>
+                          <tr>
+                            <td style="padding:28px 32px 8px;">
+                              <div style="font-size:14px;font-weight:700;color:#2e9669;">%s</div>
+                              <h1 style="margin:12px 0 0;font-size:24px;line-height:1.35;color:#111827;">有买家想联系你</h1>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:12px 32px 0;font-size:15px;line-height:1.8;color:#374151;">
+                              你发布的商品收到了一条购买意向，买家希望通过邮箱与你联系。
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:22px 32px 0;">
+                              <div style="padding:18px 20px;background:#f8faf9;border:1px solid #e5ebe8;border-radius:10px;font-size:15px;line-height:1.9;color:#374151;">
+                                <div><strong style="color:#111827;">商品：</strong>%s</div>
+                                <div><strong style="color:#111827;">价格：</strong>%s</div>
+                                <div><strong style="color:#111827;">买家：</strong>%s</div>
+                                <div><strong style="color:#111827;">联系邮箱：</strong>%s</div>
+                              </div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:20px 32px 28px;font-size:14px;line-height:1.8;color:#6b7280;">
+                              直接回复本邮件即可联系买家。交易时请优先选择校内公共场所，并注意核对商品与付款信息。
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(PLATFORM_NAME, safeGoodsTitle, safeGoodsPrice, safeBuyerNickname, safeBuyerEmail);
+    }
+
+    private String sanitizeLogValue(String value) {
+        return value == null ? "" : value.replace('\n', ' ').replace('\r', ' ');
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -202,6 +203,63 @@ class UserServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatus());
         assertEquals("该邮箱已注册，请使用账号合并", ex.getMessage());
+        verify(userMapper, never()).updateEmailAndPassword(anyLong(), any(), any(), anyInt(), any());
+    }
+
+    @Test
+    void unbindWechatKeepsEmailLoginAndClearsOpenid() {
+        Long userId = 1L;
+        UserDO existingUser = user(userId, "软工-231", null);
+        existingUser.setWechatOpenid("openid-1");
+        UserDO updatedUser = user(userId, "软工-231", null);
+
+        when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
+
+        UserDO result = userService.unbindWechat(userId);
+
+        assertNull(result.getWechatOpenid());
+        verify(userMapper).updateWechatOpenid(userId, null);
+    }
+
+    @Test
+    void unbindWechatRejectsRemovingTheOnlyLoginMethod() {
+        Long userId = 1L;
+        UserDO existingUser = wechatOnlyUser(userId, "微信用户abcd");
+        when(userMapper.findById(userId)).thenReturn(existingUser);
+
+        AppException ex = assertThrows(AppException.class, () -> userService.unbindWechat(userId));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("请先绑定邮箱，再解绑微信", ex.getMessage());
+        verify(userMapper, never()).updateWechatOpenid(anyLong(), any());
+    }
+
+    @Test
+    void unbindEmailKeepsWechatLoginAndClearsPassword() {
+        Long userId = 1L;
+        UserDO existingUser = user(userId, "软工-231", null);
+        existingUser.setWechatOpenid("openid-1");
+        UserDO updatedUser = wechatOnlyUser(userId, "软工-231");
+
+        when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
+
+        UserDO result = userService.unbindEmail(userId);
+
+        assertNull(result.getEmail());
+        assertNull(result.getPasswordHash());
+        verify(userMapper).updateEmailAndPassword(userId, null, null, 0, null);
+    }
+
+    @Test
+    void unbindEmailRejectsRemovingTheOnlyLoginMethod() {
+        Long userId = 1L;
+        UserDO existingUser = user(userId, "软工-231", null);
+        when(userMapper.findById(userId)).thenReturn(existingUser);
+
+        AppException ex = assertThrows(AppException.class, () -> userService.unbindEmail(userId));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertEquals("请先绑定微信，再解绑邮箱", ex.getMessage());
         verify(userMapper, never()).updateEmailAndPassword(anyLong(), any(), any(), anyInt(), any());
     }
 

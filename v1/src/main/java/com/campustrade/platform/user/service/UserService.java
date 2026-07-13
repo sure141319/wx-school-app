@@ -121,6 +121,34 @@ public class UserService {
         return getById(userId);
     }
 
+    @Transactional
+    public UserDO unbindWechat(Long userId) {
+        UserDO currentUser = getById(userId);
+        if (!StringUtils.hasText(currentUser.getWechatOpenid())) {
+            return currentUser;
+        }
+        if (!StringUtils.hasText(currentUser.getEmail())) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "请先绑定邮箱，再解绑微信");
+        }
+
+        userMapper.updateWechatOpenid(userId, null);
+        return getById(userId);
+    }
+
+    @Transactional
+    public UserDO unbindEmail(Long userId) {
+        UserDO currentUser = getById(userId);
+        if (!StringUtils.hasText(currentUser.getEmail())) {
+            return currentUser;
+        }
+        if (!StringUtils.hasText(currentUser.getWechatOpenid())) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "请先绑定微信，再解绑邮箱");
+        }
+
+        userMapper.updateEmailAndPassword(userId, null, null, 0, null);
+        return getById(userId);
+    }
+
     private String normalizeAvatarObjectKey(String avatarUrl) {
         String objectKey = uploadService.extractObjectKey(avatarUrl);
         return objectKey == null ? avatarUrl : objectKey;

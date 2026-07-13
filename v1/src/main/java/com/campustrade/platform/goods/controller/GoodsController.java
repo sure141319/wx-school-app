@@ -2,9 +2,11 @@ package com.campustrade.platform.goods.controller;
 
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.request.GoodsStatusUpdateRequestDTO;
+import com.campustrade.platform.goods.dto.response.ContactEmailEligibilityResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
+import com.campustrade.platform.goods.service.GoodsContactService;
 import com.campustrade.platform.goods.service.GoodsService;
 import com.campustrade.platform.common.ApiResponse;
 import com.campustrade.platform.common.PageResponse;
@@ -32,9 +34,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class GoodsController {
 
     private final GoodsService goodsService;
+    private final GoodsContactService goodsContactService;
 
-    public GoodsController(GoodsService goodsService) {
+    public GoodsController(GoodsService goodsService, GoodsContactService goodsContactService) {
         this.goodsService = goodsService;
+        this.goodsContactService = goodsContactService;
     }
 
 @GetMapping
@@ -52,6 +56,19 @@ public class GoodsController {
         UserPrincipal principal = AuthUtils.currentUserOrNull();
         Long viewerUserId = principal == null ? null : principal.userId();
         return ApiResponse.ok(goodsService.getDetailForViewer(id, viewerUserId));
+    }
+
+    @GetMapping("/{id}/contact-email-eligibility")
+    public ApiResponse<ContactEmailEligibilityResponseDTO> contactEmailEligibility(@PathVariable Long id) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok(goodsContactService.getEligibility(principal.userId(), id));
+    }
+
+    @PostMapping("/{id}/contact-email")
+    public ApiResponse<Void> sendContactEmail(@PathVariable Long id) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        goodsContactService.sendContactEmail(principal.userId(), id);
+        return ApiResponse.ok("邮件发送成功", null);
     }
 
     @PostMapping

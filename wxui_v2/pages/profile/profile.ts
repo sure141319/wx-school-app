@@ -27,8 +27,10 @@ interface ProfilePageData {
   loadingMore: boolean
   saving: boolean
   bindingWechat: boolean
+  unbindingWechat: boolean
   sendingBindEmailCode: boolean
   bindingEmail: boolean
+  unbindingEmail: boolean
   info: string
   accountBindMessage: string
   accountMergeHint: boolean
@@ -60,8 +62,10 @@ Component({
     loadingMore: false,
     saving: false,
     bindingWechat: false,
+    unbindingWechat: false,
     sendingBindEmailCode: false,
     bindingEmail: false,
+    unbindingEmail: false,
     info: '',
     accountBindMessage: '',
     accountMergeHint: false,
@@ -89,7 +93,13 @@ Component({
         wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/profile/profile' })
         return
       }
-      this.loadProfile()
+      const shouldOpenAccountBindModal = Boolean(wx.getStorageSync('openAccountBindModal'))
+      if (shouldOpenAccountBindModal) {
+        wx.removeStorageSync('openAccountBindModal')
+      }
+      this.loadProfile().then(() => {
+        if (shouldOpenAccountBindModal) this.openAccountBindModal()
+      })
       this.loadMyGoods(true)
     },
 
@@ -346,7 +356,7 @@ Component({
     },
 
     closeAccountBindModal() {
-      if (this.data.bindingWechat || this.data.sendingBindEmailCode || this.data.bindingEmail) return
+      if (this.data.bindingWechat || this.data.unbindingWechat || this.data.sendingBindEmailCode || this.data.bindingEmail || this.data.unbindingEmail) return
       this.setData({
         showAccountBindModal: false,
         accountBindMessage: '',
@@ -403,6 +413,55 @@ Component({
         .finally(() => {
           this.setData({ bindingWechat: false })
         })
+    },
+
+    confirmUnbindWechat() {
+      if (this.data.unbindingWechat || !this.data.profile.wechatOpenid) return
+      if (!this.data.profile.email) {
+        wx.showModal({
+          title: '暂不可解绑',
+          content: '请先绑定QQ邮箱，确保账号仍可登录后再解绑微信。',
+          showCancel: false,
+          confirmText: '知道了'
+        })
+        return
+      }
+
+      wx.showModal({
+        title: '解绑微信登录？',
+        content: '解绑后将不能再用当前微信快捷登录，但仍可使用QQ邮箱和密码登录。',
+        confirmText: '确认解绑',
+        confirmColor: '#D92D20',
+        success: (res) => {
+          if (res.confirm) this.unbindWechat()
+        }
+      })
+    },
+
+    async unbindWechat() {
+      this.setData({ unbindingWechat: true, accountBindMessage: '' })
+      try {
+        const res = await request<ApiResponse<UserProfile>>({
+          url: `${app.globalData.baseUrl}/users/me/wechat-bind`,
+          method: 'DELETE'
+        })
+        if (!res.data || !res.data.success || !res.data.data) {
+          this.setData({ accountBindMessage: (res.data && res.data.message) || actionFailed('解绑微信') })
+          return
+        }
+        const profile = res.data.data
+        this.updateStoredProfile(profile)
+        this.setData({
+          profile,
+          profileDraft: { ...profile },
+          accountBindMessage: ''
+        })
+        wx.showToast({ title: '微信已解绑', icon: 'success' })
+      } catch (_err) {
+        this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+      } finally {
+        this.setData({ unbindingWechat: false })
+      }
     },
 
     sendBindEmailCode() {
@@ -486,6 +545,56 @@ Component({
         .finally(() => {
           this.setData({ bindingEmail: false })
         })
+    },
+
+    confirmUnbindEmail() {
+      if (this.data.unbindingEmail || !this.data.profile.email) return
+      if (!this.data.profile.wechatOpenid) {
+        wx.showModal({
+          title: '暂不可解绑',
+          content: '请先绑定微信，确保账号仍可登录后再解绑邮箱。',
+          showCancel: false,
+          confirmText: '知道了'
+        })
+        return
+      }
+
+      wx.showModal({
+        title: '解绑QQ邮箱？',
+        content: '解绑后邮箱和原密码将不能再登录，但仍可使用当前微信快捷登录。',
+        confirmText: '确认解绑',
+        confirmColor: '#D92D20',
+        success: (res) => {
+          if (res.confirm) this.unbindEmail()
+        }
+      })
+    },
+
+    async unbindEmail() {
+      this.setData({ unbindingEmail: true, accountBindMessage: '' })
+      try {
+        const res = await request<ApiResponse<UserProfile>>({
+          url: `${app.globalData.baseUrl}/users/me/email-bind`,
+          method: 'DELETE'
+        })
+        if (!res.data || !res.data.success || !res.data.data) {
+          this.setData({ accountBindMessage: (res.data && res.data.message) || actionFailed('解绑邮箱') })
+          return
+        }
+        const profile = res.data.data
+        this.updateStoredProfile(profile)
+        this.setData({
+          profile,
+          profileDraft: { ...profile },
+          bindEmailForm: { email: '', code: '', password: '' },
+          accountBindMessage: ''
+        })
+        wx.showToast({ title: '邮箱已解绑', icon: 'success' })
+      } catch (_err) {
+        this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+      } finally {
+        this.setData({ unbindingEmail: false })
+      }
     },
 
     isAccountMergeMessage(message?: string) {

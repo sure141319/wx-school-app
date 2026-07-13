@@ -11,6 +11,7 @@ import com.campustrade.platform.user.dto.response.UserProfileResponseDTO;
 import com.campustrade.platform.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,5 +52,17 @@ public class UserController {
     public ApiResponse<UserProfileResponseDTO> bindEmail(@Valid @RequestBody BindEmailRequestDTO request) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok("邮箱绑定成功", userProfileAssembler.toResponse(userService.bindEmail(principal.userId(), request)));
+    }
+
+    @DeleteMapping("/me/wechat-bind")
+    public ApiResponse<UserProfileResponseDTO> unbindWechat() {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok("微信解绑成功", userProfileAssembler.toResponse(userService.unbindWechat(principal.userId())));
+    }
+
+    @DeleteMapping("/me/email-bind")
+    public ApiResponse<UserProfileResponseDTO> unbindEmail() {
+        UserPrincipal principal = AuthUtils.currentUser();
+        return ApiResponse.ok("邮箱解绑成功", userProfileAssembler.toResponse(userService.unbindEmail(principal.userId())));
     }
 }

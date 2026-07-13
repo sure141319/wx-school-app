@@ -81,6 +81,11 @@ interface UserProfile {
   qq?: string
 }
 
+interface ContactEmailEligibility {
+  buyerEmailBound: boolean
+  sellerEmailBound: boolean
+}
+
 interface UploadResult {
   url: string
   filename: string

@@ -108,28 +108,19 @@
       </view>
     </view>
 
-    <view wx:if="{{goods.seller.wechatId || goods.seller.qq}}" class="detail-contact-dock">
+    <view class="detail-contact-dock">
       <view class="detail-contact-copy">
         <text class="detail-contact-title">想要这件闲置？</text>
-        <text class="detail-contact-sub">复制联系方式，和卖家聊聊</text>
+        <text class="detail-contact-sub">一键发邮件通知卖家</text>
       </view>
       <button
-        wx:if="{{goods.seller.wechatId}}"
         class="detail-contact-btn"
-        data-wechat-id="{{goods.seller.wechatId}}"
-        bindtap="copyWechatId"
-        aria-label="复制微信"
+        loading="{{checkingContactEmail || sendingContactEmail || contactAdShowing}}"
+        disabled="{{checkingContactEmail || sendingContactEmail || contactAdShowing}}"
+        bindtap="contactSellerByEmail"
+        aria-label="一键发邮箱通知卖家"
       >
-        <text>复制</text>
-      </button>
-      <button
-        wx:else
-        class="detail-contact-btn"
-        data-qq="{{goods.seller.qq}}"
-        bindtap="copyQQ"
-        aria-label="复制 QQ"
-      >
-        <text>复制</text>
+        <text>{{checkingContactEmail ? '检查中' : sendingContactEmail ? '发送中' : contactAdShowing ? '广告中' : '发邮箱'}}</text>
       </button>
     </view>
   </view>

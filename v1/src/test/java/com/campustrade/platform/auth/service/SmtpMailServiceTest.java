@@ -10,6 +10,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import java.util.Properties;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -66,6 +67,33 @@ class SmtpMailServiceTest {
         String html = message.getContent().toString();
         assertTrue(html.contains("绑定 QQ 邮箱"));
         assertTrue(html.contains("246801"));
+    }
+
+    @Test
+    void sendGoodsContactNotificationUsesBuyerAsReplyToAndIncludesGoods() throws Exception {
+        MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        when(mailSender.createMimeMessage()).thenReturn(message);
+
+        assertTrue(mailService.sendGoodsContactNotification(
+                "seller@qq.com",
+                "buyer@qq.com",
+                "软工-231",
+                "校园二手教材",
+                new BigDecimal("18.00")
+        ));
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        MimeMessage sent = captor.getValue();
+        assertEquals("安工大二手闲置平台 - 有买家想联系你", sent.getSubject());
+        assertEquals("seller@qq.com", ((InternetAddress) sent.getAllRecipients()[0]).getAddress());
+        assertEquals("buyer@qq.com", ((InternetAddress) sent.getReplyTo()[0]).getAddress());
+        String html = sent.getContent().toString();
+        assertTrue(html.contains("校园二手教材"));
+        assertTrue(html.contains("&yen;18"));
+        assertTrue(html.contains("软工-231"));
+        assertTrue(html.contains("buyer@qq.com"));
+        assertTrue(html.contains("直接回复本邮件即可联系买家"));
     }
 
     private MimeMessage send(VerificationPurposeEnum purpose, String code) throws Exception {

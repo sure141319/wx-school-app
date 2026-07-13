@@ -95,15 +95,15 @@ assert.match(detailWxml, /class="seller-contact-list"/, 'seller contact rows sho
 assert.match(detailWxml, /wx:if="{{goods\.seller\.wechatId \|\| goods\.seller\.qq}}"/, 'seller contacts should render only when at least one contact exists')
 assert.match(detailWxml, /卖家暂未填写联系方式/, 'seller section should show empty contact fallback')
 assert.match(detailWxml, /class="trade-safety-note"/, 'seller section should include an actionable in-person safety note')
-assert.match(detailWxml, /class="detail-contact-dock"/, 'detail should expose a persistent seller contact action')
+assert.match(detailWxml, /class="detail-contact-dock"/, 'detail should expose a persistent seller email action')
 assert.doesNotMatch(
   `${authWxml}\n${profileWxml}`,
   />\s*\u590d\u5236\s*</,
   'feedback copy actions should stay icon-only without visible copy labels'
 )
 assert.match(detailWxml, /class="seller-contact-value">{{goods\.seller\.qq}}<\/text>\s*<button class="btn-copy seller-copy-btn"[\s\S]*src="\/static\/icon-copy\.svg"/, 'seller contact copy action should sit right after the contact value as an svg icon')
-assert.doesNotMatch(detailWxml, /detail-contact-icon|icon-copy-light\.svg/, 'persistent detail copy action should not use the copy svg icon')
-assert.match(detailWxml, /class="detail-contact-btn"[\s\S]*?<text>\u590d\u5236<\/text>/, 'persistent detail copy action should use text copy')
+assert.doesNotMatch(detailWxml, /detail-contact-icon|icon-copy-light\.svg/, 'persistent detail email action should not use the copy svg icon')
+assert.match(detailWxml, /class="detail-contact-btn"[\s\S]*?bindtap="contactSellerByEmail"[\s\S]*?'发邮箱'/, 'persistent detail action should trigger one-tap seller email')
 
 assert.match(assertCssBlock('.home-hero'), /border-radius:\s*36rpx/, 'home hero should use a friendly rounded silhouette')
 assert.match(globalCss, /--campus-pine-800:\s*#214E42/, 'campus palette should include a deep pine foundation')
@@ -151,8 +151,8 @@ assert.match(assertCssBlock('.seller-copy-btn'), /width:\s*56rpx/, 'seller conta
 assert.match(assertCssBlock('.seller-copy-btn'), /flex:\s*0 0 56rpx/, 'seller contact copy action should stay next to the value without stretching')
 assert.match(assertCssBlock('.hero-publish-btn'), /border-radius:\s*999rpx/, 'home publish action should use pill corners')
 assert.match(assertCssBlock('.detail-contact-btn'), /border-radius:\s*999rpx/, 'detail contact action should use pill corners')
-assert.match(assertCssBlock('.detail-contact-btn'), /min-width:\s*116rpx/, 'persistent copy action should size as a text button')
-assert.doesNotMatch(globalCss, /\.detail-contact-icon/, 'persistent copy action should not keep unused icon styles')
+assert.match(assertCssBlock('.detail-contact-btn'), /min-width:\s*152rpx/, 'persistent email action should leave enough room for loading labels')
+assert.doesNotMatch(globalCss, /\.detail-contact-icon/, 'persistent email action should not keep unused icon styles')
 assert.match(assertCssBlock('.publish-submit-btn'), /border-radius:\s*999rpx/, 'publish submit action should use pill corners')
 assert.match(assertCssBlock('.publish-intro'), /background:\s*var\(--publish-intro-background\)/, 'publish intro should share the medium campus visual language')
 assert.match(publishWxml, /src="\/static\/icon-shield-light\.svg"/, 'publish audit badge should use the high-contrast light shield icon')
