@@ -2,6 +2,7 @@ package com.campustrade.platform.upload.service;
 
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.config.AppProperties;
+import com.campustrade.platform.upload.dataobject.UploadObjectDO;
 import com.campustrade.platform.upload.dto.response.UploadResponseDTO;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
@@ -11,6 +12,7 @@ import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -20,8 +22,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -34,11 +39,14 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -55,28 +63,102 @@ public class UploadService {
             ".heif", List.of("image/heif", "image/heic")
     );
     private static final int IMAGE_HEADER_BYTES = 32;
+    private static final long MAX_UPLOAD_BYTES = 10L * 1024L * 1024L;
+    private static final int MAX_IMAGE_WIDTH = 10_000;
+    private static final int MAX_IMAGE_HEIGHT = 10_000;
+    private static final long MAX_IMAGE_PIXELS = 50_000_000L;
     private static final ZoneId UPLOAD_TIME_ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final DateTimeFormatter OBJECT_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String USAGE_AVATAR = "avatar";
     private static final String USAGE_GOODS = "goods";
-    private static final int THUMBNAIL_MAX_SIZE = 480;
-    private static final float THUMBNAIL_QUALITY = 0.78f;
-    private static final String THUMBNAIL_FORMAT = "jpg";
-    private static final String THUMBNAIL_CONTENT_TYPE = "image/jpeg";
+    private static final int THUMBNAIL_MAX_SIZE = 640;
+    private static final int THUMBNAIL_DECODE_MAX_SIZE = 960;
+    private static final int AVATAR_DECODE_MAX_SIZE = 768;
+    private static final int AVATAR_MAX_SIZE = 320;
+    private static final int VARIANT_DECODE_MAX_SIZE = 2_560;
+    private static final int DISPLAY_MAX_SIZE = 1_600;
+    private static final float THUMBNAIL_QUALITY = 0.70f;
+    private static final float AVATAR_QUALITY = 0.72f;
+    private static final float DISPLAY_QUALITY = 0.82f;
+    private static final String WEBP_FORMAT = "webp";
+    private static final String WEBP_CONTENT_TYPE = "image/webp";
+    private static final String IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UploadService.class);
 
     private final MinioClient minioClient;
     private final AppProperties.Minio minioProperties;
+    private final UploadLifecycleService uploadLifecycleService;
     private final String apiBaseUrl;
     private volatile boolean bucketReady;
 
-    public UploadService(MinioClient minioClient, AppProperties appProperties) {
+    public record ImageVariantKeys(
+            String thumbnailObjectKey,
+            String displayObjectKey,
+            String auditThumbnailObjectKey
+    ) {
+        private static ImageVariantKeys empty() {
+            return new ImageVariantKeys(null, null, null);
+        }
+    }
+
+    private record VariantPayload(String objectKey, byte[] bytes) {
+    }
+
+    private record PreparedVariants(
+            VariantPayload master,
+            VariantPayload thumbnail
+    ) {
+        private static PreparedVariants empty() {
+            return new PreparedVariants(null, null);
+        }
+
+        private ImageVariantKeys keys() {
+            return new ImageVariantKeys(
+                    thumbnail == null ? null : thumbnail.objectKey(),
+                    null,
+                    null
+            );
+        }
+
+        private boolean completeForUpload() {
+            return master != null && thumbnail != null;
+        }
+
+        private long totalBytes() {
+            long total = 0;
+            for (VariantPayload payload : payloads()) {
+                total += payload.bytes().length;
+            }
+            return total;
+        }
+
+        private List<VariantPayload> payloads() {
+            List<VariantPayload> result = new ArrayList<>(2);
+            if (master != null) {
+                result.add(master);
+            }
+            if (thumbnail != null) {
+                result.add(thumbnail);
+            }
+            return result;
+        }
+    }
+
+    @Autowired
+    public UploadService(MinioClient minioClient,
+                         AppProperties appProperties,
+                         UploadLifecycleService uploadLifecycleService) {
         this.minioClient = minioClient;
         this.minioProperties = appProperties.getMinio();
+        this.uploadLifecycleService = uploadLifecycleService;
         this.apiBaseUrl = StringUtils.hasText(appProperties.getApiBaseUrl())
                 ? trimTrailingSlash(appProperties.getApiBaseUrl().trim())
                 : "";
+    }
+
+    public UploadService(MinioClient minioClient, AppProperties appProperties) {
+        this(minioClient, appProperties, null);
     }
 
     public UploadResponseDTO storeImage(MultipartFile file) {
@@ -85,94 +167,242 @@ public class UploadService {
 
     public UploadResponseDTO storeImage(MultipartFile file, String usage, Long userId) {
         validateImage(file);
-        ensureBucketReady();
+        String normalizedUsage = normalizeUsage(usage);
+        String extension = ".webp";
+        String objectKey = buildObjectKey(extension, normalizedUsage, userId);
+        UploadLifecycleService lifecycle = requireUploadLifecycle();
+        UploadObjectDO reservation = lifecycle.reserve(userId, normalizedUsage, objectKey, file.getSize());
+        List<String> writtenObjectKeys = new ArrayList<>(2);
 
-        String extension = getExtension(file.getOriginalFilename());
-        String objectKey = buildObjectKey(extension, usage, userId);
+        try {
+            ensureBucketReady();
+            PreparedVariants preparedVariants = USAGE_GOODS.equals(normalizedUsage)
+                    ? prepareVariants(file, objectKey)
+                    : PreparedVariants.empty();
+            VariantPayload optimizedAvatar = USAGE_AVATAR.equals(normalizedUsage)
+                    ? prepareAvatar(file, objectKey)
+                    : null;
+            long totalSizeBytes = optimizedAvatar == null
+                    ? preparedVariants.totalBytes()
+                    : optimizedAvatar.bytes().length;
 
-        try (InputStream inputStream = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(minioProperties.getBucket())
-                            .object(objectKey)
-                            .stream(inputStream, file.getSize(), -1)
-                            .contentType(resolveContentType(file))
-                            .build());
+            if (optimizedAvatar != null) {
+                putWebpVariant(optimizedAvatar);
+                writtenObjectKeys.add(objectKey);
+            }
+            for (VariantPayload payload : preparedVariants.payloads()) {
+                putWebpVariant(payload);
+                writtenObjectKeys.add(payload.objectKey());
+            }
+
+            ImageVariantKeys variants = preparedVariants.keys();
+            lifecycle.markStaged(reservation.getId(), userId, file.getSize(), variants, totalSizeBytes);
+            String url = StringUtils.hasText(minioProperties.getPublicBaseUrl())
+                    ? buildPublicUrl(objectKey)
+                    : buildProxyUrl(objectKey);
+            return new UploadResponseDTO(
+                    url,
+                    objectKey,
+                    buildDeliveryUrl(variants.thumbnailObjectKey()),
+                    variants.thumbnailObjectKey(),
+                    buildDeliveryUrl(variants.displayObjectKey()),
+                    variants.displayObjectKey(),
+                    buildDeliveryUrl(variants.auditThumbnailObjectKey()),
+                    variants.auditThumbnailObjectKey(),
+                    true
+            );
         } catch (Exception ex) {
+            boolean rolledBack = deleteObjectKeys(writtenObjectKeys);
+            if (rolledBack) {
+                lifecycle.deleteRecord(reservation.getId());
+            } else {
+                lifecycle.markForCleanup(reservation.getId());
+            }
+            if (ex instanceof AppException appException) {
+                throw appException;
+            }
             throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "图片上传失败", ex);
         }
-
-        String url = StringUtils.hasText(minioProperties.getPublicBaseUrl())
-                ? buildPublicUrl(objectKey)
-                : buildProxyUrl(objectKey);
-        String thumbnailObjectKey = storeThumbnail(file, objectKey);
-        String thumbnailUrl = StringUtils.hasText(thumbnailObjectKey)
-                ? (StringUtils.hasText(minioProperties.getPublicBaseUrl())
-                ? buildPublicUrl(thumbnailObjectKey)
-                : buildProxyUrl(thumbnailObjectKey))
-                : null;
-        return new UploadResponseDTO(url, objectKey, thumbnailUrl, thumbnailObjectKey);
     }
 
-    private String storeThumbnail(MultipartFile file, String objectKey) {
+    private PreparedVariants prepareVariants(MultipartFile file, String objectKey) throws Exception {
         try (InputStream inputStream = file.getInputStream()) {
-            return storeThumbnail(inputStream, objectKey);
-        } catch (Exception ex) {
-            log.warn("Failed to generate thumbnail for object: {}", objectKey, ex);
-            return null;
+            PreparedVariants prepared = prepareVariants(inputStream, objectKey, true);
+            if (!prepared.completeForUpload()) {
+                throw new AppException(
+                        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                        "图片格式暂不支持，请选择 JPG、PNG 或 WebP 图片"
+                );
+            }
+            return prepared;
         }
+    }
+
+    private VariantPayload prepareAvatar(MultipartFile file, String objectKey) throws Exception {
+        try (InputStream inputStream = file.getInputStream()) {
+            return new VariantPayload(objectKey, optimizeAvatar(inputStream));
+        }
+    }
+
+    byte[] optimizeAvatar(InputStream inputStream) throws IOException {
+        BufferedImage source = readImageWithSubsampling(inputStream, AVATAR_DECODE_MAX_SIZE);
+        if (source == null) {
+            throw new AppException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "头像格式暂不支持，请选择 JPG、PNG 或 WebP 图片");
+        }
+        byte[] encoded = encodeWebp(resize(source, AVATAR_MAX_SIZE), AVATAR_QUALITY);
+        if (encoded.length == 0) {
+            throw new IOException("WebP encoder is unavailable");
+        }
+        return encoded;
     }
 
     public String generateThumbnailForObject(String urlOrObjectKey) {
+        return generateVariantsForObject(urlOrObjectKey).thumbnailObjectKey();
+    }
+
+    public ImageVariantKeys generateVariantsForObject(String urlOrObjectKey) {
         String objectKey = extractObjectKey(urlOrObjectKey);
         if (!StringUtils.hasText(objectKey)) {
-            return null;
+            return ImageVariantKeys.empty();
         }
 
         ensureBucketReady();
+        UploadObjectDO trackedUpload = uploadLifecycleService == null
+                ? null
+                : uploadLifecycleService.findByObjectKey(objectKey);
         try (InputStream inputStream = getImageStream(objectKey)) {
-            return storeThumbnail(inputStream, objectKey);
+            PreparedVariants prepared = prepareVariants(inputStream, objectKey, false);
+            ImageVariantKeys generatedVariants = storePreparedVariants(prepared);
+            ImageVariantKeys trackedVariants = mergeTrackedVariantKeys(trackedUpload, generatedVariants);
+            if (trackedUpload != null
+                    && prepared.totalBytes() > 0
+                    && !uploadLifecycleService.updateTrackedVariants(objectKey, trackedVariants, prepared.totalBytes())) {
+                deleteObjectKeys(prepared.keys().thumbnailObjectKey() == null
+                        ? List.of()
+                        : List.of(prepared.keys().thumbnailObjectKey()));
+                return ImageVariantKeys.empty();
+            }
+            return generatedVariants;
         } catch (AppException ex) {
             throw ex;
         } catch (Exception ex) {
-            log.warn("Failed to backfill thumbnail for object: {}", objectKey, ex);
-            return null;
+            log.warn("Failed to backfill WebP variants for object: {}", objectKey, ex);
+            return ImageVariantKeys.empty();
         }
     }
 
-    private String storeThumbnail(InputStream inputStream, String objectKey) throws Exception {
-        BufferedImage source = ImageIO.read(inputStream);
-        if (source == null) {
-            log.warn("Skip thumbnail generation for unsupported image format: {}", objectKey);
-            return null;
+    private ImageVariantKeys mergeTrackedVariantKeys(UploadObjectDO trackedUpload,
+                                                      ImageVariantKeys generatedVariants) {
+        if (trackedUpload == null) {
+            return generatedVariants;
         }
+        return new ImageVariantKeys(
+                firstPresent(generatedVariants.thumbnailObjectKey(), trackedUpload.getThumbnailObjectKey()),
+                firstPresent(generatedVariants.displayObjectKey(), trackedUpload.getDisplayObjectKey()),
+                firstPresent(generatedVariants.auditThumbnailObjectKey(), trackedUpload.getAuditThumbnailObjectKey())
+        );
+    }
 
-        BufferedImage thumbnail = resizeForThumbnail(source);
-        byte[] bytes = encodeJpeg(thumbnail);
-        if (bytes.length == 0) {
-            log.warn("Skip thumbnail generation because JPEG encoder is unavailable: {}", objectKey);
-            return null;
+    private String firstPresent(String preferred, String fallback) {
+        return StringUtils.hasText(preferred) ? preferred : fallback;
+    }
+
+    private ImageVariantKeys storePreparedVariants(PreparedVariants prepared) throws Exception {
+        List<String> writtenObjectKeys = new ArrayList<>(1);
+        try {
+            for (VariantPayload payload : prepared.payloads()) {
+                putWebpVariant(payload);
+                writtenObjectKeys.add(payload.objectKey());
+            }
+            return prepared.keys();
+        } catch (Exception ex) {
+            deleteObjectKeys(writtenObjectKeys);
+            throw ex;
+        }
+    }
+
+    private PreparedVariants prepareVariants(InputStream inputStream,
+                                              String objectKey,
+                                              boolean includeCompressedMaster) throws Exception {
+        BufferedImage source = readImageForVariants(inputStream);
+        if (source == null) {
+            log.warn("Skip WebP variant generation for unsupported image format: {}", objectKey);
+            return PreparedVariants.empty();
         }
 
         String thumbnailObjectKey = buildThumbnailObjectKey(objectKey);
-        try (ByteArrayInputStream thumbnailInput = new ByteArrayInputStream(bytes)) {
+
+        return new PreparedVariants(
+                includeCompressedMaster
+                        ? prepareWebpVariant(objectKey, resize(source, DISPLAY_MAX_SIZE), DISPLAY_QUALITY)
+                        : null,
+                prepareWebpVariant(thumbnailObjectKey, resize(source, THUMBNAIL_MAX_SIZE), THUMBNAIL_QUALITY)
+        );
+    }
+
+    private VariantPayload prepareWebpVariant(String objectKey, BufferedImage image, float quality) throws Exception {
+        byte[] bytes = encodeWebp(image, quality);
+        if (bytes.length == 0) {
+            throw new IOException("WebP encoder is unavailable");
+        }
+        return new VariantPayload(objectKey, bytes);
+    }
+
+    private void putWebpVariant(VariantPayload payload) throws Exception {
+        try (ByteArrayInputStream variantInput = new ByteArrayInputStream(payload.bytes())) {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioProperties.getBucket())
-                            .object(thumbnailObjectKey)
-                            .stream(thumbnailInput, bytes.length, -1)
-                            .contentType(THUMBNAIL_CONTENT_TYPE)
+                            .object(payload.objectKey())
+                            .stream(variantInput, payload.bytes().length, -1)
+                            .contentType(WEBP_CONTENT_TYPE)
+                            .headers(Map.of("Cache-Control", IMMUTABLE_CACHE_CONTROL))
                             .build());
         }
-        return thumbnailObjectKey;
     }
 
-    private BufferedImage resizeForThumbnail(BufferedImage source) {
+    BufferedImage readImageForThumbnail(InputStream inputStream) throws IOException {
+        return readImageWithSubsampling(inputStream, THUMBNAIL_DECODE_MAX_SIZE);
+    }
+
+    BufferedImage readImageForVariants(InputStream inputStream) throws IOException {
+        return readImageWithSubsampling(inputStream, VARIANT_DECODE_MAX_SIZE);
+    }
+
+    private BufferedImage readImageWithSubsampling(InputStream inputStream, int decodeMaxSize) throws IOException {
+        try (ImageInputStream imageInput = ImageIO.createImageInputStream(inputStream)) {
+            if (imageInput == null) {
+                return null;
+            }
+
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
+            if (!readers.hasNext()) {
+                return null;
+            }
+
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(imageInput, true, true);
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                validateImageDimensions(width, height);
+
+                ImageReadParam readParam = reader.getDefaultReadParam();
+                int subsampling = calculateSubsampling(width, height, decodeMaxSize);
+                readParam.setSourceSubsampling(subsampling, subsampling, 0, 0);
+                return reader.read(0, readParam);
+            } finally {
+                reader.dispose();
+            }
+        }
+    }
+
+    private BufferedImage resize(BufferedImage source, int maxSize) {
         int sourceWidth = source.getWidth();
         int sourceHeight = source.getHeight();
         double scale = Math.min(
-                (double) THUMBNAIL_MAX_SIZE / sourceWidth,
-                (double) THUMBNAIL_MAX_SIZE / sourceHeight
+                (double) maxSize / sourceWidth,
+                (double) maxSize / sourceHeight
         );
         scale = Math.min(1.0d, scale);
 
@@ -194,8 +424,8 @@ public class UploadService {
         return target;
     }
 
-    private byte[] encodeJpeg(BufferedImage image) throws java.io.IOException {
-        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(THUMBNAIL_FORMAT);
+    byte[] encodeWebp(BufferedImage image, float quality) throws IOException {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(WEBP_FORMAT);
         if (!writers.hasNext()) {
             return new byte[0];
         }
@@ -207,7 +437,16 @@ public class UploadService {
             ImageWriteParam params = writer.getDefaultWriteParam();
             if (params.canWriteCompressed()) {
                 params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                params.setCompressionQuality(THUMBNAIL_QUALITY);
+                String[] compressionTypes = params.getCompressionTypes();
+                if (compressionTypes != null) {
+                    for (String compressionType : compressionTypes) {
+                        if ("Lossy".equalsIgnoreCase(compressionType)) {
+                            params.setCompressionType(compressionType);
+                            break;
+                        }
+                    }
+                }
+                params.setCompressionQuality(Math.max(0.0f, Math.min(1.0f, quality)));
             }
             writer.write(null, new IIOImage(image, null, null), params);
             return output.toByteArray();
@@ -244,9 +483,12 @@ public class UploadService {
         }
     }
 
-    private void validateImage(MultipartFile file) {
+    void validateImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new AppException(HttpStatus.BAD_REQUEST, "请选择要上传的图片");
+        }
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            throw new AppException(HttpStatus.PAYLOAD_TOO_LARGE, "图片文件不能超过 10MB");
         }
         String extension = getExtension(file.getOriginalFilename());
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
@@ -260,6 +502,58 @@ public class UploadService {
         if (!hasExpectedImageSignature(file, extension)) {
             throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
         }
+        validateImageDimensions(file, extension);
+    }
+
+    private void validateImageDimensions(MultipartFile file, String extension) {
+        try (InputStream inputStream = file.getInputStream();
+             ImageInputStream imageInput = ImageIO.createImageInputStream(inputStream)) {
+            if (imageInput == null) {
+                throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
+            }
+
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
+            if (!readers.hasNext()) {
+                if (".jpg".equals(extension) || ".jpeg".equals(extension) || ".png".equals(extension)) {
+                    throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
+                }
+                return;
+            }
+
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(imageInput, true, true);
+                validateImageDimensions(reader.getWidth(0), reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        } catch (AppException ex) {
+            throw ex;
+        } catch (IOException | RuntimeException ex) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效", ex);
+        }
+    }
+
+    void validateImageDimensions(int width, int height) {
+        long pixels = (long) width * height;
+        if (width <= 0 || height <= 0
+                || width > MAX_IMAGE_WIDTH
+                || height > MAX_IMAGE_HEIGHT
+                || pixels > MAX_IMAGE_PIXELS) {
+            throw new AppException(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    "图片分辨率过大，最大支持 10000×10000 且不超过 5000 万像素"
+            );
+        }
+    }
+
+    int calculateThumbnailSubsampling(int width, int height) {
+        return calculateSubsampling(width, height, THUMBNAIL_DECODE_MAX_SIZE);
+    }
+
+    private int calculateSubsampling(int width, int height, int decodeMaxSize) {
+        int largestDimension = Math.max(width, height);
+        return Math.max(1, (int) Math.ceil((double) largestDimension / decodeMaxSize));
     }
 
     private String normalizeContentType(String contentType) {
@@ -375,13 +669,25 @@ public class UploadService {
     }
 
     private String buildThumbnailObjectKey(String objectKey) {
+        return buildVariantObjectKey(objectKey, "thumbs", "thumb");
+    }
+
+    private String buildDisplayObjectKey(String objectKey) {
+        return buildVariantObjectKey(objectKey, "display", "display");
+    }
+
+    private String buildAuditThumbnailObjectKey(String objectKey) {
+        return buildVariantObjectKey(objectKey, "audit", "audit");
+    }
+
+    private String buildVariantObjectKey(String objectKey, String directoryName, String suffix) {
         int slashIndex = objectKey.lastIndexOf('/');
         String directory = slashIndex >= 0 ? objectKey.substring(0, slashIndex) : "";
         String filename = slashIndex >= 0 ? objectKey.substring(slashIndex + 1) : objectKey;
         int dotIndex = filename.lastIndexOf('.');
         String basename = dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
-        String prefix = StringUtils.hasText(directory) ? directory + "/thumbs/" : "thumbs/";
-        return prefix + basename + "_thumb." + THUMBNAIL_FORMAT;
+        String prefix = StringUtils.hasText(directory) ? directory + "/" + directoryName + "/" : directoryName + "/";
+        return prefix + basename + "_" + suffix + "." + WEBP_FORMAT;
     }
 
     private String resolveContentType(MultipartFile file) {
@@ -442,33 +748,59 @@ public class UploadService {
         return result;
     }
 
+    private String buildDeliveryUrl(String objectKey) {
+        if (!StringUtils.hasText(objectKey)) {
+            return null;
+        }
+        return StringUtils.hasText(minioProperties.getPublicBaseUrl())
+                ? buildPublicUrl(objectKey)
+                : buildProxyUrl(objectKey);
+    }
+
     public String validateUploadedImageReference(String urlOrObjectKey, String usage, Long userId) {
-        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, false);
+        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, null, null);
     }
 
     public String validateUploadedThumbnailReference(String urlOrObjectKey, String usage, Long userId) {
-        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, true);
+        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, "thumbs", "_thumb.webp");
     }
 
-    private String validateUploadedObjectReference(String urlOrObjectKey, String usage, Long userId, boolean thumbnail) {
+    public String validateUploadedDisplayReference(String urlOrObjectKey, String usage, Long userId) {
+        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, "display", "_display.webp");
+    }
+
+    public String validateUploadedAuditThumbnailReference(String urlOrObjectKey, String usage, Long userId) {
+        return validateUploadedObjectReference(urlOrObjectKey, usage, userId, "audit", "_audit.webp");
+    }
+
+    private String validateUploadedObjectReference(String urlOrObjectKey,
+                                                   String usage,
+                                                   Long userId,
+                                                   String variantDirectory,
+                                                   String expectedSuffix) {
         String objectKey = extractObjectKey(urlOrObjectKey);
         if (!StringUtils.hasText(objectKey)) {
             throw new AppException(HttpStatus.BAD_REQUEST, "图片地址无效");
         }
         String normalizedUsage = normalizeUsage(usage);
-        if (!isOwnedUploadObjectKey(objectKey, normalizedUsage, userId, thumbnail)) {
+        if (!isOwnedUploadObjectKey(objectKey, normalizedUsage, userId, variantDirectory, expectedSuffix)) {
             throw new AppException(HttpStatus.FORBIDDEN, "无权使用该图片");
         }
         ensureObjectExistsForReference(objectKey);
         return objectKey;
     }
 
-    private boolean isOwnedUploadObjectKey(String objectKey, String usage, Long userId, boolean thumbnail) {
+    private boolean isOwnedUploadObjectKey(String objectKey,
+                                           String usage,
+                                           Long userId,
+                                           String variantDirectory,
+                                           String expectedSuffix) {
         if (userId == null || userId <= 0 || !StringUtils.hasText(objectKey)) {
             return false;
         }
         String[] segments = objectKey.split("/");
-        int expectedLength = thumbnail ? 6 : 5;
+        boolean variant = StringUtils.hasText(variantDirectory);
+        int expectedLength = variant ? 6 : 5;
         if (segments.length != expectedLength) {
             return false;
         }
@@ -478,12 +810,18 @@ public class UploadService {
                 || !usage.equals(segments[3])) {
             return false;
         }
-        String filename = thumbnail ? segments[5] : segments[4];
-        if (thumbnail && !"thumbs".equals(segments[4])) {
+        String filename = variant ? segments[5] : segments[4];
+        if (variant && !variantDirectory.equals(segments[4])) {
             return false;
         }
-        if (thumbnail && !filename.endsWith("_thumb." + THUMBNAIL_FORMAT)) {
-            return false;
+        if (variant) {
+            boolean validSuffix = filename.endsWith(expectedSuffix);
+            if ("thumbs".equals(variantDirectory)) {
+                validSuffix = validSuffix || filename.endsWith("_thumb.jpg");
+            }
+            if (!validSuffix) {
+                return false;
+            }
         }
         return filename.startsWith(usage + "_u" + userId + "_");
     }
@@ -615,6 +953,141 @@ public class UploadService {
         return null;
     }
 
+    public ImageVariantKeys bindUploadedImageToGoods(String urlOrObjectKey, Long userId, Long goodsId) {
+        String objectKey = extractRequiredObjectKey(urlOrObjectKey);
+        UploadObjectDO record = requireUploadLifecycle().bindToGoods(objectKey, userId, goodsId);
+        return variantKeys(record);
+    }
+
+    public void bindUploadedImageToAvatar(String urlOrObjectKey, Long userId) {
+        String objectKey = extractRequiredObjectKey(urlOrObjectKey);
+        requireUploadLifecycle().bindToAvatar(objectKey, userId);
+    }
+
+    private String extractRequiredObjectKey(String urlOrObjectKey) {
+        String objectKey = extractObjectKey(urlOrObjectKey);
+        if (!StringUtils.hasText(objectKey)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片地址无效");
+        }
+        return objectKey;
+    }
+
+    public void deleteStagedUpload(Long userId, String urlOrObjectKey) {
+        String objectKey = extractObjectKey(urlOrObjectKey);
+        if (!StringUtils.hasText(objectKey)) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片地址无效");
+        }
+        UploadObjectDO record = requireUploadLifecycle().beginStagedDeletion(objectKey, userId);
+        if (record != null && !deleteClaimedUpload(record)) {
+            throw new AppException(HttpStatus.SERVICE_UNAVAILABLE, "图片删除失败，系统稍后会自动重试");
+        }
+    }
+
+    public boolean deleteClaimedUpload(UploadObjectDO record) {
+        boolean deleted = deleteObjectKeys(objectKeys(record));
+        if (deleted) {
+            requireUploadLifecycle().deleteRecord(record.getId());
+        }
+        return deleted;
+    }
+
+    public void deleteUploadGroupAfterCommit(String originalObjectKey,
+                                             String thumbnailObjectKey,
+                                             String displayObjectKey,
+                                             String auditThumbnailObjectKey) {
+        if (!StringUtils.hasText(originalObjectKey)) {
+            return;
+        }
+        Runnable deletion = () -> deleteUploadGroupNow(
+                originalObjectKey,
+                thumbnailObjectKey,
+                displayObjectKey,
+                auditThumbnailObjectKey
+        );
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            deletion.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                deletion.run();
+            }
+        });
+    }
+
+    private void deleteUploadGroupNow(String originalObjectKey,
+                                      String thumbnailObjectKey,
+                                      String displayObjectKey,
+                                      String auditThumbnailObjectKey) {
+        UploadLifecycleService lifecycle = requireUploadLifecycle();
+        UploadObjectDO record = lifecycle.beginBoundDeletion(extractObjectKey(originalObjectKey));
+        if (record != null) {
+            deleteClaimedUpload(record);
+            return;
+        }
+        deleteObjectKeys(List.of(
+                originalObjectKey,
+                thumbnailObjectKey == null ? "" : thumbnailObjectKey,
+                displayObjectKey == null ? "" : displayObjectKey,
+                auditThumbnailObjectKey == null ? "" : auditThumbnailObjectKey
+        ));
+    }
+
+    private ImageVariantKeys variantKeys(UploadObjectDO record) {
+        return new ImageVariantKeys(
+                record.getThumbnailObjectKey(),
+                record.getDisplayObjectKey(),
+                record.getAuditThumbnailObjectKey()
+        );
+    }
+
+    private List<String> objectKeys(UploadObjectDO record) {
+        return List.of(
+                record.getObjectKey(),
+                record.getThumbnailObjectKey() == null ? "" : record.getThumbnailObjectKey(),
+                record.getDisplayObjectKey() == null ? "" : record.getDisplayObjectKey(),
+                record.getAuditThumbnailObjectKey() == null ? "" : record.getAuditThumbnailObjectKey()
+        );
+    }
+
+    private UploadLifecycleService requireUploadLifecycle() {
+        if (uploadLifecycleService == null) {
+            throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "上传生命周期服务未初始化");
+        }
+        return uploadLifecycleService;
+    }
+
+    private boolean deleteObjectKeys(Iterable<String> urlOrObjectKeys) {
+        Set<String> uniqueObjectKeys = new LinkedHashSet<>();
+        for (String urlOrObjectKey : urlOrObjectKeys) {
+            String objectKey = extractObjectKey(urlOrObjectKey);
+            if (StringUtils.hasText(objectKey)) {
+                uniqueObjectKeys.add(objectKey);
+            }
+        }
+        boolean allDeleted = true;
+        for (String objectKey : uniqueObjectKeys) {
+            allDeleted = deleteObjectKey(objectKey) && allDeleted;
+        }
+        return allDeleted;
+    }
+
+    private boolean deleteObjectKey(String objectKey) {
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(minioProperties.getBucket())
+                            .object(objectKey)
+                            .build());
+            log.info("Successfully deleted object: {}", objectKey);
+            return true;
+        } catch (Exception ex) {
+            log.warn("Failed to delete object: {}", objectKey, ex);
+            return false;
+        }
+    }
+
     public void deleteObject(String urlOrObjectKey) {
         if (!StringUtils.hasText(urlOrObjectKey)) {
             return;
@@ -624,16 +1097,7 @@ public class UploadService {
             log.warn("Could not extract object key from URL: {}", urlOrObjectKey);
             return;
         }
-        try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(minioProperties.getBucket())
-                            .object(objectKey)
-                            .build());
-            log.info("Successfully deleted object: {}", objectKey);
-        } catch (Exception ex) {
-            log.warn("Failed to delete object: {}", objectKey, ex);
-        }
+        deleteObjectKey(objectKey);
     }
 
     public void deleteObjectAfterCommit(String urlOrObjectKey) {

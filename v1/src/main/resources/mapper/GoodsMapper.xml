@@ -42,6 +42,8 @@
         <result property="goodsId" column="goods_id"/>
         <result property="imageUrl" column="image_url"/>
         <result property="thumbnailUrl" column="thumbnail_url"/>
+        <result property="displayUrl" column="display_url"/>
+        <result property="auditThumbnailUrl" column="audit_thumbnail_url"/>
         <result property="sortOrder" column="sort_order"/>
         <result property="auditStatus" column="audit_status"/>
         <result property="auditRemark" column="audit_remark"/>
@@ -213,14 +215,14 @@
     </select>
 
     <select id="findImagesByGoodsId" resultMap="GoodsImageMap">
-        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+        SELECT id, goods_id, image_url, thumbnail_url, display_url, audit_thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
         FROM goods_image_do
         WHERE goods_id = #{goodsId}
         ORDER BY sort_order ASC, id ASC
     </select>
 
     <select id="findImagesByGoodsIds" resultMap="GoodsImageMap">
-        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+        SELECT id, goods_id, image_url, thumbnail_url, display_url, audit_thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
         FROM goods_image_do
         WHERE goods_id IN
         <foreach collection="goodsIds" item="goodsId" open="(" separator="," close=")">
@@ -230,7 +232,7 @@
     </select>
 
     <select id="findCoverImagesByGoodsIds" resultMap="GoodsImageMap">
-        SELECT gi.id, gi.goods_id, gi.image_url, gi.thumbnail_url, gi.sort_order, gi.audit_status, gi.audit_remark, gi.audited_by, gi.audited_at, gi.created_at
+        SELECT gi.id, gi.goods_id, gi.image_url, gi.thumbnail_url, gi.display_url, gi.audit_thumbnail_url, gi.sort_order, gi.audit_status, gi.audit_remark, gi.audited_by, gi.audited_at, gi.created_at
         FROM goods_image_do gi
         WHERE gi.goods_id IN
         <foreach collection="goodsIds" item="goodsId" open="(" separator="," close=")">
@@ -248,22 +250,28 @@
         ORDER BY gi.goods_id ASC
     </select>
 
-    <select id="findImagesMissingThumbnails" resultMap="GoodsImageMap">
-        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+    <select id="findImagesNeedingWebpVariants" resultMap="GoodsImageMap">
+        SELECT id, goods_id, image_url, thumbnail_url, display_url, audit_thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
         FROM goods_image_do
         WHERE image_url IS NOT NULL
           AND image_url &lt;&gt; ''
-          AND (thumbnail_url IS NULL OR thumbnail_url = '')
+          AND (
+            thumbnail_url IS NULL OR thumbnail_url = '' OR LOWER(thumbnail_url) NOT LIKE '%.webp'
+            OR (audit_thumbnail_url IS NOT NULL AND audit_thumbnail_url &lt;&gt; '')
+          )
         ORDER BY id ASC
         LIMIT #{limit}
     </select>
 
-    <select id="countImagesMissingThumbnails" resultType="long">
+    <select id="countImagesNeedingWebpVariants" resultType="long">
         SELECT COUNT(1)
         FROM goods_image_do
         WHERE image_url IS NOT NULL
           AND image_url &lt;&gt; ''
-          AND (thumbnail_url IS NULL OR thumbnail_url = '')
+          AND (
+            thumbnail_url IS NULL OR thumbnail_url = '' OR LOWER(thumbnail_url) NOT LIKE '%.webp'
+            OR (audit_thumbnail_url IS NOT NULL AND audit_thumbnail_url &lt;&gt; '')
+          )
     </select>
 
     <delete id="deleteImagesByGoodsId">
@@ -271,21 +279,21 @@
     </delete>
 
     <insert id="batchInsertImages">
-        INSERT INTO goods_image_do (goods_id, image_url, thumbnail_url, sort_order, audit_status)
+        INSERT INTO goods_image_do (goods_id, image_url, thumbnail_url, display_url, audit_thumbnail_url, sort_order, audit_status)
         VALUES
         <foreach collection="images" item="img" separator=",">
-            (#{goodsId}, #{img.imageUrl}, #{img.thumbnailUrl}, #{img.sortOrder}, #{img.auditStatus})
+            (#{goodsId}, #{img.imageUrl}, #{img.thumbnailUrl}, #{img.displayUrl}, #{img.auditThumbnailUrl}, #{img.sortOrder}, #{img.auditStatus})
         </foreach>
     </insert>
 
     <select id="findImageById" resultMap="GoodsImageMap">
-        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+        SELECT id, goods_id, image_url, thumbnail_url, display_url, audit_thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
         FROM goods_image_do
         WHERE id = #{id}
     </select>
 
     <select id="findImagesByAuditStatus" resultMap="GoodsImageMap">
-        SELECT id, goods_id, image_url, thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
+        SELECT id, goods_id, image_url, thumbnail_url, display_url, audit_thumbnail_url, sort_order, audit_status, audit_remark, audited_by, audited_at, created_at
         FROM goods_image_do
         WHERE audit_status = #{auditStatus}
         ORDER BY created_at DESC
@@ -313,6 +321,14 @@
     <update id="updateImageThumbnail">
         UPDATE goods_image_do
         SET thumbnail_url = #{thumbnailUrl}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateImageVariants">
+        UPDATE goods_image_do
+        SET thumbnail_url = #{thumbnailUrl},
+            display_url = #{displayUrl},
+            audit_thumbnail_url = #{auditThumbnailUrl}
         WHERE id = #{id}
     </update>
 

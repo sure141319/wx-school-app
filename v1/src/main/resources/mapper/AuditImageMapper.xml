@@ -12,6 +12,9 @@
         <result property="sellerWechatId" column="seller_wechat_id"/>
         <result property="sellerQq" column="seller_qq"/>
         <result property="imageUrl" column="image_url"/>
+        <result property="thumbnailUrl" column="thumbnail_url"/>
+        <result property="displayUrl" column="display_url"/>
+        <result property="auditThumbnailUrl" column="audit_thumbnail_url"/>
         <result property="sortOrder" column="sort_order"/>
         <result property="auditStatus" column="audit_status"/>
         <result property="auditRemark" column="audit_remark"/>
@@ -30,6 +33,9 @@
         u.wechat_id AS seller_wechat_id,
         u.qq AS seller_qq,
         gi.image_url AS image_url,
+        gi.thumbnail_url AS thumbnail_url,
+        gi.display_url AS display_url,
+        gi.audit_thumbnail_url AS audit_thumbnail_url,
         gi.sort_order AS sort_order,
         gi.audit_status AS audit_status,
         gi.audit_remark AS audit_remark,

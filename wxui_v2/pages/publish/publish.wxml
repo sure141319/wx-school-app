@@ -20,7 +20,7 @@
       </view>
       <view class="photo-grid {{errors.photos ? 'photo-grid-error' : ''}}">
         <view class="photo-item" wx:for="{{form.photos}}" wx:key="url">
-          <image src="{{item.url}}" mode="aspectFill" />
+          <image src="{{item.url}}" mode="aspectFill" lazy-load="true" />
           <view class="del-btn" data-index="{{index}}" bindtap="removePhoto">
             <image class="delete-icon" src="/static/icon-close-white.svg" mode="aspectFit" aria-hidden="true" />
           </view>

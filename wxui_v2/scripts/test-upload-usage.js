@@ -19,6 +19,30 @@ assert.match(
 )
 
 assert.match(
+  uploadTs,
+  /AVATAR_UPLOAD_MAX_EDGE\s*=\s*1024/,
+  'avatar uploads should cap their client-side source edge'
+)
+
+assert.match(
+  uploadTs,
+  /GOODS_UPLOAD_MAX_EDGE\s*=\s*2048/,
+  'goods uploads should cap their client-side source edge'
+)
+
+assert.match(
+  uploadTs,
+  /usage\s*===\s*'avatar'\s*\?\s*AVATAR_UPLOAD_MAX_EDGE\s*:\s*GOODS_UPLOAD_MAX_EDGE/,
+  'all uploads should calculate usage-specific resize options before compression'
+)
+
+assert.match(
+  profileTs,
+  /sizeType:\s*\['compressed'\]/,
+  'avatar media selection should request the compressed local image'
+)
+
+assert.match(
   profileTs,
   /uploadImage\(filePath,\s*'avatar'\)/,
   'profile avatar upload should pass usage=avatar'

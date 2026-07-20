@@ -77,7 +77,7 @@ public class AuditImageController {
 
     // ==================== 头像审核接口 ====================
 
-    @PostMapping("/thumbnails/backfill")
+    @PostMapping({"/thumbnails/backfill", "/variants/backfill"})
     public ApiResponse<ThumbnailBackfillResponseDTO> backfillThumbnails(
             @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
         UserPrincipal principal = AuthUtils.currentUser();

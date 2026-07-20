@@ -1,5 +1,9 @@
 server:
   port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    min-response-size: 2KB
+    mime-types: application/json,text/plain,text/html,text/css,text/javascript,application/javascript
   tomcat:
     max-swallow-size: 50MB
 
@@ -61,6 +65,11 @@ app:
   auth:
     max-login-failures: ${AUTH_MAX_LOGIN_FAILURES:5}
     lock-minutes: ${AUTH_LOCK_MINUTES:15}
+  contact-email:
+    cooldown-hours: ${CONTACT_EMAIL_COOLDOWN_HOURS:24}
+    hourly-limit: ${CONTACT_EMAIL_HOURLY_LIMIT:6}
+    hourly-window-minutes: ${CONTACT_EMAIL_HOURLY_WINDOW_MINUTES:60}
+    key-prefix: "contact:email:"
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
     port: ${MAIL_PORT:465}
@@ -80,6 +89,14 @@ app:
     secure: ${MINIO_SECURE:false}
     auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
     presign-expiry-days: ${MINIO_PRESIGN_EXPIRY_DAYS:7}
+  upload:
+    max-files-per-user: ${UPLOAD_MAX_FILES_PER_USER:200}
+    max-bytes-per-user: ${UPLOAD_MAX_BYTES_PER_USER:1073741824}
+    max-staged-files-per-user: ${UPLOAD_MAX_STAGED_FILES_PER_USER:20}
+    max-staged-bytes-per-user: ${UPLOAD_MAX_STAGED_BYTES_PER_USER:209715200}
+    staged-ttl-hours: ${UPLOAD_STAGED_TTL_HOURS:24}
+    cleanup-interval-ms: ${UPLOAD_CLEANUP_INTERVAL_MS:3600000}
+    cleanup-batch-size: ${UPLOAD_CLEANUP_BATCH_SIZE:100}
   image-audit:
     pending-placeholder-url: ${IMAGE_AUDIT_PENDING_PLACEHOLDER_URL:https://www.ahut-campus.site/campus-trade/images/2026/04/auditing.webp}
     reviewer-user-ids: ${IMAGE_AUDIT_REVIEWER_USER_IDS:1}

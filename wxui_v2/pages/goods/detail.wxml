@@ -12,7 +12,7 @@
         bindchange="onSwiperChange"
       >
         <swiper-item wx:for="{{goods.imageUrls}}" wx:key="*this">
-          <image class="detail-image" src="{{item}}" mode="aspectFit" bindtap="previewImage" data-index="{{index}}" />
+          <image class="detail-image" src="{{item}}" mode="aspectFit" lazy-load="true" bindtap="previewImage" data-index="{{index}}" />
         </swiper-item>
         <swiper-item wx:if="{{!goods.imageUrls.length}}">
           <view class="cover-empty">暂无图片</view>

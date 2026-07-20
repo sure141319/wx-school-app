@@ -367,7 +367,9 @@ function openImagePreview() {
   const selected = getSelectedItem()
   if (!selected) return
 
-  const imageUrl = state.currentTab === 'goods' ? selected.originalImageUrl : selected.avatarUrl
+  const imageUrl = state.currentTab === 'goods'
+    ? (selected.previewImageUrl || selected.originalImageUrl)
+    : selected.avatarUrl
   if (!imageUrl) return
 
   els.previewImage.src = imageUrl
@@ -829,8 +831,11 @@ function renderDetail() {
 
   const isGoods = state.currentTab === 'goods'
   const itemId = isGoods ? selected.imageId : selected.userId
-  const imageUrl = isGoods ? selected.originalImageUrl : selected.avatarUrl
-  const originalImageHref = escapeHtml(imageUrl || '#')
+  const imageUrl = isGoods
+    ? (selected.previewImageUrl || selected.originalImageUrl)
+    : selected.avatarUrl
+  const originalImageUrl = isGoods ? selected.originalImageUrl : selected.avatarUrl
+  const originalImageHref = escapeHtml(originalImageUrl || '#')
   const qq = isGoods ? selected.sellerQq : selected.qq
   const wechatId = isGoods ? selected.sellerWechatId : selected.wechatId
   const title = isGoods
@@ -878,7 +883,7 @@ function renderDetail() {
     <div class="detail-grid">
       <div class="image-stage">
         <div class="preview-frame">
-          <img src="${escapeHtml(imageUrl || '')}" alt="待审核图片" referrerpolicy="no-referrer">
+          <img src="${escapeHtml(imageUrl || '')}" alt="待审核图片" loading="lazy" decoding="async" referrerpolicy="no-referrer">
           <div class="preview-overlay">
             <span>#${itemId}</span>
             <span>${statusMeta.label}</span>

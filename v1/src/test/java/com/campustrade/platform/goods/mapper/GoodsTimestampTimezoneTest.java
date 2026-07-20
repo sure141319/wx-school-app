@@ -19,6 +19,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -45,7 +47,8 @@ class GoodsTimestampTimezoneTest {
         String imageKey = "images/2026/07/goods/goods_u" + sellerId + "_20260712120000_a1b2c3.jpg";
         String thumbnailKey = "images/2026/07/goods/thumbs/goods_u" + sellerId + "_20260712120000_a1b2c3_thumb.jpg";
         when(uploadService.validateUploadedImageReference(imageKey, "goods", sellerId)).thenReturn(imageKey);
-        when(uploadService.validateUploadedThumbnailReference(thumbnailKey, "goods", sellerId)).thenReturn(thumbnailKey);
+        when(uploadService.bindUploadedImageToGoods(eq(imageKey), eq(sellerId), anyLong()))
+                .thenReturn(new UploadService.ImageVariantKeys(thumbnailKey, null, null));
 
         LocalDateTime beforeBeijingNow = LocalDateTime.now(BEIJING_ZONE).minusSeconds(2);
         GoodsResponseDTO created = goodsService.create(sellerId, new GoodsSaveRequestDTO(

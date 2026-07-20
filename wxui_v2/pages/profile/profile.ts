@@ -1,5 +1,5 @@
 import { request } from '../../utils/request'
-import { uploadImage } from '../../utils/upload'
+import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { resolveProfileDisplayAvatar, resolveQqAvatarPreview } from '../../utils/avatar'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 
@@ -7,6 +7,9 @@ const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
 const QQ_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@qq\.com$/
 const SUPPORT_AUTHOR_AD_UNIT_ID = 'adunit-f3d20d1b06422a8d'
+const PROFILE_DATA_DIRTY_KEY = 'profileDataDirty'
+const GOODS_LIST_DIRTY_KEY = 'goodsListDirty'
+const PROFILE_CACHE_TTL_MS = 2 * 60 * 1000
 const CAMPUS_MINIPROGRAM_CODE_IMAGES = [
   '/static/ahut-campus-miniprogram-code.jpg',
   '/static/ahut-other-miniprogram-code.jpg'
@@ -22,7 +25,7 @@ interface ProfilePageData {
   qqPreviewAvatarUrl: string
   avatarValue: string
   avatarChanged: boolean
-  goodsItems: GoodsItem[]
+  goodsItems: MyGoodsListItem[]
   loading: boolean
   loadingMore: boolean
   saving: boolean
@@ -91,7 +94,8 @@ Component({
     },
 
     onShow() {
-      if (!wx.getStorageSync('token')) {
+      const token = wx.getStorageSync('token')
+      if (!token) {
         wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/profile/profile' })
         return
       }
@@ -103,7 +107,23 @@ Component({
       if (shouldOpenEmailBindForm) {
         wx.removeStorageSync('openEmailBindForm')
       }
-      this.loadProfile().then(() => {
+      const now = Date.now()
+      const dirty = Boolean(wx.getStorageSync(PROFILE_DATA_DIRTY_KEY))
+      const userChanged = (this as any)._loadedToken !== token
+      if (dirty) {
+        wx.removeStorageSync(PROFILE_DATA_DIRTY_KEY)
+      }
+      const shouldLoadProfile = dirty
+        || userChanged
+        || shouldOpenAccountBindModal
+        || now - ((this as any)._lastProfileLoadTime || 0) > PROFILE_CACHE_TTL_MS
+      const shouldLoadGoods = dirty
+        || userChanged
+        || now - ((this as any)._lastGoodsLoadTime || 0) > PROFILE_CACHE_TTL_MS
+      ;(this as any)._loadedToken = token
+
+      const profileLoad = shouldLoadProfile ? this.loadProfile() : Promise.resolve()
+      profileLoad.then(() => {
         if (shouldOpenAccountBindModal) {
           this.openAccountBindModal()
           if (shouldOpenEmailBindForm && !this.data.profile.email) {
@@ -111,7 +131,9 @@ Component({
           }
         }
       })
-      this.loadMyGoods(true)
+      if (shouldLoadGoods) {
+        this.loadMyGoods(true)
+      }
     },
 
     onReachBottom() {
@@ -168,6 +190,7 @@ Component({
           avatarValue: '',
           avatarChanged: false
         })
+        ;(this as any)._lastProfileLoadTime = Date.now()
       } catch (_err) {
         this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
       }
@@ -195,14 +218,11 @@ Component({
         }
 
         const pageData = res.data?.data as unknown as PageInfo | undefined
-        const items = ((pageData?.items || []) as unknown as GoodsItem[]).map(item => ({
-          ...item,
-          imageUrls: item.imageUrls || []
-        }))
+        const items = (pageData?.items || []) as unknown as MyGoodsListItem[]
         const total = pageData?.total || 0
         const hasMore = items.length === this.data.size && (nextPage + 1) * this.data.size < total
 
-        const allItems = (append && !resetPage)
+        const allItems: MyGoodsListItem[] = (append && !resetPage)
           ? [...this.data.goodsItems, ...items]
           : items
 
@@ -211,6 +231,9 @@ Component({
           page: nextPage + 1,
           hasMore
         })
+        if (resetPage) {
+          ;(this as any)._lastGoodsLoadTime = Date.now()
+        }
       } catch (_err) {
         if (!append) {
           this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
@@ -235,6 +258,7 @@ Component({
 
     closeProfileEditor() {
       if (this.data.saving) return
+      const stagedAvatar = this.data.avatarChanged ? this.data.avatarValue : ''
       this.setData({
         showProfileModal: false,
         profileDraft: { ...this.data.profile },
@@ -244,6 +268,9 @@ Component({
         avatarChanged: false,
         info: ''
       })
+      if (stagedAvatar) {
+        deleteStagedImage(stagedAvatar).catch(() => undefined)
+      }
     },
 
     onNicknameInput(e: WechatMiniprogram.InputEvent) {
@@ -268,11 +295,13 @@ Component({
         count: 1,
         mediaType: ['image'],
         sourceType: ['album', 'camera'],
+        sizeType: ['compressed'],
         success: async (res) => {
           const filePath = res.tempFiles?.[0]?.tempFilePath
           if (!filePath) return
           wx.showLoading({ title: '上传头像...', mask: true })
           try {
+            const previousStagedAvatar = this.data.avatarChanged ? this.data.avatarValue : ''
             const upload = await uploadImage(filePath, 'avatar')
             this.setData({
               'profileDraft.avatarUrl': upload.url,
@@ -282,6 +311,9 @@ Component({
               avatarChanged: true,
               info: '头像已上传，保存后生效'
             })
+            if (previousStagedAvatar && previousStagedAvatar !== upload.filename) {
+              deleteStagedImage(previousStagedAvatar).catch(() => undefined)
+            }
           } catch (err) {
             const msg = err instanceof Error ? err.message : COMMON_MESSAGES.AVATAR_UPLOAD_FAILED
             this.setData({ info: msg })
@@ -350,6 +382,11 @@ Component({
       } finally {
         this.setData({ saving: false })
       }
+    },
+
+    discardDraftAvatar() {
+      if (!this.data.avatarChanged || !this.data.avatarValue) return
+      deleteStagedImage(this.data.avatarValue).catch(() => undefined)
     },
 
     openAccountBindModal() {
@@ -681,6 +718,7 @@ Component({
           return
         }
         wx.showToast({ title: nextStatus === 'ON_SALE' ? '已上架' : '已下架', icon: 'success' })
+        wx.setStorageSync(GOODS_LIST_DIRTY_KEY, true)
         this.loadMyGoods(true)
       } catch (_err) {
         this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
@@ -707,6 +745,7 @@ Component({
               return
             }
             wx.showToast({ title: '已删除', icon: 'success' })
+            wx.setStorageSync(GOODS_LIST_DIRTY_KEY, true)
             this.loadMyGoods(true)
           } catch (_err) {
             this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
@@ -717,20 +756,7 @@ Component({
 
     onUnload() {
       this.destroySupportAuthorVideoAd()
-      const hasUnsavedAvatar = this.data.avatarChanged
-      if (hasUnsavedAvatar) {
-        wx.showModal({
-          title: '保存头像',
-          content: '你上传了头像但还没有保存，是否现在保存？',
-          confirmText: '保存',
-          cancelText: '不保存',
-          success: (res) => {
-            if (res.confirm) {
-              this.saveProfile()
-            }
-          }
-        })
-      }
+      this.discardDraftAvatar()
     },
 
     logout() {

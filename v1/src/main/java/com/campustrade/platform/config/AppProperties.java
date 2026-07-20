@@ -25,8 +25,10 @@ public class AppProperties {
 
     private VerificationCode verificationCode = new VerificationCode();
     private Auth auth = new Auth();
+    private ContactEmail contactEmail = new ContactEmail();
     private Mail mail = new Mail();
     private Minio minio = new Minio();
+    private Upload upload = new Upload();
     private Redis redis = new Redis();
     private Cache cache = new Cache();
     private Cors cors = new Cors();
@@ -64,6 +66,19 @@ public class AppProperties {
 
     @Getter
     @Setter
+    public static class ContactEmail {
+        @Min(1)
+        private int cooldownHours = 24;
+        @Min(1)
+        private int hourlyLimit = 6;
+        @Min(1)
+        private int hourlyWindowMinutes = 60;
+        @NotBlank
+        private String keyPrefix = "contact:email:";
+    }
+
+    @Getter
+    @Setter
     public static class Mail {
         @NotBlank
         private String host = "smtp.qq.com";
@@ -95,6 +110,25 @@ public class AppProperties {
         private boolean autoCreateBucket = true;
         @Min(1)
         private int presignExpiryDays = 7;
+    }
+
+    @Getter
+    @Setter
+    public static class Upload {
+        @Min(1)
+        private int maxFilesPerUser = 200;
+        @Min(1)
+        private long maxBytesPerUser = 1024L * 1024L * 1024L;
+        @Min(1)
+        private int maxStagedFilesPerUser = 20;
+        @Min(1)
+        private long maxStagedBytesPerUser = 200L * 1024L * 1024L;
+        @Min(1)
+        private int stagedTtlHours = 24;
+        @Min(1)
+        private long cleanupIntervalMs = 60L * 60L * 1000L;
+        @Min(1)
+        private int cleanupBatchSize = 100;
     }
 
     @Getter

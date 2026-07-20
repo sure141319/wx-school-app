@@ -3,6 +3,7 @@ package com.campustrade.platform.upload.controller;
 import com.campustrade.platform.upload.service.UploadService;
 import io.minio.StatObjectResponse;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -14,9 +15,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,6 +48,9 @@ class ImageProxyControllerTest {
 
         assertArrayEquals("image-data".getBytes(StandardCharsets.UTF_8), output.toByteArray());
         assertTrue(input.closed);
+        assertEquals("\"abc123\"", response.getHeaders().getETag());
+        assertTrue(response.getHeaders().getCacheControl().contains("max-age=31536000"));
+        assertTrue(response.getHeaders().getCacheControl().contains("immutable"));
     }
 
     @Test
@@ -87,6 +93,47 @@ class ImageProxyControllerTest {
         mockMvc.perform(get("/api/v1/images/2026/07/goods/thumbs/goods_u12_20260708183022_a8f3c2_thumb.jpg"))
                 .andExpect(status().isOk());
         verify(uploadService).getImageInfo("images/2026/07/goods/thumbs/goods_u12_20260708183022_a8f3c2_thumb.jpg");
+    }
+
+    @Test
+    void serveDisplaySupportsUsageSubdirectoryPaths() throws Exception {
+        UploadService uploadService = mock(UploadService.class);
+        ImageProxyController controller = new ImageProxyController(uploadService);
+        StatObjectResponse info = mock(StatObjectResponse.class);
+        String objectKey = "images/2026/07/goods/display/goods_u12_20260708183022_a8f3c2_display.webp";
+
+        when(info.contentType()).thenReturn("image/webp");
+        when(info.size()).thenReturn(10L);
+        when(info.etag()).thenReturn("abc123");
+        when(uploadService.getImageInfo(objectKey)).thenReturn(info);
+        when(uploadService.getImageStream(objectKey))
+                .thenReturn(new ByteArrayInputStream("webp-data".getBytes(StandardCharsets.UTF_8)));
+
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        mockMvc.perform(get("/api/v1/images/2026/07/goods/display/goods_u12_20260708183022_a8f3c2_display.webp"))
+                .andExpect(status().isOk());
+        verify(uploadService).getImageInfo(objectKey);
+    }
+
+    @Test
+    void returnsNotModifiedWithoutOpeningMinioStreamWhenEtagMatches() throws Exception {
+        UploadService uploadService = mock(UploadService.class);
+        ImageProxyController controller = new ImageProxyController(uploadService);
+        StatObjectResponse info = mock(StatObjectResponse.class);
+        String objectKey = "images/2026/07/goods/thumbs/goods_u12_20260708183022_a8f3c2_thumb.webp";
+
+        when(info.contentType()).thenReturn("image/webp");
+        when(info.size()).thenReturn(10L);
+        when(info.etag()).thenReturn("abc123");
+        when(uploadService.getImageInfo(objectKey)).thenReturn(info);
+
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        mockMvc.perform(get("/api/v1/images/2026/07/goods/thumbs/goods_u12_20260708183022_a8f3c2_thumb.webp")
+                        .header(HttpHeaders.IF_NONE_MATCH, "\"abc123\""))
+                .andExpect(status().isNotModified());
+        verify(uploadService, never()).getImageStream(objectKey);
     }
 
     private static class TrackingInputStream extends ByteArrayInputStream {

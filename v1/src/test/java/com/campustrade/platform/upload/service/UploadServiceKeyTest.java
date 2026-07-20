@@ -71,8 +71,23 @@ class UploadServiceKeyTest {
         );
 
         assertEquals(
-                "images/2026/07/goods/thumbs/goods_u12_20260708183022_a8f3c2_thumb.jpg",
+                "images/2026/07/goods/thumbs/goods_u12_20260708183022_a8f3c2_thumb.webp",
                 thumbnailKey
+        );
+    }
+
+    @Test
+    void buildsSeparateDisplayAndAuditWebpKeys() throws Exception {
+        UploadService service = newService();
+        String source = "images/2026/07/goods/goods_u12_20260708183022_a8f3c2.jpg";
+
+        assertEquals(
+                "images/2026/07/goods/display/goods_u12_20260708183022_a8f3c2_display.webp",
+                buildVariantObjectKey(service, "buildDisplayObjectKey", source)
+        );
+        assertEquals(
+                "images/2026/07/goods/audit/goods_u12_20260708183022_a8f3c2_audit.webp",
+                buildVariantObjectKey(service, "buildAuditThumbnailObjectKey", source)
         );
     }
 
@@ -108,6 +123,14 @@ class UploadServiceKeyTest {
 
     private static String buildThumbnailObjectKey(UploadService service, String objectKey) throws Exception {
         Method method = UploadService.class.getDeclaredMethod("buildThumbnailObjectKey", String.class);
+        method.setAccessible(true);
+        return (String) method.invoke(service, objectKey);
+    }
+
+    private static String buildVariantObjectKey(UploadService service,
+                                                String methodName,
+                                                String objectKey) throws Exception {
+        Method method = UploadService.class.getDeclaredMethod(methodName, String.class);
         method.setAccessible(true);
         return (String) method.invoke(service, objectKey);
     }

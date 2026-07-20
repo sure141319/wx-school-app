@@ -129,16 +129,31 @@ public class AuditImageService {
     public ThumbnailBackfillResponseDTO backfillMissingThumbnails(Long reviewerUserId, int limit) {
         ensureReviewer(reviewerUserId);
 
-        List<GoodsImageDO> images = goodsMapper.findImagesMissingThumbnails(limit);
+        List<GoodsImageDO> images = goodsMapper.findImagesNeedingWebpVariants(limit);
         int generated = 0;
         int skipped = 0;
         int failed = 0;
 
         for (GoodsImageDO image : images) {
             try {
-                String thumbnailKey = uploadService.generateThumbnailForObject(image.getImageUrl());
-                if (StringUtils.hasText(thumbnailKey)) {
-                    goodsMapper.updateImageThumbnail(image.getId(), thumbnailKey);
+                UploadService.ImageVariantKeys variants = StringUtils.hasText(image.getThumbnailUrl())
+                        ? new UploadService.ImageVariantKeys(image.getThumbnailUrl(), null, null)
+                        : uploadService.generateVariantsForObject(image.getImageUrl());
+                if (hasReusableThumbnail(variants)) {
+                    goodsMapper.updateImageVariants(
+                            image.getId(),
+                            variants.thumbnailObjectKey(),
+                            image.getDisplayUrl(),
+                            null
+                    );
+                    if (StringUtils.hasText(image.getThumbnailUrl())
+                            && !image.getThumbnailUrl().equals(variants.thumbnailObjectKey())) {
+                        uploadService.deleteObjectAfterCommit(image.getThumbnailUrl());
+                    }
+                    if (StringUtils.hasText(image.getAuditThumbnailUrl())
+                            && !image.getAuditThumbnailUrl().equals(variants.thumbnailObjectKey())) {
+                        uploadService.deleteObjectAfterCommit(image.getAuditThumbnailUrl());
+                    }
                     generated++;
                 } else {
                     skipped++;
@@ -152,8 +167,13 @@ public class AuditImageService {
             goodsListCacheInvalidator.evictAfterCommit();
         }
 
-        long remaining = goodsMapper.countImagesMissingThumbnails();
+        long remaining = goodsMapper.countImagesNeedingWebpVariants();
         return new ThumbnailBackfillResponseDTO(images.size(), generated, skipped, failed, remaining);
+    }
+
+    private boolean hasReusableThumbnail(UploadService.ImageVariantKeys variants) {
+        return variants != null
+                && StringUtils.hasText(variants.thumbnailObjectKey());
     }
 
     private void updateAuditStatus(Long imageId,
@@ -213,6 +233,7 @@ public class AuditImageService {
                 record.getSellerWechatId(),
                 record.getSellerQq(),
                 uploadService.getProxyUrl(record.getImageUrl()),
+                uploadService.getProxyUrl(selectAuditPreviewKey(record)),
                 record.getSortOrder(),
                 record.getAuditStatus(),
                 record.getAuditRemark(),
@@ -220,6 +241,19 @@ public class AuditImageService {
                 record.getAuditedAt(),
                 record.getCreatedAt()
         );
+    }
+
+    private String selectAuditPreviewKey(AuditImageRecordDO record) {
+        if (StringUtils.hasText(record.getThumbnailUrl())) {
+            return record.getThumbnailUrl();
+        }
+        if (StringUtils.hasText(record.getAuditThumbnailUrl())) {
+            return record.getAuditThumbnailUrl();
+        }
+        if (StringUtils.hasText(record.getDisplayUrl())) {
+            return record.getDisplayUrl();
+        }
+        return record.getImageUrl();
     }
 
     // ==================== 头像审核 ====================

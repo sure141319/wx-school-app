@@ -5,6 +5,7 @@ import com.campustrade.platform.goods.dto.request.GoodsStatusUpdateRequestDTO;
 import com.campustrade.platform.goods.dto.response.ContactEmailEligibilityResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.service.GoodsContactService;
 import com.campustrade.platform.goods.service.GoodsService;
@@ -98,7 +99,7 @@ public class GoodsController {
     }
 
     @GetMapping("/mine")
-    public ApiResponse<PageResponse<GoodsResponseDTO>> myGoods(
+    public ApiResponse<PageResponse<MyGoodsListItemResponseDTO>> myGoods(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
         UserPrincipal principal = AuthUtils.currentUser();

@@ -106,8 +106,10 @@ Component({
     },
 
     initNavigation() {
-      const systemInfo = wx.getSystemInfoSync()
-      const statusBarHeight = systemInfo.statusBarHeight || 20
+      const windowInfo = (wx as typeof wx & {
+        getWindowInfo(): { statusBarHeight: number }
+      }).getWindowInfo()
+      const statusBarHeight = windowInfo.statusBarHeight || 20
       let navContentHeight = 44
 
       try {

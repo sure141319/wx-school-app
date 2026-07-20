@@ -14,6 +14,8 @@ public class GoodsImageDO {
     private Long goodsId;
     private String imageUrl;
     private String thumbnailUrl;
+    private String displayUrl;
+    private String auditThumbnailUrl;
     private Integer sortOrder = 0;
     private ImageAuditStatusEnum auditStatus = ImageAuditStatusEnum.PENDING;
     private String auditRemark;

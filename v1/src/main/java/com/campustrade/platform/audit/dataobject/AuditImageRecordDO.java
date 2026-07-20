@@ -19,6 +19,9 @@ public class AuditImageRecordDO {
     private String sellerWechatId;
     private String sellerQq;
     private String imageUrl;
+    private String thumbnailUrl;
+    private String displayUrl;
+    private String auditThumbnailUrl;
     private Integer sortOrder;
     private ImageAuditStatusEnum auditStatus;
     private String auditRemark;

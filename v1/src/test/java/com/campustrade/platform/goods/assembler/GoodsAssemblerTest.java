@@ -4,6 +4,8 @@ import com.campustrade.platform.category.assembler.CategoryAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
+import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
@@ -98,6 +100,44 @@ class GoodsAssemblerTest {
 
         assertEquals("https://cdn.example.com/images/2026/06/rejected.jpg", response.coverImageUrl());
         verify(uploadService).getProxyUrl("images/2026/06/rejected.jpg");
+    }
+
+    @Test
+    void detailUsesHighQualityWebpDisplayVariantAndKeepsOriginalKey() {
+        UploadService uploadService = mock(UploadService.class);
+        GoodsAssembler assembler = newAssembler(uploadService);
+        GoodsImageDO image = image(
+                "images/2026/06/original.jpg",
+                "images/2026/06/thumbs/original_thumb.webp",
+                ImageAuditStatusEnum.APPROVED
+        );
+        image.setDisplayUrl("images/2026/06/display/original_display.webp");
+        GoodsDO goods = goodsWithImages(List.of(image));
+        when(uploadService.getProxyUrl("images/2026/06/display/original_display.webp"))
+                .thenReturn("https://cdn.example.com/images/2026/06/display/original_display.webp");
+
+        GoodsResponseDTO response = assembler.toResponse(goods);
+
+        assertEquals(
+                "https://cdn.example.com/images/2026/06/display/original_display.webp",
+                response.imageUrls().get(0)
+        );
+        assertEquals("images/2026/06/original.jpg", response.imageKeys().get(0));
+    }
+
+    @Test
+    void myGoodsListItemContainsOnlyManagementFields() {
+        GoodsAssembler assembler = newAssembler(mock(UploadService.class));
+        GoodsDO goods = goodsWithImages(List.of());
+        goods.setAuditRemark("请补充实拍图");
+
+        MyGoodsListItemResponseDTO response = assembler.toMyGoodsListItemResponse(goods);
+
+        assertEquals(goods.getId(), response.id());
+        assertEquals(goods.getTitle(), response.title());
+        assertEquals(goods.getPrice(), response.price());
+        assertEquals(goods.getStatus(), response.status());
+        assertEquals(goods.getAuditRemark(), response.auditRemark());
     }
 
     private GoodsAssembler newAssembler(UploadService uploadService) {

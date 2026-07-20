@@ -8,6 +8,7 @@ import com.campustrade.platform.upload.dto.response.UploadResponseDTO;
 import com.campustrade.platform.upload.service.UploadService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +33,13 @@ public class UploadController {
                                                       @RequestParam(value = "usage", required = false) String usage) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok("图片上传成功", uploadService.storeImage(file, usage, principal.userId()));
+    }
+
+    @DeleteMapping("/image")
+    public ApiResponse<Void> deleteStagedImage(@RequestParam("objectKey") String objectKey) {
+        UserPrincipal principal = AuthUtils.currentUser();
+        uploadService.deleteStagedUpload(principal.userId(), objectKey);
+        return ApiResponse.ok("暂存图片已删除", null);
     }
 
     @PostMapping("/presign/batch")

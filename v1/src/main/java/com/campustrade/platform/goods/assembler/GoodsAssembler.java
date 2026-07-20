@@ -6,6 +6,7 @@ import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.PublicGoodsResponseDTO;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
@@ -89,14 +90,27 @@ public class GoodsAssembler {
         );
     }
 
+    public MyGoodsListItemResponseDTO toMyGoodsListItemResponse(GoodsDO goods) {
+        return new MyGoodsListItemResponseDTO(
+                goods.getId(),
+                goods.getTitle(),
+                goods.getPrice(),
+                goods.getStatus(),
+                goods.getAuditRemark()
+        );
+    }
+
     private String toVisibleCoverImageUrl(GoodsImageDO image) {
         String coverKey = StringUtils.hasText(image.getThumbnailUrl())
                 ? image.getThumbnailUrl()
-                : image.getImageUrl();
+                : (StringUtils.hasText(image.getDisplayUrl()) ? image.getDisplayUrl() : image.getImageUrl());
         return uploadService.getProxyUrl(coverKey);
     }
 
     private String toVisibleImageUrl(GoodsImageDO image) {
-        return uploadService.getProxyUrl(image.getImageUrl());
+        String displayKey = StringUtils.hasText(image.getDisplayUrl())
+                ? image.getDisplayUrl()
+                : image.getImageUrl();
+        return uploadService.getProxyUrl(displayKey);
     }
 }

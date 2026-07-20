@@ -1,5 +1,5 @@
 import { request } from '../../utils/request'
-import { uploadImage } from '../../utils/upload'
+import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { hasContactMethod, validateContactDraft } from '../../utils/contact'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
 
@@ -10,6 +10,8 @@ const LOCATION_OPTIONS = ['本部', '东校区']
 const PRICE_INPUT_MIN_WIDTH = 104
 const PRICE_INPUT_MAX_WIDTH = 248
 const PRICE_GLYPH_WIDTH = 27
+const PROFILE_DATA_DIRTY_KEY = 'profileDataDirty'
+const GOODS_LIST_DIRTY_KEY = 'goodsListDirty'
 
 function getPriceInputWidth(value: string) {
   const displayValue = value || '0.00'
@@ -72,6 +74,7 @@ Component({
 
   methods: {
     onLoad(options: Record<string, string | undefined>) {
+      ;(this as any)._skipNextOnShow = true
       this.checkToken().then(valid => {
         if (!valid) return
         this.setData({ goodsId: options.id || '' })
@@ -83,6 +86,10 @@ Component({
     },
 
     onShow() {
+      if ((this as any)._skipNextOnShow) {
+        ;(this as any)._skipNextOnShow = false
+        return
+      }
       this.checkToken().then(valid => {
         if (!valid) return
         const editId = wx.getStorageSync('editGoodsId')
@@ -92,6 +99,10 @@ Component({
           this.loadGoods(editId)
         }
       })
+    },
+
+    onUnload() {
+      this.cleanupStagedPhotos(this.data.form.photos)
     },
 
     checkToken(): Promise<boolean> {
@@ -174,7 +185,8 @@ Component({
             categoryId: String(goods.category?.id || ''),
             photos: (goods.imageUrls || []).map((url, i) => ({
               url,
-              filename: (goods.imageKeys || [])[i] || url
+              filename: (goods.imageKeys || [])[i] || url,
+              staged: false
             }))
           }
         })
@@ -237,14 +249,34 @@ Component({
           const files = res.tempFiles || []
           wx.showLoading({ title: '上传中...', mask: true })
           try {
-            const results = await Promise.all(
-              files.map(file => uploadImage(file.tempFilePath, 'goods'))
-            )
-            const photos = this.data.form.photos.concat(results)
-            this.setData({ 'form.photos': photos, 'errors.photos': '', info: '' })
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : COMMON_MESSAGES.IMAGE_UPLOAD_FAILED
-            this.setData({ info: msg })
+            const outcomes = await Promise.all(files.map(async file => {
+              try {
+                return { ok: true as const, result: await uploadImage(file.tempFilePath, 'goods') }
+              } catch (error) {
+                return { ok: false as const, error }
+              }
+            }))
+            const results = outcomes.reduce<UploadResult[]>((uploaded, outcome) => {
+              if (outcome.ok) uploaded.push(outcome.result)
+              return uploaded
+            }, [])
+            const optimizedResults = results.map(result => ({
+              ...result,
+              url: result.displayUrl || result.thumbnailUrl || result.url,
+              staged: true
+            }))
+            const photos = this.data.form.photos.concat(optimizedResults)
+            const errors = outcomes.reduce<unknown[]>((failed, outcome) => {
+              if (!outcome.ok) failed.push(outcome.error)
+              return failed
+            }, [])
+            const firstError = errors[0]
+            const info = errors.length
+              ? (results.length
+                  ? `${errors.length} 张图片上传失败，已保留成功图片`
+                  : (firstError instanceof Error ? firstError.message : COMMON_MESSAGES.IMAGE_UPLOAD_FAILED))
+              : ''
+            this.setData({ 'form.photos': photos, 'errors.photos': '', info })
           } finally {
             wx.hideLoading()
           }
@@ -255,8 +287,21 @@ Component({
     removePhoto(e: WechatMiniprogram.TouchEvent) {
       const index = e.currentTarget.dataset.index as number
       const photos = this.data.form.photos.slice()
-      photos.splice(index, 1)
+      const removed = photos.splice(index, 1)[0]
       this.setData({ 'form.photos': photos })
+      if (removed?.staged && removed.filename) {
+        deleteStagedImage(removed.filename).catch(() => {
+          this.setData({ info: '图片已从预览移除，存储清理将在后台重试' })
+        })
+      }
+    },
+
+    cleanupStagedPhotos(photos: UploadResult[]) {
+      photos
+        .filter(photo => photo.staged && photo.filename)
+        .forEach(photo => {
+          deleteStagedImage(photo.filename).catch(() => undefined)
+        })
     },
 
     validateForm() {
@@ -397,7 +442,9 @@ Component({
         campusLocation: form.campusLocation,
         categoryId: form.categoryId || null,
         imageUrls: form.photos.map(item => item.filename),
-        imageThumbnailUrls: form.photos.map(item => item.thumbnailFilename || item.thumbnailUrl || '')
+        imageThumbnailUrls: form.photos.map(item => item.thumbnailFilename || item.thumbnailUrl || ''),
+        imageDisplayUrls: form.photos.map(item => item.displayFilename || item.displayUrl || ''),
+        imageAuditThumbnailUrls: form.photos.map(item => item.auditThumbnailFilename || item.auditThumbnailUrl || '')
       }
 
       this.setData({ submitting: true, info: '' })
@@ -424,6 +471,8 @@ Component({
           title: this.data.goodsId ? '已更新，等待审核' : '已提交，等待审核',
           icon: 'success'
         })
+        wx.setStorageSync(PROFILE_DATA_DIRTY_KEY, true)
+        wx.setStorageSync(GOODS_LIST_DIRTY_KEY, true)
         this.resetForm()
         setTimeout(() => {
           wx.switchTab({ url: '/pages/profile/profile' })

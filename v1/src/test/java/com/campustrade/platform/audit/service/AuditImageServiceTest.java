@@ -53,16 +53,21 @@ class AuditImageServiceTest {
         record.setSellerWechatId("wx_seller_30");
         record.setSellerQq("123456789");
         record.setImageUrl("images/original.jpg");
+        record.setThumbnailUrl("images/thumbs/original_thumb.webp");
+        record.setAuditThumbnailUrl("images/audit/original_audit.webp");
         record.setAuditStatus(ImageAuditStatusEnum.PENDING);
         when(auditImageMapper.search(ImageAuditStatusEnum.PENDING, 10, 0)).thenReturn(List.of(record));
         when(auditImageMapper.countSearch(ImageAuditStatusEnum.PENDING)).thenReturn(1L);
         when(uploadService.getProxyUrl("images/original.jpg")).thenReturn("/api/v1/images/proxy/original.jpg");
+        when(uploadService.getProxyUrl("images/thumbs/original_thumb.webp"))
+                .thenReturn("/api/v1/images/proxy/original_thumb.webp");
 
         var response = service.list(1L, null, 0, 10);
 
         assertEquals(1, response.total());
         assertEquals("wx_seller_30", response.items().get(0).sellerWechatId());
         assertEquals("123456789", response.items().get(0).sellerQq());
+        assertEquals("/api/v1/images/proxy/original_thumb.webp", response.items().get(0).previewImageUrl());
     }
 
     @Test
@@ -88,10 +93,14 @@ class AuditImageServiceTest {
     @Test
     void backfillMissingThumbnailsGeneratesThumbnailAndStoresObjectKey() {
         GoodsImageDO image = image(10L, "images/2026/04/original.jpg");
-        when(goodsMapper.findImagesMissingThumbnails(50)).thenReturn(List.of(image));
-        when(uploadService.generateThumbnailForObject("images/2026/04/original.jpg"))
-                .thenReturn("images/2026/04/thumbs/original_thumb.jpg");
-        when(goodsMapper.countImagesMissingThumbnails()).thenReturn(0L);
+        when(goodsMapper.findImagesNeedingWebpVariants(50)).thenReturn(List.of(image));
+        when(uploadService.generateVariantsForObject("images/2026/04/original.jpg"))
+                .thenReturn(new UploadService.ImageVariantKeys(
+                        "images/2026/04/thumbs/original_thumb.webp",
+                        null,
+                        null
+                ));
+        when(goodsMapper.countImagesNeedingWebpVariants()).thenReturn(0L);
 
         ThumbnailBackfillResponseDTO response = service.backfillMissingThumbnails(1L, 50);
 
@@ -100,18 +109,46 @@ class AuditImageServiceTest {
         assertEquals(0, response.skipped());
         assertEquals(0, response.failed());
         assertEquals(0L, response.remaining());
-        verify(goodsMapper).updateImageThumbnail(10L, "images/2026/04/thumbs/original_thumb.jpg");
+        verify(goodsMapper).updateImageVariants(
+                10L,
+                "images/2026/04/thumbs/original_thumb.webp",
+                null,
+                null
+        );
+    }
+
+    @Test
+    void backfillReusesExistingThumbnailAndDeletesLegacyAuditObject() {
+        GoodsImageDO image = image(10L, "images/2026/04/original.jpg");
+        image.setThumbnailUrl("images/2026/04/thumbs/original_thumb.webp");
+        image.setDisplayUrl("images/2026/04/display/original_display.webp");
+        image.setAuditThumbnailUrl("images/2026/04/audit/original_audit.webp");
+        when(goodsMapper.findImagesNeedingWebpVariants(50)).thenReturn(List.of(image));
+        when(goodsMapper.countImagesNeedingWebpVariants()).thenReturn(0L);
+
+        ThumbnailBackfillResponseDTO response = service.backfillMissingThumbnails(1L, 50);
+
+        assertEquals(1, response.generated());
+        verify(uploadService, never()).generateVariantsForObject(image.getImageUrl());
+        verify(goodsMapper).updateImageVariants(
+                10L,
+                image.getThumbnailUrl(),
+                image.getDisplayUrl(),
+                null
+        );
+        verify(uploadService).deleteObjectAfterCommit(image.getAuditThumbnailUrl());
     }
 
     @Test
     void backfillMissingThumbnailsKeepsProcessingWhenOneImageCannotBeConverted() {
         GoodsImageDO unsupported = image(10L, "images/2026/04/unsupported.heic");
         GoodsImageDO missing = image(11L, "images/2026/04/missing.jpg");
-        when(goodsMapper.findImagesMissingThumbnails(50)).thenReturn(List.of(unsupported, missing));
-        when(uploadService.generateThumbnailForObject("images/2026/04/unsupported.heic")).thenReturn(null);
-        when(uploadService.generateThumbnailForObject("images/2026/04/missing.jpg"))
+        when(goodsMapper.findImagesNeedingWebpVariants(50)).thenReturn(List.of(unsupported, missing));
+        when(uploadService.generateVariantsForObject("images/2026/04/unsupported.heic"))
+                .thenReturn(new UploadService.ImageVariantKeys(null, null, null));
+        when(uploadService.generateVariantsForObject("images/2026/04/missing.jpg"))
                 .thenThrow(new AppException(HttpStatus.NOT_FOUND, "image not found"));
-        when(goodsMapper.countImagesMissingThumbnails()).thenReturn(2L);
+        when(goodsMapper.countImagesNeedingWebpVariants()).thenReturn(2L);
 
         ThumbnailBackfillResponseDTO response = service.backfillMissingThumbnails(1L, 50);
 
@@ -120,8 +157,8 @@ class AuditImageServiceTest {
         assertEquals(1, response.skipped());
         assertEquals(1, response.failed());
         assertEquals(2L, response.remaining());
-        verify(goodsMapper, never()).updateImageThumbnail(10L, null);
-        verify(goodsMapper, never()).updateImageThumbnail(11L, null);
+        verify(goodsMapper, never()).updateImageVariants(10L, null, null, null);
+        verify(goodsMapper, never()).updateImageVariants(11L, null, null, null);
     }
 
     @Test

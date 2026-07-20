@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campustrade.platform.upload.mapper.UploadObjectMapper">
+
+    <resultMap id="UploadObjectMap" type="com.campustrade.platform.upload.dataobject.UploadObjectDO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="usageType" column="usage_type"/>
+        <result property="objectKey" column="object_key"/>
+        <result property="thumbnailObjectKey" column="thumbnail_object_key"/>
+        <result property="displayObjectKey" column="display_object_key"/>
+        <result property="auditThumbnailObjectKey" column="audit_thumbnail_object_key"/>
+        <result property="sourceSizeBytes" column="source_size_bytes"/>
+        <result property="totalSizeBytes" column="total_size_bytes"/>
+        <result property="status" column="status"/>
+        <result property="boundType" column="bound_type"/>
+        <result property="boundId" column="bound_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="expiresAt" column="expires_at"/>
+    </resultMap>
+
+    <sql id="UploadObjectColumns">
+        id, user_id, usage_type, object_key, thumbnail_object_key,
+        display_object_key, audit_thumbnail_object_key, source_size_bytes, total_size_bytes,
+        status, bound_type, bound_id, created_at, updated_at, expires_at
+    </sql>
+
+    <select id="lockUserForUpload" resultType="long">
+        SELECT id FROM users WHERE id = #{userId} FOR UPDATE
+    </select>
+
+    <select id="countAllByUser" resultType="long">
+        SELECT COUNT(1) FROM upload_object_do WHERE user_id = #{userId}
+    </select>
+
+    <select id="sumAllBytesByUser" resultType="long">
+        SELECT COALESCE(SUM(total_size_bytes), 0) FROM upload_object_do WHERE user_id = #{userId}
+    </select>
+
+    <select id="countStagedByUser" resultType="long">
+        SELECT COUNT(1)
+        FROM upload_object_do
+        WHERE user_id = #{userId} AND status IN ('UPLOADING', 'STAGED', 'DELETING')
+    </select>
+
+    <select id="sumStagedBytesByUser" resultType="long">
+        SELECT COALESCE(SUM(total_size_bytes), 0)
+        FROM upload_object_do
+        WHERE user_id = #{userId} AND status IN ('UPLOADING', 'STAGED', 'DELETING')
+    </select>
+
+    <insert id="insert" parameterType="com.campustrade.platform.upload.dataobject.UploadObjectDO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO upload_object_do (
+            user_id, usage_type, object_key, source_size_bytes, total_size_bytes, status,
+            created_at, updated_at, expires_at
+        ) VALUES (
+            #{userId}, #{usageType}, #{objectKey}, #{sourceSizeBytes}, #{totalSizeBytes}, #{status},
+            #{createdAt}, #{updatedAt}, #{expiresAt}
+        )
+    </insert>
+
+    <select id="findByObjectKey" resultMap="UploadObjectMap">
+        SELECT <include refid="UploadObjectColumns"/>
+        FROM upload_object_do
+        WHERE object_key = #{objectKey}
+    </select>
+
+    <select id="findByObjectKeyForUpdate" resultMap="UploadObjectMap">
+        SELECT <include refid="UploadObjectColumns"/>
+        FROM upload_object_do
+        WHERE object_key = #{objectKey}
+        FOR UPDATE
+    </select>
+
+    <update id="markStaged">
+        UPDATE upload_object_do
+        SET thumbnail_object_key = #{thumbnailObjectKey},
+            display_object_key = #{displayObjectKey},
+            audit_thumbnail_object_key = #{auditThumbnailObjectKey},
+            total_size_bytes = #{totalSizeBytes},
+            status = 'STAGED',
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND status = 'UPLOADING'
+    </update>
+
+    <update id="updateVariantsByObjectKey">
+        UPDATE upload_object_do
+        SET thumbnail_object_key = #{thumbnailObjectKey},
+            display_object_key = #{displayObjectKey},
+            audit_thumbnail_object_key = #{auditThumbnailObjectKey},
+            total_size_bytes = source_size_bytes + #{variantSizeBytes},
+            updated_at = #{updatedAt}
+        WHERE object_key = #{objectKey} AND status IN ('STAGED', 'BOUND')
+    </update>
+
+    <update id="bind">
+        UPDATE upload_object_do
+        SET status = 'BOUND',
+            bound_type = #{boundType},
+            bound_id = #{boundId},
+            expires_at = NULL,
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND status = 'STAGED'
+    </update>
+
+    <update id="markDeleting">
+        UPDATE upload_object_do
+        SET status = 'DELETING',
+            expires_at = #{retryAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND status IN ('UPLOADING', 'STAGED', 'BOUND', 'DELETING')
+    </update>
+
+    <update id="markExpiredDeleting">
+        UPDATE upload_object_do
+        SET status = 'DELETING',
+            expires_at = #{retryAt},
+            updated_at = #{now}
+        WHERE id = #{id}
+          AND status IN ('UPLOADING', 'STAGED', 'DELETING')
+          AND expires_at &lt;= #{now}
+    </update>
+
+    <select id="findExpired" resultMap="UploadObjectMap">
+        SELECT <include refid="UploadObjectColumns"/>
+        FROM upload_object_do
+        WHERE status IN ('UPLOADING', 'STAGED', 'DELETING')
+          AND expires_at &lt;= #{now}
+        ORDER BY expires_at ASC
+        LIMIT #{limit}
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM upload_object_do WHERE id = #{id}
+    </delete>
+</mapper>

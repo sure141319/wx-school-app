@@ -118,7 +118,8 @@ class UserServiceTest {
         assertEquals("new-name", result.getNickname());
         verify(userMapper).updateProfile(userId, "new-name", newObjectKey, null, null);
         verify(userMapper).updateAvatarAuditStatus(userId, ImageAuditStatusEnum.PENDING, null, null);
-        verify(uploadService).deleteObjectAfterCommit(oldObjectKey);
+        verify(uploadService).bindUploadedImageToAvatar(newObjectKey, userId);
+        verify(uploadService).deleteUploadGroupAfterCommit(oldObjectKey, null, null, null);
         verify(uploadService, never()).deleteObject(any());
     }
 

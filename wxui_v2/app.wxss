@@ -11,6 +11,8 @@ page {
   --campus-ginkgo-400: #D8BC6A;
   --campus-ginkgo-300: #E6D49A;
   --campus-celadon-100: #E4ECE5;
+  --campus-mist-50: #F5F6F0;
+  --campus-mist-100: #E7EEE8;
   --campus-paper-50: #FAF9F3;
   --campus-rice-100: #F3F0E5;
   --campus-stone-200: #D8E0D8;
@@ -23,6 +25,8 @@ page {
   --color-primary-dark: var(--campus-pine-900);
   --color-primary-soft: var(--campus-celadon-100);
   --color-natural-accent: var(--campus-ginkgo-400);
+  --color-app-background: var(--campus-mist-50);
+  --color-app-background-cool: var(--campus-mist-100);
   --color-surface-warm: var(--campus-rice-100);
   --color-surface: var(--campus-paper-50);
   --color-paper: #FFFDFC;
@@ -62,7 +66,7 @@ page {
   --button-primary-background: var(--color-primary);
   box-sizing: border-box;
   min-height: 100vh;
-  background: var(--color-surface-warm);
+  background: var(--color-app-background);
   color: var(--color-text-main);
   font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
   font-size: 28rpx;
@@ -145,13 +149,17 @@ input, textarea {
   min-height: 100vh;
   padding: 28rpx 28rpx calc(120rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(520rpx 420rpx at 92% -120rpx, rgba(127, 163, 140, 0.12), transparent 70%),
-    linear-gradient(180deg, #FCFBF6 0%, var(--color-surface-warm) 48%, #F7F5ED 100%);
+    radial-gradient(660rpx 520rpx at 104% -80rpx, rgba(164, 196, 179, 0.38), transparent 72%),
+    radial-gradient(560rpx 500rpx at -12% 86%, rgba(229, 211, 155, 0.18), transparent 74%),
+    linear-gradient(180deg, #F8F7F1 0%, var(--color-app-background-cool) 52%, #F5F1E8 100%);
 }
 
 .page-shell-plain {
   min-height: 100vh;
-  background: #F5F7FA;
+  background:
+    radial-gradient(640rpx 500rpx at 108% 8%, rgba(164, 196, 179, 0.32), transparent 72%),
+    radial-gradient(520rpx 460rpx at -10% 88%, rgba(229, 211, 155, 0.16), transparent 74%),
+    linear-gradient(180deg, #F7F7F1 0%, var(--color-app-background-cool) 54%, #F5F2EA 100%);
 }
 
 .safe-bottom {
@@ -560,9 +568,12 @@ input, textarea {
 .market-shell {
   padding: 24rpx 24rpx calc(120rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 12rpx 12rpx, rgba(53, 111, 93, 0.045) 2rpx, transparent 2rpx),
-    var(--color-surface);
-  background-size: 24rpx 24rpx;
+    radial-gradient(circle at 14rpx 14rpx, rgba(53, 111, 93, 0.05) 2rpx, transparent 2rpx),
+    radial-gradient(680rpx 540rpx at 108% 2%, rgba(164, 196, 179, 0.4), transparent 72%),
+    radial-gradient(560rpx 500rpx at -12% 82%, rgba(229, 211, 155, 0.2), transparent 74%),
+    linear-gradient(180deg, #F8F7F1 0%, var(--color-app-background-cool) 50%, #F5F1E8 100%);
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 28rpx 28rpx, 100% 100%, 100% 100%, 100% 100%;
 }
 
 .home-hero {
@@ -780,7 +791,8 @@ input, textarea {
   z-index: 8;
   width: 100%;
   padding: 20rpx 0 14rpx;
-  background: rgba(248, 249, 245, 0.96);
+  background: rgba(237, 243, 238, 0.95);
+  box-shadow: 0 12rpx 24rpx rgba(33, 78, 66, 0.025);
 }
 
 .search-bar {
@@ -1018,7 +1030,9 @@ input, textarea {
 
 .detail-page {
   padding-bottom: calc(190rpx + env(safe-area-inset-bottom));
-  background: #F1F5F1;
+  background:
+    radial-gradient(620rpx 480rpx at 106% 12%, rgba(164, 196, 179, 0.3), transparent 72%),
+    linear-gradient(180deg, #F0F4F0 0%, #F5F2E9 100%);
 }
 
 .detail-media-stage {
@@ -1412,9 +1426,12 @@ input, textarea {
 .publish-shell {
   padding-bottom: calc(142rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 12rpx 12rpx, rgba(53, 111, 93, 0.045) 2rpx, transparent 2rpx),
-    var(--color-surface);
-  background-size: 24rpx 24rpx;
+    radial-gradient(circle at 14rpx 14rpx, rgba(53, 111, 93, 0.05) 2rpx, transparent 2rpx),
+    radial-gradient(680rpx 540rpx at 108% 2%, rgba(164, 196, 179, 0.38), transparent 72%),
+    radial-gradient(560rpx 500rpx at -12% 82%, rgba(229, 211, 155, 0.18), transparent 74%),
+    linear-gradient(180deg, #F8F7F1 0%, var(--color-app-background-cool) 52%, #F5F1E8 100%);
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 28rpx 28rpx, 100% 100%, 100% 100%, 100% 100%;
 }
 
 .publish-intro {
@@ -1951,9 +1968,12 @@ input, textarea {
 .profile-shell {
   padding: 24rpx 24rpx calc(130rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 12rpx 12rpx, rgba(53, 111, 93, 0.045) 2rpx, transparent 2rpx),
-    var(--color-surface);
-  background-size: 24rpx 24rpx;
+    radial-gradient(circle at 14rpx 14rpx, rgba(53, 111, 93, 0.05) 2rpx, transparent 2rpx),
+    radial-gradient(680rpx 540rpx at 108% 2%, rgba(164, 196, 179, 0.38), transparent 72%),
+    radial-gradient(560rpx 500rpx at -12% 82%, rgba(229, 211, 155, 0.18), transparent 74%),
+    linear-gradient(180deg, #F8F7F1 0%, var(--color-app-background-cool) 52%, #F5F1E8 100%);
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 28rpx 28rpx, 100% 100%, 100% 100%, 100% 100%;
 }
 
 .profile-ticket {
@@ -2747,9 +2767,12 @@ input, textarea {
   min-height: 100vh;
   padding: 24rpx 24rpx 70rpx;
   background:
-    radial-gradient(circle at 12rpx 12rpx, rgba(53, 111, 93, 0.045) 2rpx, transparent 2rpx),
-    var(--color-surface);
-  background-size: 24rpx 24rpx;
+    radial-gradient(circle at 14rpx 14rpx, rgba(53, 111, 93, 0.05) 2rpx, transparent 2rpx),
+    radial-gradient(680rpx 540rpx at 108% 2%, rgba(164, 196, 179, 0.38), transparent 72%),
+    radial-gradient(560rpx 500rpx at -12% 82%, rgba(229, 211, 155, 0.18), transparent 74%),
+    linear-gradient(180deg, #F8F7F1 0%, var(--color-app-background-cool) 52%, #F5F1E8 100%);
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 28rpx 28rpx, 100% 100%, 100% 100%, 100% 100%;
 }
 
 .auth-topbar {

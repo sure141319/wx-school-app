@@ -2,6 +2,8 @@ import { request } from '../../utils/request'
 import { COMMON_MESSAGES, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
+const GOODS_LIST_DIRTY_KEY = 'goodsListDirty'
+const GOODS_LIST_CACHE_TTL_MS = 2 * 60 * 1000
 
 interface IndexPageData {
   loading: boolean
@@ -38,12 +40,21 @@ Component({
 
   methods: {
     onLoad() {
+      ;(this as any)._skipNextOnShow = true
       this.loadData()
     },
 
     onShow() {
+      if ((this as any)._skipNextOnShow) {
+        ;(this as any)._skipNextOnShow = false
+        return
+      }
+      const dirty = Boolean(wx.getStorageSync(GOODS_LIST_DIRTY_KEY))
+      if (dirty) {
+        wx.removeStorageSync(GOODS_LIST_DIRTY_KEY)
+      }
       const now = Date.now()
-      if (now - (this as any)._lastLoadTime > 30_000) {
+      if (dirty || now - ((this as any)._lastLoadTime || 0) > GOODS_LIST_CACHE_TTL_MS) {
         this.loadGoods(true)
       }
     },
@@ -175,6 +186,9 @@ Component({
           page: nextPage + 1,
           hasMore
         })
+        if (resetPage) {
+          wx.removeStorageSync(GOODS_LIST_DIRTY_KEY)
+        }
         ;(this as any)._lastLoadTime = Date.now()
       } catch (_err) {
         if (!append) {

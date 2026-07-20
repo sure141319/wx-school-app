@@ -42,4 +42,21 @@ class UploadControllerTest {
             SecurityContextHolder.clearContext();
         }
     }
+
+    @Test
+    void deletesOnlyThroughCurrentUsersStagedUploadPath() {
+        UploadService uploadService = mock(UploadService.class);
+        UploadController controller = new UploadController(uploadService);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(new UserPrincipal(12L, "demo@qq.com"), null));
+
+        try {
+            ApiResponse<Void> response = controller.deleteStagedImage("images/2026/07/goods/demo.jpg");
+
+            assertEquals("暂存图片已删除", response.message());
+            verify(uploadService).deleteStagedUpload(12L, "images/2026/07/goods/demo.jpg");
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
 }

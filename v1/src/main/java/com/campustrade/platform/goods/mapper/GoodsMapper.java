@@ -52,9 +52,9 @@ public interface GoodsMapper {
 
     List<GoodsImageDO> findCoverImagesByGoodsIds(@Param("goodsIds") List<Long> goodsIds);
 
-    List<GoodsImageDO> findImagesMissingThumbnails(@Param("limit") int limit);
+    List<GoodsImageDO> findImagesNeedingWebpVariants(@Param("limit") int limit);
 
-    long countImagesMissingThumbnails();
+    long countImagesNeedingWebpVariants();
 
     int deleteImagesByGoodsId(@Param("goodsId") Long goodsId);
 
@@ -74,4 +74,9 @@ public interface GoodsMapper {
     int updateImageSortOrder(@Param("id") Long id, @Param("sortOrder") Integer sortOrder);
 
     int updateImageThumbnail(@Param("id") Long id, @Param("thumbnailUrl") String thumbnailUrl);
+
+    int updateImageVariants(@Param("id") Long id,
+                            @Param("thumbnailUrl") String thumbnailUrl,
+                            @Param("displayUrl") String displayUrl,
+                            @Param("auditThumbnailUrl") String auditThumbnailUrl);
 }

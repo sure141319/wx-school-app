@@ -55,6 +55,14 @@ interface GoodsListItem {
   createdAt?: string
 }
 
+interface MyGoodsListItem {
+  id: number
+  title: string
+  price: number
+  status: string
+  auditRemark?: string
+}
+
 interface SellerInfo {
   id?: number
   nickname: string
@@ -92,6 +100,11 @@ interface UploadResult {
   filename: string
   thumbnailUrl?: string
   thumbnailFilename?: string
+  displayUrl?: string
+  displayFilename?: string
+  auditThumbnailUrl?: string
+  auditThumbnailFilename?: string
+  staged?: boolean
 }
 
 interface PublishForm {

@@ -17,7 +17,30 @@ public record GoodsSaveRequestDTO(
         @NotBlank @Size(max = 120) String campusLocation,
         Long categoryId,
         @NotEmpty @Size(max = 9) List<@NotBlank @Size(max = 500) String> imageUrls,
-        @Size(max = 9) List<@Size(max = 500) String> imageThumbnailUrls
+        @Size(max = 9) List<@Size(max = 500) String> imageThumbnailUrls,
+        @Size(max = 9) List<@Size(max = 500) String> imageDisplayUrls,
+        @Size(max = 9) List<@Size(max = 500) String> imageAuditThumbnailUrls
 ) {
+    public GoodsSaveRequestDTO(String title,
+                               String description,
+                               BigDecimal price,
+                               String conditionLevel,
+                               String campusLocation,
+                               Long categoryId,
+                               List<String> imageUrls,
+                               List<String> imageThumbnailUrls) {
+        this(
+                title,
+                description,
+                price,
+                conditionLevel,
+                campusLocation,
+                categoryId,
+                imageUrls,
+                imageThumbnailUrls,
+                null,
+                null
+        );
+    }
 }
 

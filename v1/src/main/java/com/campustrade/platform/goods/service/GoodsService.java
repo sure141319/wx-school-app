@@ -12,6 +12,7 @@ import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
+import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -83,7 +85,14 @@ public class GoodsService {
         goods.setUpdatedAt(now);
 
         goodsMapper.insert(goods);
-        replaceImages(goods.getId(), sellerId, request.imageUrls(), request.imageThumbnailUrls());
+        replaceImages(
+                goods.getId(),
+                sellerId,
+                request.imageUrls(),
+                request.imageThumbnailUrls(),
+                request.imageDisplayUrls(),
+                request.imageAuditThumbnailUrls()
+        );
         return getDetail(goods.getId());
     }
 
@@ -104,7 +113,14 @@ public class GoodsService {
         update.setAuditRemark(null);
 
         goodsMapper.update(update);
-        replaceImages(goodsId, currentUserId, request.imageUrls(), request.imageThumbnailUrls());
+        replaceImages(
+                goodsId,
+                currentUserId,
+                request.imageUrls(),
+                request.imageThumbnailUrls(),
+                request.imageDisplayUrls(),
+                request.imageAuditThumbnailUrls()
+        );
         resetImageAuditStatus(goodsId);
         tryAutoApprove(goodsId);
         goodsListCacheInvalidator.evictAfterCommit();
@@ -120,8 +136,12 @@ public class GoodsService {
 
         List<GoodsImageDO> images = goodsMapper.findImagesByGoodsId(goodsId);
         for (GoodsImageDO image : images) {
-            uploadService.deleteObjectAfterCommit(image.getImageUrl());
-            uploadService.deleteObjectAfterCommit(image.getThumbnailUrl());
+            uploadService.deleteUploadGroupAfterCommit(
+                    image.getImageUrl(),
+                    image.getThumbnailUrl(),
+                    image.getDisplayUrl(),
+                    image.getAuditThumbnailUrl()
+            );
         }
 
         conversationMapper.deleteByGoodsId(goodsId);
@@ -188,15 +208,15 @@ public class GoodsService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<GoodsResponseDTO> myGoods(Long sellerId, int page, int size) {
+    public PageResponse<MyGoodsListItemResponseDTO> myGoods(Long sellerId, int page, int size) {
         userService.getById(sellerId);
 
         int offset = page * size;
         List<GoodsDO> goodsList = goodsMapper.findBySellerId(sellerId, size, offset);
         long total = goodsMapper.countBySellerId(sellerId);
-        attachImages(goodsList);
-
-        List<GoodsResponseDTO> items = goodsList.stream().map(goodsAssembler::toResponse).toList();
+        List<MyGoodsListItemResponseDTO> items = goodsList.stream()
+                .map(goodsAssembler::toMyGoodsListItemResponse)
+                .toList();
         return PageResponse.of(items, total, page, size);
     }
 
@@ -271,7 +291,12 @@ public class GoodsService {
         }
     }
 
-    private void replaceImages(Long goodsId, Long ownerUserId, List<String> imageUrls, List<String> imageThumbnailUrls) {
+    private void replaceImages(Long goodsId,
+                               Long ownerUserId,
+                               List<String> imageUrls,
+                               List<String> imageThumbnailUrls,
+                               List<String> imageDisplayUrls,
+                               List<String> imageAuditThumbnailUrls) {
         List<GoodsImageDO> oldImages = goodsMapper.findImagesByGoodsId(goodsId);
         Map<String, GoodsImageDO> oldKeyMap = new HashMap<>();
         for (GoodsImageDO image : oldImages) {
@@ -280,6 +305,8 @@ public class GoodsService {
 
         Set<String> newKeys = new LinkedHashSet<>();
         Map<String, String> thumbnailByImageKey = new HashMap<>();
+        Map<String, String> displayByImageKey = new HashMap<>();
+        Map<String, String> auditThumbnailByImageKey = new HashMap<>();
         if (imageUrls != null) {
             for (int i = 0; i < imageUrls.size(); i++) {
                 String url = imageUrls.get(i);
@@ -287,9 +314,27 @@ public class GoodsService {
                 if (StringUtils.hasText(key)) {
                     newKeys.add(key);
                     GoodsImageDO existingImage = oldKeyMap.get(key);
-                    String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i, existingImage, ownerUserId);
-                    if (StringUtils.hasText(thumbnailKey)) {
-                        thumbnailByImageKey.put(key, thumbnailKey);
+                    if (existingImage == null) {
+                        UploadService.ImageVariantKeys variants = uploadService.bindUploadedImageToGoods(
+                                key,
+                                ownerUserId,
+                                goodsId
+                        );
+                        putIfPresent(thumbnailByImageKey, key, variants.thumbnailObjectKey());
+                        putIfPresent(displayByImageKey, key, variants.displayObjectKey());
+                        putIfPresent(auditThumbnailByImageKey, key, variants.auditThumbnailObjectKey());
+                    } else {
+                        String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i, existingImage, ownerUserId);
+                        putIfPresent(thumbnailByImageKey, key, thumbnailKey);
+                        String displayKey = extractDisplayKey(imageDisplayUrls, i, existingImage, ownerUserId);
+                        putIfPresent(displayByImageKey, key, displayKey);
+                        String auditThumbnailKey = extractAuditThumbnailKey(
+                                imageAuditThumbnailUrls,
+                                i,
+                                existingImage,
+                                ownerUserId
+                        );
+                        putIfPresent(auditThumbnailByImageKey, key, auditThumbnailKey);
                     }
                 }
             }
@@ -297,8 +342,12 @@ public class GoodsService {
 
         for (GoodsImageDO oldImage : oldImages) {
             if (!newKeys.contains(oldImage.getImageUrl())) {
-                uploadService.deleteObjectAfterCommit(oldImage.getImageUrl());
-                uploadService.deleteObjectAfterCommit(oldImage.getThumbnailUrl());
+                uploadService.deleteUploadGroupAfterCommit(
+                        oldImage.getImageUrl(),
+                        oldImage.getThumbnailUrl(),
+                        oldImage.getDisplayUrl(),
+                        oldImage.getAuditThumbnailUrl()
+                );
                 goodsMapper.deleteImageById(oldImage.getId());
             }
         }
@@ -312,20 +361,42 @@ public class GoodsService {
                 image.setGoodsId(goodsId);
                 image.setImageUrl(key);
                 image.setThumbnailUrl(thumbnailByImageKey.get(key));
+                image.setDisplayUrl(displayByImageKey.get(key));
+                image.setAuditThumbnailUrl(auditThumbnailByImageKey.get(key));
                 image.setSortOrder(idx++);
                 image.setAuditStatus(ImageAuditStatusEnum.PENDING);
                 imagesToInsert.add(image);
             } else {
                 goodsMapper.updateImageSortOrder(existing.getId(), idx++);
                 String thumbnailKey = thumbnailByImageKey.get(key);
-                if (StringUtils.hasText(thumbnailKey) && !thumbnailKey.equals(existing.getThumbnailUrl())) {
-                    goodsMapper.updateImageThumbnail(existing.getId(), thumbnailKey);
+                String displayKey = displayByImageKey.get(key);
+                String auditThumbnailKey = auditThumbnailByImageKey.get(key);
+                String effectiveThumbnailKey = StringUtils.hasText(thumbnailKey) ? thumbnailKey : existing.getThumbnailUrl();
+                String effectiveDisplayKey = StringUtils.hasText(displayKey) ? displayKey : existing.getDisplayUrl();
+                String effectiveAuditThumbnailKey = StringUtils.hasText(auditThumbnailKey)
+                        ? auditThumbnailKey
+                        : existing.getAuditThumbnailUrl();
+                if (!Objects.equals(effectiveThumbnailKey, existing.getThumbnailUrl())
+                        || !Objects.equals(effectiveDisplayKey, existing.getDisplayUrl())
+                        || !Objects.equals(effectiveAuditThumbnailKey, existing.getAuditThumbnailUrl())) {
+                    goodsMapper.updateImageVariants(
+                            existing.getId(),
+                            effectiveThumbnailKey,
+                            effectiveDisplayKey,
+                            effectiveAuditThumbnailKey
+                    );
                 }
             }
         }
 
         if (!imagesToInsert.isEmpty()) {
             goodsMapper.batchInsertImages(goodsId, imagesToInsert);
+        }
+    }
+
+    private void putIfPresent(Map<String, String> target, String key, String value) {
+        if (StringUtils.hasText(value)) {
+            target.put(key, value);
         }
     }
 
@@ -357,6 +428,52 @@ public class GoodsService {
             return thumbnailKey;
         }
         return uploadService.validateUploadedThumbnailReference(trimmedThumbnailUrl, "goods", ownerUserId);
+    }
+
+    private String extractDisplayKey(List<String> imageDisplayUrls,
+                                     int index,
+                                     GoodsImageDO existingImage,
+                                     Long ownerUserId) {
+        if (imageDisplayUrls == null || index >= imageDisplayUrls.size()) {
+            return null;
+        }
+        String displayUrl = imageDisplayUrls.get(index);
+        if (!StringUtils.hasText(displayUrl)) {
+            return null;
+        }
+        String trimmedDisplayUrl = displayUrl.trim();
+        String displayKey = uploadService.extractObjectKey(trimmedDisplayUrl);
+        if (existingImage != null
+                && StringUtils.hasText(displayKey)
+                && displayKey.equals(existingImage.getDisplayUrl())) {
+            return displayKey;
+        }
+        return uploadService.validateUploadedDisplayReference(trimmedDisplayUrl, "goods", ownerUserId);
+    }
+
+    private String extractAuditThumbnailKey(List<String> imageAuditThumbnailUrls,
+                                            int index,
+                                            GoodsImageDO existingImage,
+                                            Long ownerUserId) {
+        if (imageAuditThumbnailUrls == null || index >= imageAuditThumbnailUrls.size()) {
+            return null;
+        }
+        String auditThumbnailUrl = imageAuditThumbnailUrls.get(index);
+        if (!StringUtils.hasText(auditThumbnailUrl)) {
+            return null;
+        }
+        String trimmedAuditThumbnailUrl = auditThumbnailUrl.trim();
+        String auditThumbnailKey = uploadService.extractObjectKey(trimmedAuditThumbnailUrl);
+        if (existingImage != null
+                && StringUtils.hasText(auditThumbnailKey)
+                && auditThumbnailKey.equals(existingImage.getAuditThumbnailUrl())) {
+            return auditThumbnailKey;
+        }
+        return uploadService.validateUploadedAuditThumbnailReference(
+                trimmedAuditThumbnailUrl,
+                "goods",
+                ownerUserId
+        );
     }
 
     private void resetImageAuditStatus(Long goodsId) {
