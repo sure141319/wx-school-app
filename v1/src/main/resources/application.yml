@@ -17,8 +17,6 @@ spring:
     driver-class-name: ${DB_DRIVER:com.mysql.cj.jdbc.Driver}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    hikari:
-      connection-init-sql: "SET time_zone = '+08:00'"
   jackson:
     time-zone: Asia/Shanghai
   flyway:

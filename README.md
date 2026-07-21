@@ -50,6 +50,12 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar   # 运行打包好的 JAR
 | `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | MinIO 配置 | — |
 | `MINIO_PUBLIC_BASE_URL` | 可公开访问的对象存储或 CDN 基础地址，配置后小程序图片 URL 直接走该地址 | — |
 
+生产环境的 `DB_URL` 必须显式要求 Connector/J 把 MySQL 会话固定为 UTC+8，例如：
+
+```text
+jdbc:mysql://localhost:3306/campus_trade?useSSL=false&connectionTimeZone=%2B08:00&forceConnectionTimeZoneToSession=true&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&allowPublicKeyRetrieval=true
+```
+
 ### 小程序 (wxui_v2/)
 
 使用微信开发者工具打开 `wxui_v2/` 目录。无需构建步骤，原生小程序项目直接运行。
