@@ -17,7 +17,7 @@ assert.match(appTs, /onRead:\s*\(\) => \{[\s\S]*wx\.setStorageSync/)
 assert.match(appTs, /readState\.date === today && readState\.revision === announcement\.revision/)
 assert.match(appTs, /BEIJING_UTC_OFFSET_MINUTES/)
 assert.match(appTs, /catch \(_error\)[\s\S]*公告加载失败不应阻塞小程序/)
-assert.match(appJson, /"announcement-popup":\s*"\/components\/announcement-popup\/index"/)
+assert.doesNotMatch(appJson, /"announcement-popup":\s*"\/components\/announcement-popup\/index"/, 'announcement popup should not be registered globally')
 assert.match(popupTs, /handleIgnore\(\)[\s\S]*action\?\.\(\)/)
 assert.match(popupTs, /handleRead\(\)[\s\S]*action\?\.\(\)/)
 assert.match(popupWxml, /bindtap="handleIgnore"[\s\S]*>忽略<\/button>/)
@@ -26,9 +26,11 @@ assert.match(popupWxml, /scroll-view[\s\S]*\{\{content\}\}/)
 assert.match(popupWxml, /show-scrollbar="\{\{true\}\}"/)
 assert.match(popupWxss, /\.announcement-panel[\s\S]*background:\s*#fffdfb/)
 
-for (const page of ['index/index', 'auth/auth', 'goods/detail', 'publish/publish', 'profile/profile']) {
+for (const page of ['index/index', 'auth/auth', 'goods/detail', 'publish/publish', 'profile/profile', 'about/about']) {
   const wxml = fs.readFileSync(path.join(root, 'pages', `${page}.wxml`), 'utf8')
+  const pageJson = fs.readFileSync(path.join(root, 'pages', `${page}.json`), 'utf8')
   assert.match(wxml, /<announcement-popup id="announcementPopup" \/>/, `${page} should mount the announcement popup`)
+  assert.match(pageJson, /"announcement-popup":\s*"\/components\/announcement-popup\/index"/, `${page} should register the announcement popup locally`)
 }
 
 console.log('announcement flow checks passed')

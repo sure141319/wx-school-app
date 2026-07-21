@@ -4,7 +4,8 @@
     "pages/auth/auth",
     "pages/goods/detail",
     "pages/publish/publish",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/about/about"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -12,9 +13,6 @@
     "navigationBarTitleText": "校园闲置集市",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F6F1E7"
-  },
-  "usingComponents": {
-    "announcement-popup": "/components/announcement-popup/index"
   },
   "tabBar": {
     "color": "#64748B",

@@ -98,6 +98,7 @@
         </view>
       </view>
     </view>
+
   </view>
 
   <view class="bottom-bar publish-bottom-bar">
@@ -114,7 +115,7 @@
   <view class="modal-dialog contact-modal" wx:if="{{showContactModal}}">
     <view class="modal-title">补全联系方式</view>
     <view class="modal-body contact-modal-body">
-      <text class="modal-text">请先填写联系方式，方便同校同学联系你后再发布商品。</text>
+      <text class="modal-text">请先填写联系方式，方便同校同学联系你</text>
 
       <view class="contact-modal-field">
         <text class="form-label">微信号</text>
@@ -127,7 +128,7 @@
       </view>
 
       <text wx:if="{{contactError}}" class="field-error">{{contactError}}</text>
-      <text wx:else class="field-hint">微信号和 QQ 号至少填写一个，保存后会同步到“我的”页面。</text>
+      <text wx:else class="field-hint">微信号和 QQ 号至少填写一个</text>
     </view>
     <view class="modal-footer contact-modal-footer">
       <button class="btn btn-ghost contact-modal-cancel" disabled="{{savingContact || submitting}}" bindtap="closeContactModal">取消</button>

@@ -1,0 +1,99 @@
+<view class="about-page">
+  <view class="about-hero">
+    <view class="about-hero-topline">
+      <view class="about-hero-mark">
+        <image src="/static/icon-shield-light.svg" mode="aspectFit" aria-hidden="true" />
+      </view>
+      <text class="about-eyebrow">校园闲置信息公告栏</text>
+    </view>
+    <text class="about-title">先找到信息，再自行决定交易</text>
+    <text class="about-intro">校园闲置集市面向安徽工业大学校园场景，帮助大家发布和查找闲置信息。所有人均可浏览，平台不核验访问者或发布者的在校生身份。</text>
+    <view class="about-facts">
+      <text>公开浏览</text>
+      <view class="about-fact-dot"></view>
+      <text>不作身份认证</text>
+      <view class="about-fact-dot"></view>
+      <text>线下自行交易</text>
+    </view>
+  </view>
+
+  <view class="about-boundary-card">
+    <view class="about-card-heading">
+      <text class="about-card-kicker">服务边界</text>
+      <text class="about-card-title">平台帮你找到信息，交易由你完成</text>
+    </view>
+    <view class="about-boundary-grid">
+      <view class="about-boundary-lane about-boundary-platform">
+        <text class="about-lane-label">平台提供</text>
+        <text class="about-lane-title">发布与查找</text>
+        <text class="about-lane-copy">商品展示、分类、搜索、筛选和必要的内容审核</text>
+      </view>
+      <view class="about-boundary-lane about-boundary-user">
+        <text class="about-lane-label">用户自行完成</text>
+        <text class="about-lane-title">联系与交易</text>
+        <text class="about-lane-copy">议价、见面、验货、付款、交付和后续沟通</text>
+      </view>
+      <view class="about-boundary-stop">平台边界</view>
+    </view>
+    <text class="about-boundary-note">平台不提供站内支付、担保、订单、物流、退款或纠纷处理；
+    审核或展示也不代表对身份、商品真实性或交易安全作出保证。</text>
+  </view>
+
+  <view class="about-safety-card">
+    <view class="about-card-heading">
+      <text class="about-card-kicker about-card-kicker-warning">交易前检查</text>
+      <text class="about-card-title">把风险留在付款之前</text>
+    </view>
+    <view class="about-safety-list">
+      <view class="about-safety-row">
+        <view class="about-safety-number">1</view>
+        <view class="about-safety-copy">
+          <text class="about-safety-title">先见面验货</text>
+          <text class="about-safety-text">选择校内公共场所，当面核对商品状态。</text>
+        </view>
+      </view>
+      <view class="about-safety-row">
+        <view class="about-safety-number">2</view>
+        <view class="about-safety-copy">
+          <text class="about-safety-title">确认后付款</text>
+          <text class="about-safety-text">警惕提前转账、陌生链接和脱离正常交易场景的要求。</text>
+        </view>
+      </view>
+      <view class="about-safety-row">
+        <view class="about-safety-number">3</view>
+        <view class="about-safety-copy">
+          <text class="about-safety-title">保留沟通凭证</text>
+          <text class="about-safety-text">发现诈骗或人身安全风险时，停止交易并及时举报。</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="about-operations">
+    <view class="about-operation-copy">
+      <text class="about-operation-label">内容规则</text>
+      <text class="about-operation-text">请如实描述商品，不发布违法、虚假、侵权或其他违规内容。平台可对相关内容进行审核、下架或删除。</text>
+    </view>
+    <view class="about-operation-divider"></view>
+    <view class="about-feedback" bindtap="copyFeedbackQQ" aria-label="复制反馈 QQ 群号 1078739008">
+      <view>
+        <text class="about-feedback-label">问题反馈 · QQ 群</text>
+        <text class="about-feedback-number" user-select="true">1078739008</text>
+      </view>
+      <view class="about-feedback-action">
+        <image src="/static/icon-copy.svg" mode="aspectFit" aria-hidden="true" />
+        <text>复制</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="about-disclosure">
+    <view class="about-disclosure-badge">公开</view>
+    <view class="about-disclosure-copy">
+      <text class="about-disclosure-title">联系方式对所有访客可见</text>
+      <text class="about-disclosure-text">卖家填写的微信号、QQ 号会出现在商品详情中，并对所有访问者公开。请只填写愿意公开的信息。</text>
+    </view>
+  </view>
+</view>
+
+<announcement-popup id="announcementPopup" />

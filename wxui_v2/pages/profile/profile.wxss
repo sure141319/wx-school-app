@@ -1,1 +1,5 @@
 /* Page-specific styles intentionally live in styles/global.css for token consistency. */
+
+.settings-code-platform {
+  color: var(--color-primary);
+}

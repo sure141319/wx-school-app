@@ -1,6 +1,5 @@
 {
-  "navigationBarTitleText": "我的",
-  "styleIsolation": "apply-shared",
+  "navigationBarTitleText": "平台说明",
   "usingComponents": {
     "announcement-popup": "/components/announcement-popup/index"
   }

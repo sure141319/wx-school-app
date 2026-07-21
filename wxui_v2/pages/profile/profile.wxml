@@ -120,6 +120,20 @@
         <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
+    <navigator class="settings-item" url="/pages/about/about">
+      <view class="settings-left">
+        <view class="settings-code settings-code-platform">
+          <image class="settings-code-icon" src="/static/icon-shield.svg" mode="aspectFit" aria-hidden="true" />
+        </view>
+        <view class="settings-copy">
+          <text class="settings-label">平台说明</text>
+          <text class="settings-desc">了解平台边界与交易安全</text>
+        </view>
+      </view>
+      <view class="settings-arrow">
+        <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
+      </view>
+    </navigator>
     <view class="settings-item" bindtap="showFeedback">
       <view class="settings-left">
         <view class="settings-code settings-code-feedback">
@@ -191,7 +205,7 @@
             <text class="qq-preview-desc">保存资料后，未上传头像时将使用它</text>
           </view>
         </view>
-        <text class="field-hint">微信号和QQ号用于校内交易联系，未填写将无法联系到你</text>
+        <text class="field-hint">微信号和 QQ 号会在商品详情中对所有访客公开，请仅填写愿意公开的信息</text>
       </view>
 
       <text wx:if="{{info}}" class="block mt-16 text-center text-2xs status-text-error">{{info}}</text>
