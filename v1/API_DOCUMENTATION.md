@@ -18,6 +18,7 @@
 - [上传接口](#5-上传接口-uploads)
 - [图片代理](#6-图片代理-images)
 - [图片审核](#7-图片审核-audit)
+- [公告接口](#8-公告接口-announcements)
 - [接口总览表](#接口总览表)
 
 ---
@@ -1000,6 +1001,59 @@ POST /api/v1/audit/images/approve-all-rejected
 
 ---
 
+## 8. 公告接口 `/announcements`
+
+### 8.1 获取当前启用公告
+
+```
+GET /api/v1/announcements/current
+```
+
+公开接口。存在已启用公告时返回标题、正文和版本号：
+
+```json
+{
+  "success": true,
+  "message": "操作成功",
+  "data": {
+    "title": "校园通知",
+    "content": "今晚 23:00 将进行短时维护。",
+    "revision": 4
+  }
+}
+```
+
+公告关闭时请求仍返回成功，但 `data` 为 `null`。
+
+### 8.2 获取公告管理配置
+
+```
+GET /api/v1/audit/announcement
+Authorization: Bearer <token>
+```
+
+需要 JWT Token，且当前用户必须是配置的审核员。响应包含 `title`、`content`、`enabled`、`revision` 和 `updatedAt`。
+
+### 8.3 更新公告配置
+
+```
+PUT /api/v1/audit/announcement
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "校园通知",
+  "content": "今晚 23:00 将进行短时维护。",
+  "enabled": true
+}
+```
+
+标题最多 50 个字符，正文最多 1000 个字符，二者均不能为空。标题、正文或启用状态实际变化时，公告版本号递增；提交完全相同的内容不会产生新版本。
+
+---
+
 ## 接口总览表
 
 | # | 方法 | 路径 | 认证 | 说明 |
@@ -1035,3 +1089,6 @@ POST /api/v1/audit/images/approve-all-rejected
 | 29 | `GET` | `/api/v1/audit/images/avatars` | 需要 | 头像审核列表 |
 | 30 | `POST` | `/api/v1/audit/images/avatars/{userId}/approve` | 需要 | 通过头像 |
 | 31 | `POST` | `/api/v1/audit/images/avatars/{userId}/reject` | 需要 | 驳回头像 |
+| 32 | `GET` | `/api/v1/announcements/current` | 公开 | 获取当前启用公告 |
+| 33 | `GET` | `/api/v1/audit/announcement` | 审核员 | 获取公告管理配置 |
+| 34 | `PUT` | `/api/v1/audit/announcement` | 审核员 | 更新公告配置 |

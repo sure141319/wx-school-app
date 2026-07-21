@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @MapperScan({
+        "com.campustrade.platform.announcement.mapper",
         "com.campustrade.platform.audit.mapper",
         "com.campustrade.platform.user.mapper",
         "com.campustrade.platform.category.mapper",

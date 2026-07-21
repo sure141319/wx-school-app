@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公告管理</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    .announcement-panel {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .announcement-form {
+      display: grid;
+      gap: 20px;
+    }
+
+    .announcement-form input,
+    .announcement-form textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+
+    .announcement-form textarea {
+      min-height: 240px;
+      resize: vertical;
+      line-height: 1.65;
+    }
+
+    .announcement-form input:focus,
+    .announcement-form textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .field-meta,
+    .announcement-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .toggle-row input {
+      width: 20px;
+      height: 20px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .nav-links {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .nav-links a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .nav-links a:hover {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <section class="brand-block">
+        <h1>公告管理</h1>
+        <p class="status-indicator">
+          <span class="status-dot" id="sessionDot"></span>
+          <span id="sessionTitle">未登录</span>
+        </p>
+        <div class="nav-links">
+          <a href="./index.html">&larr; 返回审核台</a>
+          <a href="./goods.html">前往商品管理</a>
+        </div>
+      </section>
+
+      <section class="panel login-panel">
+        <div id="loginInfo" class="stack" style="display:none;">
+          <p style="margin:0;font-size:0.9rem;">已登录</p>
+          <button id="logoutBtn" class="button ghost" type="button">退出登录</button>
+        </div>
+        <div id="loginPrompt" class="stack">
+          <p style="margin:0;font-size:0.9rem;color:var(--muted);">请先在审核台登录</p>
+          <a href="./index.html" class="button primary" style="text-align:center;text-decoration:none;">去审核台登录</a>
+        </div>
+      </section>
+
+      <section class="panel config-panel">
+        <details>
+          <summary>后端配置</summary>
+          <div class="config-content">
+            <label class="field">
+              <span>API 地址</span>
+              <input id="apiBaseUrl" type="text" placeholder="http://localhost:8080/api/v1">
+            </label>
+            <button id="saveConfigBtn" class="button secondary" type="button">保存</button>
+          </div>
+        </details>
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-head">
+        <div>
+          <h2 style="margin:0 0 6px;">小程序启动公告</h2>
+          <p style="margin:0;color:var(--muted);">修改已启用的公告后，已读用户当天也会再次看到新版本。</p>
+        </div>
+      </header>
+
+      <section class="panel announcement-panel">
+        <form id="announcementForm" class="announcement-form">
+          <label class="field">
+            <span>标题</span>
+            <input id="titleInput" type="text" maxlength="50" placeholder="请输入公告标题" disabled>
+            <span class="field-meta"><span>最多 50 字</span><span id="titleCount">0/50</span></span>
+          </label>
+
+          <label class="field">
+            <span>正文</span>
+            <textarea id="contentInput" maxlength="1000" placeholder="请输入公告正文" disabled></textarea>
+            <span class="field-meta"><span>支持换行，最多 1000 字</span><span id="contentCount">0/1000</span></span>
+          </label>
+
+          <label class="toggle-row">
+            <span>
+              <strong>启用公告</strong><br>
+              <small style="color:var(--muted);">关闭后小程序不再弹出公告</small>
+            </span>
+            <input id="enabledInput" type="checkbox" disabled>
+          </label>
+
+          <div class="announcement-meta">
+            <span>当前版本：<strong id="revisionText">-</strong></span>
+            <span>更新时间：<strong id="updatedAtText">-</strong></span>
+          </div>
+
+          <div class="form-actions">
+            <button id="reloadBtn" class="button secondary" type="button" disabled>重新加载</button>
+            <button id="saveBtn" class="button primary" type="submit" disabled>保存公告</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script src="../js/messages.js"></script>
+  <script src="../js/announcement.js?v=20260721"></script>
+</body>
+</html>

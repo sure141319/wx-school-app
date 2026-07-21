@@ -1,6 +1,6 @@
 # 校园闲置集市 (Campus Trade)
 
-安徽工业大学校园二手交易平台 —— 专为校内学生设计的闲置物品买卖平台，包含微信小程序端、Spring Boot 后端、图片审核管理后台。
+安徽工业大学校园二手交易平台 —— 专为校内学生设计的闲置物品买卖平台，包含微信小程序端、Spring Boot 后端、审核与公告管理后台。
 
 ## 技术栈
 
@@ -22,7 +22,7 @@
 campus_app/
 ├── v1/                    # Spring Boot 后端
 ├── wxui_v2/               # 微信小程序前端
-├── checkui/               # 图片审核管理后台
+├── checkui/               # 图片审核、商品与公告管理后台
 └── CLAUDE.md              # AI 辅助开发指南
 ```
 
@@ -82,7 +82,7 @@ python -m http.server 5173     # 启动静态文件服务
 - 新发布或修改的商品自动进入审核状态 (`PENDING_REVIEW`)
 - 审核中的商品图片在前端显示为占位图
 
-### 后端 API (31 个接口)
+### 后端 API (34 个接口)
 
 所有接口均返回统一格式 `ApiResponse<T>` (`{ success, message, data }`)，分页接口内嵌 `PageResponse` (`{ items, total, page, size }`)。
 
@@ -125,16 +125,22 @@ python -m http.server 5173     # 启动静态文件服务
 **图片代理** (`/api/v1/images/**`) —— 公开接口
 - `GET /images/{year}/{month}/{filename}` — MinIO 图片代理，带 7 天浏览器缓存
 
-### 管理后台 (2 个页面)
+**公告**
+- `GET /announcements/current` — 获取当前启用公告（公开）
+- `GET /audit/announcement` — 获取公告配置（需审核权限）
+- `PUT /audit/announcement` — 更新公告配置并递增版本（需审核权限）
+
+### 管理后台 (3 个页面)
 
 | 页面 | 文件 | 功能 |
 |---|---|---|
 | 图片审核台 | `checkui/html/index.html` | 商品图片/用户头像的审核队列，支持通过/驳回操作 |
 | 商品管理 | `checkui/html/goods.html` | 商品列表管理，支持搜索筛选、单/批量删除 |
+| 公告管理 | `checkui/html/announcement.html` | 编辑公告标题、正文和启用状态，内容变化时自动递增版本 |
 
-两个页面共享同一套认证 Session (localStorage)，登录状态跨页面互通。
+三个页面共享同一套认证 Session (localStorage)，登录状态跨页面互通。
 
-## 核心数据库表结构 (5 张表)
+## 核心数据库表结构 (6 张表)
 
 | 表名 | 用途 | 关键字段 |
 |---|---|---|
@@ -143,6 +149,7 @@ python -m http.server 5173     # 启动静态文件服务
 | `goods_do` | 商品 | seller_id, category_id, title, price, condition_level, campus_location, status |
 | `goods_image_do` | 商品图片 | goods_id, image_url, sort_order, audit_status (审核状态) |
 | `upload_object_do` | 上传对象生命周期 | user_id, object_key, status, bound_type, expires_at |
+| `announcement_config` | 单条公告配置 | title, content, enabled, revision, updated_at |
 
 **商品状态流转：** `PENDING_REVIEW` → (审核通过) → `ON_SALE` ⇄ `OFF_SHELF`，审核驳回 → `REJECTED`
 
