@@ -88,7 +88,6 @@ app:
     public-base-url: ${MINIO_PUBLIC_BASE_URL:}
     secure: ${MINIO_SECURE:false}
     auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
-    presign-expiry-days: ${MINIO_PRESIGN_EXPIRY_DAYS:7}
   upload:
     max-files-per-user: ${UPLOAD_MAX_FILES_PER_USER:200}
     max-bytes-per-user: ${UPLOAD_MAX_BYTES_PER_USER:1073741824}

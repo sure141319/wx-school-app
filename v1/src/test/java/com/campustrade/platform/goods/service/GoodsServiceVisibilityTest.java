@@ -14,7 +14,6 @@ import com.campustrade.platform.goods.dto.response.PublicGoodsResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
-import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
 import com.campustrade.platform.user.service.UserService;
@@ -57,7 +56,6 @@ class GoodsServiceVisibilityTest {
                 goodsMapper,
                 mock(CategoryService.class),
                 mock(UserService.class),
-                mock(ConversationMapper.class),
                 goodsAssembler,
                 uploadService,
                 appProperties,

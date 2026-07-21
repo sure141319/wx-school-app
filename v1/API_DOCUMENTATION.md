@@ -15,10 +15,9 @@
 - [商品接口](#2-商品接口-goods)
 - [分类接口](#3-分类接口-categories)
 - [用户接口](#4-用户接口-users)
-- [消息接口](#5-消息接口-messages)
-- [上传接口](#6-上传接口-uploads)
-- [图片代理](#7-图片代理-images)
-- [图片审核](#8-图片审核-audit)
+- [上传接口](#5-上传接口-uploads)
+- [图片代理](#6-图片代理-images)
+- [图片审核](#7-图片审核-audit)
 - [接口总览表](#接口总览表)
 
 ---
@@ -787,173 +786,9 @@ DELETE /api/v1/users/me/email-bind
 
 ---
 
-## 5. 消息接口 `/messages` ⚠️ 已废弃
+## 5. 上传接口 `/uploads`
 
-> 因审核原因，会话聊天功能已从前端移除，以下接口暂时废弃，后端代码保留。
->
-> 所有消息接口均**需要 JWT Token**。
-
-### 5.1 发起会话
-
-```
-POST /api/v1/messages/conversations
-```
-
-**请求体** (`StartConversationRequestDTO`):
-
-| 字段 | 类型 | 必填 |
-|------|------|------|
-| `goodsId` | `Long` | 是 |
-
-**请求示例**:
-```json
-{
-  "goodsId": 5
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "会话已创建",
-  "data": {
-    "id": 1,
-    "goodsId": 5,
-    "goodsTitle": "二手教材",
-    "goodsCoverImage": "https://...",
-    "buyer": { "id": 2, "email": "...", "nickname": "买家", "avatarUrl": "..." },
-    "seller": { "id": 1, "email": "...", "nickname": "卖家", "avatarUrl": "..." },
-    "lastMessageAt": "2026-04-01T10:00:00"
-  }
-}
-```
-
----
-
-### 5.2 获取会话列表
-
-```
-GET /api/v1/messages/conversations
-```
-
-**查询参数**:
-
-| 参数 | 类型 | 必填 | 校验规则 | 默认值 |
-|------|------|------|----------|--------|
-| `page` | `int` | 否 | >= 0 | `0` |
-| `size` | `int` | 否 | 1-50 | `20` |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "items": [
-      {
-        "id": 1,
-        "goodsId": 5,
-        "goodsTitle": "二手教材",
-        "goodsCoverImage": "https://...",
-        "buyer": { "id": 2, "email": "...", "nickname": "买家", "avatarUrl": "..." },
-        "seller": { "id": 1, "email": "...", "nickname": "卖家", "avatarUrl": "..." },
-        "lastMessageAt": "2026-04-01T10:00:00"
-      }
-    ],
-    "total": 3,
-    "page": 0,
-    "size": 20
-  }
-}
-```
-
----
-
-### 5.3 获取会话消息
-
-```
-GET /api/v1/messages/conversations/{conversationId}/messages
-```
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `conversationId` | `Long` | 是 |
-
-**查询参数**:
-
-| 参数 | 类型 | 必填 | 校验规则 | 默认值 |
-|------|------|------|----------|--------|
-| `page` | `int` | 否 | >= 0 | `0` |
-| `size` | `int` | 否 | 1-200 | `50` |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "items": [
-      {
-        "id": 1,
-        "conversationId": 1,
-        "sender": { "id": 2, "email": "...", "nickname": "买家", "avatarUrl": "..." },
-        "content": "请问还在吗？",
-        "createdAt": "2026-04-01T10:00:00"
-      }
-    ],
-    "total": 10,
-    "page": 0,
-    "size": 50
-  }
-}
-```
-
----
-
-### 5.4 发送消息
-
-```
-POST /api/v1/messages/messages
-```
-
-**请求体** (`SendMessageRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `conversationId` | `Long` | 是 | - |
-| `content` | `string` | 是 | 最大 1000 字符 |
-
-**请求示例**:
-```json
-{
-  "conversationId": 1,
-  "content": "请问还在吗？"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "消息发送成功",
-  "data": {
-    "id": 2,
-    "conversationId": 1,
-    "sender": { "id": 1, "email": "...", "nickname": "卖家", "avatarUrl": "..." },
-    "content": "请问还在吗？",
-    "createdAt": "2026-04-01T10:01:00"
-  }
-}
-```
-
----
-
-## 6. 上传接口 `/uploads`
-
-### 6.1 上传图片
+### 5.1 上传图片
 
 ```
 POST /api/v1/uploads/image
@@ -983,45 +818,11 @@ POST /api/v1/uploads/image
 
 ---
 
-### 6.2 批量生成预签名 URL
-
-```
-POST /api/v1/uploads/presign/batch
-```
-
-**权限**: 需要 JWT Token
-
-**请求体** (`PresignRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `urls` | `string[]` | 是 | 非空数组 |
-
-**请求示例**:
-```json
-{
-  "urls": ["https://minio-host/bucket/images/2026/04/file1.jpg"]
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "https://minio-host/bucket/images/2026/04/file1.jpg": "https://presigned-url?signature=..."
-  }
-}
-```
-
----
-
-## 7. 图片代理 `/images`
+## 6. 图片代理 `/images`
 
 > 图片代理接口为**公开接口**。
 
-### 7.1 获取图片
+### 6.1 获取图片
 
 ```
 GET /api/v1/images/{year}/{month}/{filename}
@@ -1044,11 +845,11 @@ GET /api/v1/images/{year}/{month}/{filename}
 
 ---
 
-## 8. 图片审核 `/audit`
+## 7. 图片审核 `/audit`
 
 > 所有审核接口均**需要 JWT Token**，且当前用户必须是配置的审核员（`app.imageAudit.reviewerUserIds`）。
 
-### 8.1 获取待审核图片列表
+### 7.1 获取待审核图片列表
 
 ```
 GET /api/v1/audit/images
@@ -1093,7 +894,7 @@ GET /api/v1/audit/images
 
 ---
 
-### 8.2 通过图片
+### 7.2 通过图片
 
 ```
 POST /api/v1/audit/images/{imageId}/approve
@@ -1121,7 +922,7 @@ POST /api/v1/audit/images/{imageId}/approve
 
 ---
 
-### 8.3 驳回图片
+### 7.3 驳回图片
 
 ```
 POST /api/v1/audit/images/{imageId}/reject
@@ -1163,7 +964,7 @@ POST /api/v1/audit/images/{imageId}/reject
 
 ---
 
-### 8.4 批量通过已驳回图片
+### 7.4 批量通过已驳回图片
 
 ```
 POST /api/v1/audit/images/approve-all-rejected
@@ -1224,18 +1025,13 @@ POST /api/v1/audit/images/approve-all-rejected
 | 19 | `DELETE` | `/api/v1/users/me/wechat-bind` | 需要 | 解绑微信登录 |
 | 20 | `POST` | `/api/v1/users/me/email-bind` | 需要 | 绑定 QQ 邮箱 |
 | 21 | `DELETE` | `/api/v1/users/me/email-bind` | 需要 | 解绑 QQ 邮箱 |
-| 22 | `POST` | `/api/v1/messages/conversations` | 需要 | 发起会话 |
-| 23 | `GET` | `/api/v1/messages/conversations` | 需要 | 获取会话列表 |
-| 24 | `GET` | `/api/v1/messages/conversations/{id}/messages` | 需要 | 获取会话消息 |
-| 25 | `POST` | `/api/v1/messages/messages` | 需要 | 发送消息 |
-| 26 | `POST` | `/api/v1/uploads/image` | 需要 | 上传图片 |
-| 27 | `POST` | `/api/v1/uploads/presign/batch` | 需要 | 批量生成预签名 URL |
-| 28 | `GET` | `/api/v1/images/{year}/{month}/{filename}` | 公开 | 获取图片 |
-| 29 | `GET` | `/api/v1/audit/images` | 需要 | 待审核图片列表 |
-| 30 | `POST` | `/api/v1/audit/images/{id}/approve` | 需要 | 通过图片 |
-| 31 | `POST` | `/api/v1/audit/images/{id}/reject` | 需要 | 驳回图片 |
-| 32 | `POST` | `/api/v1/audit/images/approve-all-rejected` | 需要 | 批量通过已驳回图片 |
-| 33 | `POST` | `/api/v1/audit/images/reject-all-approved` | 需要 | 批量驳回已通过图片 |
-| 34 | `GET` | `/api/v1/audit/images/avatars` | 需要 | 头像审核列表 |
-| 35 | `POST` | `/api/v1/audit/images/avatars/{userId}/approve` | 需要 | 通过头像 |
-| 36 | `POST` | `/api/v1/audit/images/avatars/{userId}/reject` | 需要 | 驳回头像 |
+| 22 | `POST` | `/api/v1/uploads/image` | 需要 | 上传图片 |
+| 23 | `GET` | `/api/v1/images/{year}/{month}/{filename}` | 公开 | 获取图片 |
+| 24 | `GET` | `/api/v1/audit/images` | 需要 | 待审核图片列表 |
+| 25 | `POST` | `/api/v1/audit/images/{id}/approve` | 需要 | 通过图片 |
+| 26 | `POST` | `/api/v1/audit/images/{id}/reject` | 需要 | 驳回图片 |
+| 27 | `POST` | `/api/v1/audit/images/approve-all-rejected` | 需要 | 批量通过已驳回图片 |
+| 28 | `POST` | `/api/v1/audit/images/reject-all-approved` | 需要 | 批量驳回已通过图片 |
+| 29 | `GET` | `/api/v1/audit/images/avatars` | 需要 | 头像审核列表 |
+| 30 | `POST` | `/api/v1/audit/images/avatars/{userId}/approve` | 需要 | 通过头像 |
+| 31 | `POST` | `/api/v1/audit/images/avatars/{userId}/reject` | 需要 | 驳回头像 |

@@ -28,6 +28,10 @@ class OpenApiDocumentationTest {
         mockMvc.perform(get("/api/v1/openapi.json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapi").exists())
-                .andExpect(jsonPath("$.info.title", is("Campus Trade API")));
+                .andExpect(jsonPath("$.info.title", is("Campus Trade API")))
+                .andExpect(jsonPath("$.paths['/api/v1/uploads/presign/batch']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/messages/conversations']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/messages/conversations/{conversationId}/messages']")
+                        .doesNotExist());
     }
 }

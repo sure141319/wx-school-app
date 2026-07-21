@@ -82,7 +82,7 @@ python -m http.server 5173     # 启动静态文件服务
 - 新发布或修改的商品自动进入审核状态 (`PENDING_REVIEW`)
 - 审核中的商品图片在前端显示为占位图
 
-### 后端 API (25 个接口)
+### 后端 API (31 个接口)
 
 所有接口均返回统一格式 `ApiResponse<T>` (`{ success, message, data }`)，分页接口内嵌 `PageResponse` (`{ items, total, page, size }`)。
 
@@ -109,15 +109,8 @@ python -m http.server 5173     # 启动静态文件服务
 - `GET /users/me` — 获取个人资料
 - `PUT /users/me` — 更新个人资料 (头像修改触发审核)
 
-**消息** (`/api/v1/messages/*`) —— 需认证
-- `POST /messages/conversations` — 发起会话
-- `GET /messages/conversations` — 会话列表
-- `GET /messages/conversations/{id}/messages` — 消息列表
-- `POST /messages/messages` — 发送消息
-
 **文件上传** (`/api/v1/uploads/*`) —— 需认证
 - `POST /uploads/image` — 上传图片
-- `POST /uploads/presign/batch` — 批量生成预签名 URL
 
 **图片审核** (`/api/v1/audit/images/*`) —— 需审核权限
 - `GET /audit/images` — 商品图片审核队列
@@ -141,7 +134,7 @@ python -m http.server 5173     # 启动静态文件服务
 
 两个页面共享同一套认证 Session (localStorage)，登录状态跨页面互通。
 
-## 数据库表结构 (6 张表)
+## 核心数据库表结构 (5 张表)
 
 | 表名 | 用途 | 关键字段 |
 |---|---|---|
@@ -149,8 +142,7 @@ python -m http.server 5173     # 启动静态文件服务
 | `category_do` | 商品分类 | name, sort_order, enabled |
 | `goods_do` | 商品 | seller_id, category_id, title, price, condition_level, campus_location, status |
 | `goods_image_do` | 商品图片 | goods_id, image_url, sort_order, audit_status (审核状态) |
-| `conversation_do` | 会话 | goods_id, buyer_id, seller_id (每买家每商品唯一) |
-| `messages` | 消息 | conversation_id, sender_id, content |
+| `upload_object_do` | 上传对象生命周期 | user_id, object_key, status, bound_type, expires_at |
 
 **商品状态流转：** `PENDING_REVIEW` → (审核通过) → `ON_SALE` ⇄ `OFF_SHELF`，审核驳回 → `REJECTED`
 
@@ -179,4 +171,4 @@ python -m http.server 5173     # 启动静态文件服务
 
 ## 项目决策记录
 
-- **暂不新增业务索引 / 搜索索引**：当前应用预期用户量约 500-1000，商品、消息、审核队列规模较小，现阶段不为商品列表、消息列表、审核列表或关键字搜索新增额外索引。后续如果出现明显慢查询、数据量增长或运营侧批量管理压力，再通过 Flyway 迁移补充复合索引或全文索引。
+- **暂不新增业务索引 / 搜索索引**：当前应用预期用户量约 500-1000，商品和审核队列规模较小，现阶段不为商品列表、审核列表或关键字搜索新增额外索引。后续如果出现明显慢查询、数据量增长或运营侧批量管理压力，再通过 Flyway 迁移补充复合索引或全文索引。

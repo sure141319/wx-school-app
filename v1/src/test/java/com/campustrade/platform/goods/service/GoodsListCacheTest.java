@@ -16,7 +16,6 @@ import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
-import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,9 +77,6 @@ class GoodsListCacheTest {
 
     @MockBean
     private UserService userService;
-
-    @MockBean
-    private ConversationMapper conversationMapper;
 
     @MockBean
     private GoodsAssembler goodsAssembler;

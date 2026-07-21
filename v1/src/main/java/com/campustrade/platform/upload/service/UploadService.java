@@ -40,7 +40,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,7 +47,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class UploadService {
@@ -723,31 +721,6 @@ public class UploadService {
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 
-    public String presignUrl(String urlOrObjectKey) {
-        if (!StringUtils.hasText(urlOrObjectKey)) {
-            return urlOrObjectKey;
-        }
-        if (urlOrObjectKey.contains("X-Amz-")) {
-            return urlOrObjectKey;
-        }
-        String objectKey = extractObjectKey(urlOrObjectKey);
-        if (objectKey == null) {
-            return urlOrObjectKey;
-        }
-        return presignObjectKey(objectKey);
-    }
-
-    public Map<String, String> presignUrls(List<String> urls) {
-        Map<String, String> result = new HashMap<>();
-        if (urls == null || urls.isEmpty()) {
-            return result;
-        }
-        for (String url : urls) {
-            result.put(url, presignUrl(url));
-        }
-        return result;
-    }
-
     private String buildDeliveryUrl(String objectKey) {
         if (!StringUtils.hasText(objectKey)) {
             return null;
@@ -885,21 +858,6 @@ public class UploadService {
                             .build());
         } catch (Exception ex) {
             throw new AppException(HttpStatus.NOT_FOUND, "图片不存在", ex);
-        }
-    }
-
-    private String presignObjectKey(String objectKey) {
-        try {
-            return minioClient.getPresignedObjectUrl(
-                    io.minio.GetPresignedObjectUrlArgs.builder()
-                            .method(io.minio.http.Method.GET)
-                            .bucket(minioProperties.getBucket())
-                            .object(objectKey)
-                            .expiry(minioProperties.getPresignExpiryDays(), TimeUnit.DAYS)
-                            .build());
-        } catch (Exception ex) {
-            log.warn("Failed to presign object key: {}", objectKey, ex);
-            return buildPublicUrl(objectKey);
         }
     }
 

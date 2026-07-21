@@ -8,7 +8,6 @@ import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
-import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -45,7 +44,6 @@ class GoodsServiceMyGoodsTest {
                 goodsMapper,
                 mock(CategoryService.class),
                 userService,
-                mock(ConversationMapper.class),
                 goodsAssembler,
                 mock(UploadService.class),
                 new AppProperties(),

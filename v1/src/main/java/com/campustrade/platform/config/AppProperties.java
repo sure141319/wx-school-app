@@ -108,8 +108,6 @@ public class AppProperties {
         private String publicBaseUrl = "";
         private boolean secure = false;
         private boolean autoCreateBucket = true;
-        @Min(1)
-        private int presignExpiryDays = 7;
     }
 
     @Getter

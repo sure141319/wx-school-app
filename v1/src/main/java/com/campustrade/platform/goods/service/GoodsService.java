@@ -16,7 +16,6 @@ import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
-import com.campustrade.platform.message.mapper.ConversationMapper;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.service.UserService;
 import org.springframework.cache.annotation.Cacheable;
@@ -43,7 +42,6 @@ public class GoodsService {
     private final GoodsMapper goodsMapper;
     private final CategoryService categoryService;
     private final UserService userService;
-    private final ConversationMapper conversationMapper;
     private final GoodsAssembler goodsAssembler;
     private final UploadService uploadService;
     private final AppProperties appProperties;
@@ -52,7 +50,6 @@ public class GoodsService {
     public GoodsService(GoodsMapper goodsMapper,
                         CategoryService categoryService,
                         UserService userService,
-                        ConversationMapper conversationMapper,
                         GoodsAssembler goodsAssembler,
                         UploadService uploadService,
                         AppProperties appProperties,
@@ -60,7 +57,6 @@ public class GoodsService {
         this.goodsMapper = goodsMapper;
         this.categoryService = categoryService;
         this.userService = userService;
-        this.conversationMapper = conversationMapper;
         this.goodsAssembler = goodsAssembler;
         this.uploadService = uploadService;
         this.appProperties = appProperties;
@@ -144,7 +140,6 @@ public class GoodsService {
             );
         }
 
-        conversationMapper.deleteByGoodsId(goodsId);
         goodsMapper.deleteById(goodsId);
         if (goods.getStatus() == GoodsStatusEnum.ON_SALE) {
             goodsListCacheInvalidator.evictAfterCommit();
