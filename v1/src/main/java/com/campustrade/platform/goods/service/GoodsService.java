@@ -4,6 +4,7 @@ import com.campustrade.platform.category.dataobject.CategoryDO;
 import com.campustrade.platform.category.service.CategoryService;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.common.PageResponse;
+import com.campustrade.platform.common.time.BeijingTime;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.assembler.GoodsAssembler;
@@ -32,12 +33,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 @Service
 public class GoodsService {
-
-    private static final ZoneId GOODS_TIME_ZONE = ZoneId.of("Asia/Shanghai");
 
     private final GoodsMapper goodsMapper;
     private final CategoryService categoryService;
@@ -76,7 +74,7 @@ public class GoodsService {
         goods.setConditionLevel(request.conditionLevel().trim());
         goods.setCampusLocation(request.campusLocation().trim());
         goods.setStatus(GoodsStatusEnum.PENDING_REVIEW);
-        LocalDateTime now = LocalDateTime.now(GOODS_TIME_ZONE);
+        LocalDateTime now = BeijingTime.now();
         goods.setCreatedAt(now);
         goods.setUpdatedAt(now);
 

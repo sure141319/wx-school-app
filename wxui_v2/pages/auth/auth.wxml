@@ -166,3 +166,5 @@
     </view>
   </view>
 </view>
+
+<announcement-popup id="announcementPopup" />

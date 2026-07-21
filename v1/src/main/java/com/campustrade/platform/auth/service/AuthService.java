@@ -10,6 +10,7 @@ import com.campustrade.platform.auth.dto.response.AuthResponseDTO;
 import com.campustrade.platform.auth.dto.response.SendCodeResponseDTO;
 import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
 import com.campustrade.platform.common.AppException;
+import com.campustrade.platform.common.time.BeijingTime;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.security.JwtTokenProvider;
 import com.campustrade.platform.security.UserPrincipal;
@@ -117,7 +118,7 @@ public class AuthService {
             throw new AppException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误");
         }
 
-        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(BeijingTime.now())) {
             throw new AppException(HttpStatus.LOCKED, "账号已被暂时锁定");
         }
 
@@ -125,7 +126,7 @@ public class AuthService {
             int nextFailCount = user.getFailedLoginCount() + 1;
             LocalDateTime lockedUntil = user.getLockedUntil();
             if (nextFailCount >= appProperties.getAuth().getMaxLoginFailures()) {
-                lockedUntil = LocalDateTime.now().plusMinutes(appProperties.getAuth().getLockMinutes());
+                lockedUntil = BeijingTime.now().plusMinutes(appProperties.getAuth().getLockMinutes());
                 nextFailCount = 0;
             }
             userMapper.updateAuthState(user.getId(), nextFailCount, lockedUntil);

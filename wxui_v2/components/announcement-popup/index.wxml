@@ -1,0 +1,47 @@
+<view wx:if="{{visible}}" class="announcement-layer">
+  <view
+    class="announcement-mask"
+    catchtap="preventInteraction"
+    catchtouchmove="preventInteraction"
+    aria-hidden="true"
+  ></view>
+
+  <view class="announcement-dialog" aria-role="dialog" aria-label="{{title}}" catchtap="preventInteraction">
+    <view class="announcement-badge" aria-hidden="true">
+      <view class="announcement-badge-ring"></view>
+      <image class="announcement-badge-icon" src="/static/icon-announcement.svg" mode="aspectFit" />
+    </view>
+
+    <view class="announcement-panel">
+      <view class="announcement-hero" aria-hidden="true">
+        <view class="announcement-orbit announcement-orbit-left"></view>
+        <view class="announcement-orbit announcement-orbit-right"></view>
+        <text class="announcement-kicker">校园公告</text>
+      </view>
+
+      <view class="announcement-copy">
+        <text class="announcement-title">{{title}}</text>
+        <scroll-view class="announcement-content-scroll" scroll-y enhanced show-scrollbar="{{true}}">
+          <text class="announcement-content" user-select="true">{{content}}</text>
+        </scroll-view>
+      </view>
+
+      <view class="announcement-footer">
+        <button
+          class="announcement-button announcement-button-secondary"
+          hover-class="announcement-button-hover"
+          hover-stay-time="120"
+          bindtap="handleIgnore"
+          aria-label="忽略公告，稍后再次提醒"
+        >忽略</button>
+        <button
+          class="announcement-button announcement-button-primary"
+          hover-class="announcement-button-hover"
+          hover-stay-time="120"
+          bindtap="handleRead"
+          aria-label="标记公告已读"
+        >已读</button>
+      </view>
+    </view>
+  </view>
+</view>

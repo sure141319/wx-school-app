@@ -1,5 +1,6 @@
 package com.campustrade.platform.goods.mapper;
 
+import com.campustrade.platform.common.time.BeijingTime;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -26,8 +26,6 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @Transactional
 class GoodsTimestampTimezoneTest {
-
-    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
 
     @Autowired
     private GoodsMapper goodsMapper;
@@ -50,7 +48,7 @@ class GoodsTimestampTimezoneTest {
         when(uploadService.bindUploadedImageToGoods(eq(imageKey), eq(sellerId), anyLong()))
                 .thenReturn(new UploadService.ImageVariantKeys(thumbnailKey, null, null));
 
-        LocalDateTime beforeBeijingNow = LocalDateTime.now(BEIJING_ZONE).minusSeconds(2);
+        LocalDateTime beforeBeijingNow = BeijingTime.now().minusSeconds(2);
         GoodsResponseDTO created = goodsService.create(sellerId, new GoodsSaveRequestDTO(
                 "北京时间测试商品",
                 "用于验证商品发布时间时区",
@@ -62,7 +60,7 @@ class GoodsTimestampTimezoneTest {
                 List.of(thumbnailKey)
         ));
         GoodsDO saved = goodsMapper.findById(created.id());
-        LocalDateTime afterBeijingNow = LocalDateTime.now(BEIJING_ZONE).plusSeconds(2);
+        LocalDateTime afterBeijingNow = BeijingTime.now().plusSeconds(2);
 
         assertNotNull(saved);
         assertNotNull(saved.getCreatedAt());

@@ -1,0 +1,207 @@
+.announcement-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.announcement-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(19, 39, 33, 0.56);
+  animation: announcement-mask-in 180ms ease-out both;
+}
+
+.announcement-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% - 96rpx);
+  max-width: 620rpx;
+  padding-top: 54rpx;
+  transform: translate(-50%, -50%);
+  animation: announcement-dialog-in 220ms cubic-bezier(0.2, 0.82, 0.34, 1) both;
+}
+
+.announcement-panel {
+  display: flex;
+  max-height: 78vh;
+  overflow: hidden;
+  flex-direction: column;
+  border: 2rpx solid rgba(255, 255, 255, 0.72);
+  border-radius: 38rpx;
+  background: #fffdfb;
+  box-shadow: 0 34rpx 92rpx rgba(14, 43, 34, 0.28);
+}
+
+.announcement-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  width: 116rpx;
+  height: 116rpx;
+  align-items: center;
+  justify-content: center;
+  border: 10rpx solid #fffdfb;
+  border-radius: 999rpx;
+  background: linear-gradient(145deg, #76a58b 0%, #2b6252 62%, #173c33 100%);
+  box-shadow: 0 16rpx 34rpx rgba(33, 78, 66, 0.28);
+  transform: translateX(-50%);
+}
+
+.announcement-badge-ring {
+  position: absolute;
+  inset: 10rpx;
+  border: 2rpx solid rgba(255, 253, 245, 0.34);
+  border-radius: 999rpx;
+}
+
+.announcement-badge-icon {
+  position: relative;
+  z-index: 1;
+  width: 54rpx;
+  height: 54rpx;
+}
+
+.announcement-hero {
+  position: relative;
+  display: flex;
+  min-height: 142rpx;
+  overflow: hidden;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 70rpx 32rpx 20rpx;
+  background:
+    radial-gradient(circle at 50% -22rpx, rgba(255, 255, 255, 0.92) 0, rgba(255, 255, 255, 0) 110rpx),
+    linear-gradient(180deg, #dcece4 0%, #eef6f1 58%, #fffdfb 100%);
+}
+
+.announcement-orbit {
+  position: absolute;
+  border: 2rpx dashed rgba(43, 98, 82, 0.12);
+  border-radius: 999rpx;
+}
+
+.announcement-orbit-left {
+  top: -108rpx;
+  left: -72rpx;
+  width: 246rpx;
+  height: 246rpx;
+}
+
+.announcement-orbit-right {
+  right: -54rpx;
+  bottom: -122rpx;
+  width: 220rpx;
+  height: 220rpx;
+  box-shadow: 0 0 0 34rpx rgba(216, 188, 106, 0.05);
+}
+
+.announcement-kicker {
+  position: relative;
+  z-index: 1;
+  color: #3b755f;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 5rpx;
+}
+
+.announcement-copy {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 8rpx 46rpx 34rpx;
+}
+
+.announcement-title {
+  display: block;
+  color: #263a34;
+  font-size: 38rpx;
+  font-weight: 800;
+  line-height: 1.28;
+  text-align: center;
+  word-break: break-word;
+}
+
+.announcement-content-scroll {
+  max-height: 430rpx;
+  margin-top: 24rpx;
+}
+
+.announcement-content {
+  display: block;
+  color: #586a63;
+  font-size: 28rpx;
+  line-height: 1.72;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.announcement-footer {
+  display: flex;
+  gap: 18rpx;
+  padding: 26rpx 34rpx 34rpx;
+  border-top: 2rpx solid #e8eee9;
+  background: rgba(250, 252, 249, 0.9);
+}
+
+.announcement-button {
+  display: flex;
+  min-width: 0;
+  min-height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  margin: 0;
+  padding: 0 24rpx;
+  border: 0;
+  border-radius: 22rpx;
+  font-size: 29rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.announcement-button::after {
+  border: 0;
+}
+
+.announcement-button-secondary {
+  border: 2rpx solid #dce5df;
+  background: #f3f5f3;
+  color: #65756f;
+}
+
+.announcement-button-primary {
+  border: 2rpx solid #2b6252;
+  background: linear-gradient(135deg, #4f876f 0%, #2b6252 72%, #214e42 100%);
+  color: #ffffff;
+  box-shadow: 0 12rpx 24rpx rgba(43, 98, 82, 0.2);
+}
+
+.announcement-button-hover {
+  opacity: 0.84;
+  transform: scale(0.98);
+}
+
+@keyframes announcement-mask-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes announcement-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 28rpx)) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

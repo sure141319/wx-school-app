@@ -231,8 +231,16 @@ function clearSession() {
 
 function formatDate(value) {
   if (!value) return '-'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return String(value)
+
+  const text = String(value).trim()
+  const localDateTime = text.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/)
+  if (localDateTime) {
+    const [, year, month, day, hour, minute] = localDateTime
+    return `${year}/${month}/${day} ${hour}:${minute}`
+  }
+
+  const parsed = new Date(text)
+  if (Number.isNaN(parsed.getTime())) return text
   return new Intl.DateTimeFormat('zh-CN', {
     timeZone: BEIJING_TIME_ZONE,
     year: 'numeric',

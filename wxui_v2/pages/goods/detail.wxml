@@ -141,3 +141,5 @@
   <text class="empty-desc">回到首页看看其他同校好物。</text>
   <button class="btn btn-primary btn-sm" bindtap="goHome">返回首页</button>
 </view>
+
+<announcement-popup id="announcementPopup" />

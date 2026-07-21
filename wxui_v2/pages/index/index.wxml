@@ -87,3 +87,5 @@
     <text>逛到底了，晚点再来看看</text>
   </view>
 </view>
+
+<announcement-popup id="announcementPopup" />

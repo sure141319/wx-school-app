@@ -1,6 +1,7 @@
 package com.campustrade.platform.upload.service;
 
 import com.campustrade.platform.common.AppException;
+import com.campustrade.platform.common.time.BeijingTime;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.upload.dataobject.UploadObjectDO;
 import com.campustrade.platform.upload.mapper.UploadObjectMapper;
@@ -10,7 +11,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -22,7 +22,6 @@ public class UploadLifecycleService {
     static final String STATUS_DELETING = "DELETING";
     static final String BOUND_TYPE_GOODS = "GOODS";
     static final String BOUND_TYPE_AVATAR = "AVATAR";
-    private static final ZoneId UPLOAD_TIME_ZONE = ZoneId.of("Asia/Shanghai");
     private static final int DELETE_RETRY_DELAY_MINUTES = 5;
 
     private final UploadObjectMapper uploadObjectMapper;
@@ -210,6 +209,6 @@ public class UploadLifecycleService {
     }
 
     private LocalDateTime now() {
-        return LocalDateTime.now(UPLOAD_TIME_ZONE);
+        return BeijingTime.now();
     }
 }

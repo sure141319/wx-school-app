@@ -1,6 +1,7 @@
 package com.campustrade.platform.upload.service;
 
 import com.campustrade.platform.common.AppException;
+import com.campustrade.platform.common.time.BeijingTime;
 import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.upload.dataobject.UploadObjectDO;
 import com.campustrade.platform.upload.dto.response.UploadResponseDTO;
@@ -37,7 +38,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -65,7 +65,6 @@ public class UploadService {
     private static final int MAX_IMAGE_WIDTH = 10_000;
     private static final int MAX_IMAGE_HEIGHT = 10_000;
     private static final long MAX_IMAGE_PIXELS = 50_000_000L;
-    private static final ZoneId UPLOAD_TIME_ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final DateTimeFormatter OBJECT_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String USAGE_AVATAR = "avatar";
@@ -641,12 +640,12 @@ public class UploadService {
     }
 
     private String buildObjectKey(String extension, String usage, Long userId) {
-        return buildObjectKey(extension, usage, userId, LocalDateTime.now(UPLOAD_TIME_ZONE));
+        return buildObjectKey(extension, usage, userId, BeijingTime.now());
     }
 
     private String buildObjectKey(String extension, String usage, Long userId, LocalDateTime uploadTime) {
         String normalizedUsage = normalizeUsage(usage);
-        LocalDateTime now = uploadTime == null ? LocalDateTime.now(UPLOAD_TIME_ZONE) : uploadTime;
+        LocalDateTime now = uploadTime == null ? BeijingTime.now() : uploadTime;
         String prefix = now.format(OBJECT_PREFIX_FORMATTER);
         String timestamp = now.format(OBJECT_TIMESTAMP_FORMATTER);
         String randomSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 6);

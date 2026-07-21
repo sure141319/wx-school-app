@@ -8,6 +8,10 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+    hikari:
+      connection-init-sql: "SET TIME ZONE '+08:00'"
+  jackson:
+    time-zone: Asia/Shanghai
   flyway:
     enabled: true
   data:

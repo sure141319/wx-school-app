@@ -5,6 +5,7 @@ const app = getApp<{ globalData: { baseUrl: string } }>()
 const CONTACT_EMAIL_AD_UNIT_ID = 'adunit-6fbfdd44c8cbdc8b'
 const CONTACT_EMAIL_AD_REWARD_STORAGE_KEY = `contactEmailAdReward:${CONTACT_EMAIL_AD_UNIT_ID}`
 const CONTACT_EMAIL_AD_REWARD_TTL = 24 * 60 * 60 * 1000
+const BEIJING_UTC_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000
 
 let contactEmailVideoAd: WechatMiniprogram.RewardedVideoAd | null = null
 
@@ -173,18 +174,26 @@ Component({
 
     formatCreatedAt(createdAt?: string) {
       if (!createdAt) return ''
-      const normalized = createdAt.replace('T', ' ').slice(0, 16)
+      const text = createdAt.trim()
+      const normalized = text.replace('T', ' ').slice(0, 16)
       if (!normalized.trim()) return ''
 
-      const date = new Date(createdAt)
+      const localDateTime = text.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/)
+      if (localDateTime) {
+        const [, , month, day, hour, minute] = localDateTime
+        return `${month}-${day} ${hour}:${minute}`
+      }
+
+      const date = new Date(text)
       if (Number.isNaN(date.getTime())) {
         return normalized
       }
 
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hour = String(date.getHours()).padStart(2, '0')
-      const minute = String(date.getMinutes()).padStart(2, '0')
+      const beijingDate = new Date(date.getTime() + BEIJING_UTC_OFFSET_MILLISECONDS)
+      const month = String(beijingDate.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(beijingDate.getUTCDate()).padStart(2, '0')
+      const hour = String(beijingDate.getUTCHours()).padStart(2, '0')
+      const minute = String(beijingDate.getUTCMinutes()).padStart(2, '0')
       return `${month}-${day} ${hour}:${minute}`
     },
 

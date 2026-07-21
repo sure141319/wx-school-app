@@ -1,10 +1,10 @@
 package com.campustrade.platform.upload.service;
 
+import com.campustrade.platform.common.time.BeijingTime;
 import com.campustrade.platform.config.AppProperties;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -43,9 +43,7 @@ class UploadServiceKeyTest {
     void buildObjectKeyUsesBeijingTimeForUploadPathAndFilename() throws Exception {
         UploadService service = newService();
 
-        Field timeZone = UploadService.class.getDeclaredField("UPLOAD_TIME_ZONE");
-        timeZone.setAccessible(true);
-        assertEquals(ZoneId.of("Asia/Shanghai"), timeZone.get(null));
+        assertEquals(ZoneId.of("Asia/Shanghai"), BeijingTime.ZONE_ID);
 
         String key = buildObjectKey(
                 service,

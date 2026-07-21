@@ -1,8 +1,7 @@
 package com.campustrade.platform.auth.store;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,7 +44,7 @@ public class InMemoryVerificationCodeStore implements VerificationCodeStore {
             stringStore.remove(key);
             return -2L;
         }
-        long seconds = ChronoUnit.SECONDS.between(LocalDateTime.now(), value.expireAt());
+        long seconds = Duration.between(Instant.now(), value.expireAt()).toSeconds();
         return Math.max(seconds, 0L);
     }
 
@@ -61,19 +60,19 @@ public class InMemoryVerificationCodeStore implements VerificationCodeStore {
         return next.counter().get();
     }
 
-    private LocalDateTime expiresAt(Duration ttl) {
-        return LocalDateTime.now().plus(ttl);
+    private Instant expiresAt(Duration ttl) {
+        return Instant.now().plus(ttl);
     }
 
-    private record ExpiringStringValue(String value, LocalDateTime expireAt) {
+    private record ExpiringStringValue(String value, Instant expireAt) {
         boolean isExpired() {
-            return expireAt.isBefore(LocalDateTime.now());
+            return expireAt.isBefore(Instant.now());
         }
     }
 
-    private record ExpiringCounterValue(AtomicLong counter, LocalDateTime expireAt) {
+    private record ExpiringCounterValue(AtomicLong counter, Instant expireAt) {
         boolean isExpired() {
-            return expireAt.isBefore(LocalDateTime.now());
+            return expireAt.isBefore(Instant.now());
         }
     }
 }
