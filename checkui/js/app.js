@@ -674,6 +674,13 @@ function selectImage(imageId) {
   state.selectedImageId = imageId
   renderQueue()
   renderDetail()
+  // 移动端选中后自动滚动到详情面板，避免详情被挤到屏幕外
+  if (window.matchMedia('(max-width: 640px)').matches) {
+    const detailPanel = document.querySelector('.detail-panel')
+    if (detailPanel) {
+      detailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 }
 
 function renderSession() {
