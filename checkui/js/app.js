@@ -38,6 +38,7 @@ const els = {
   saveConfigBtn: document.querySelector('#saveConfigBtn'),
   originNotice: document.querySelector('#originNotice'),
   loginForm: document.querySelector('#loginForm'),
+  loginInfo: document.querySelector('#loginInfo'),
   emailInput: document.querySelector('#emailInput'),
   passwordInput: document.querySelector('#passwordInput'),
   logoutBtn: document.querySelector('#logoutBtn'),
@@ -684,6 +685,12 @@ function renderSession() {
     ? (reviewer.nickname || reviewer.email || '审核员')
     : '未登录'
 
+  if (els.loginInfo) {
+    els.loginInfo.style.display = online ? '' : 'none'
+  }
+  if (els.loginForm) {
+    els.loginForm.style.display = online ? 'none' : ''
+  }
   els.logoutBtn.disabled = !online
   els.emailInput.disabled = state.loading
   els.passwordInput.disabled = state.loading
@@ -732,9 +739,11 @@ function renderQueue(message) {
 
   const filteredCount = state.filteredItems.length
   const totalCount = state.items.length
+  const start = state.total === 0 ? 0 : state.page * state.size + 1
+  const end = Math.min((state.page + 1) * state.size, state.total)
   const metaText = state.searchQuery
     ? `筛选 ${filteredCount}/${totalCount} 条`
-    : (message || `${state.page * state.size + 1}-${Math.min((state.page + 1) * state.size, state.total)} / 共 ${state.total} 条`)
+    : (message || `${start}-${end} / 共 ${state.total} 条`)
   els.queueMeta.textContent = metaText
 
   if (state.loading) {

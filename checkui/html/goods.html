@@ -32,6 +32,10 @@
       outline: none;
     }
 
+    .goods-toolbar .search-group input {
+      width: 200px;
+    }
+
     .goods-toolbar .search-group input:focus,
     .goods-toolbar .search-group select:focus {
       border-color: var(--accent);
@@ -40,6 +44,7 @@
 
     .goods-table {
       width: 100%;
+      min-width: 900px;
       border-collapse: collapse;
       font-size: 0.9rem;
     }
@@ -48,6 +53,7 @@
     .goods-table td {
       padding: 12px;
       text-align: left;
+      white-space: nowrap;
       border-bottom: 1px solid var(--surface-border);
     }
 
@@ -229,7 +235,8 @@
 
     .goods-title-text {
       font-weight: 500;
-      max-width: 200px;
+      min-width: 120px;
+      max-width: 320px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -239,6 +246,7 @@
       text-align: center;
       padding: 48px 24px;
       color: var(--muted);
+      white-space: normal;
     }
 
     .seller-info {
@@ -248,8 +256,8 @@
     }
 
     .seller-avatar {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       object-fit: cover;
     }
@@ -285,8 +293,10 @@
           <span class="status-dot" id="sessionDot"></span>
           <span id="sessionTitle">未登录</span>
         </p>
-        <a href="./index.html" class="back-link">&larr; 返回审核台</a>
-        <a href="./announcement.html" class="back-link" style="margin-top:8px;">前往公告管理</a>
+        <div class="nav-links">
+          <a href="./index.html">&larr; 返回审核台</a>
+          <a href="./announcement.html">前往公告管理</a>
+        </div>
       </section>
 
       <section class="panel login-panel">
@@ -318,7 +328,7 @@
       <header class="workspace-head">
         <div class="goods-toolbar">
           <div class="search-group">
-            <input id="keywordInput" type="text" placeholder="搜索商品标题..." style="width:200px;">
+            <input id="keywordInput" type="text" placeholder="搜索商品标题...">
             <select id="categorySelect">
               <option value="">全部分类</option>
             </select>

@@ -105,6 +105,24 @@ textarea {
   background: #22c55e;
 }
 
+.nav-links {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  transition: opacity 150ms ease;
+}
+
+.nav-links a:hover {
+  opacity: 1;
+}
+
 .panel,
 .login-panel {
   padding: 16px;
@@ -419,9 +437,24 @@ textarea {
   flex-wrap: wrap;
 }
 
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .pill-group {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .pill {

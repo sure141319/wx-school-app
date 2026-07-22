@@ -15,13 +15,17 @@
           <span class="status-dot" id="sessionDot"></span>
           <span id="sessionTitle">未登录</span>
         </p>
-        <a href="./goods.html" class="back-link" style="color:#fff;text-decoration:none;font-size:0.85rem;margin-top:12px;display:inline-flex;align-items:center;gap:6px;opacity:0.8;transition:opacity 150ms ease;"
-           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">&#8594; 前往商品管理</a>
-        <a href="./announcement.html" class="back-link" style="color:#fff;text-decoration:none;font-size:0.85rem;margin-top:8px;display:inline-flex;align-items:center;gap:6px;opacity:0.8;transition:opacity 150ms ease;"
-           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">&#8594; 前往公告管理</a>
+        <div class="nav-links">
+          <a href="./goods.html">前往商品管理</a>
+          <a href="./announcement.html">前往公告管理</a>
+        </div>
       </section>
 
       <section class="panel login-panel">
+        <div id="loginInfo" class="stack" style="display:none;">
+          <p style="margin:0;font-size:0.9rem;">已登录</p>
+          <button id="logoutBtn" class="button ghost" type="button">退出登录</button>
+        </div>
         <form id="loginForm" class="stack">
           <label class="field">
             <span>用户名</span>
@@ -33,7 +37,6 @@
           </label>
           <div class="auth-actions">
             <button id="loginBtn" class="button primary" type="submit">登录</button>
-            <button id="logoutBtn" class="button ghost" type="button" disabled>退出</button>
           </div>
         </form>
       </section>
@@ -73,14 +76,16 @@
     <main class="workspace">
       <header class="workspace-head">
         <div class="toolbar">
-          <div class="pill-group" id="typeFilters">
-            <button class="pill is-active" data-type="goods" type="button">商品图片</button>
-            <button class="pill" data-type="avatar" type="button">头像</button>
-          </div>
-          <div class="pill-group" id="statusFilters">
-            <button class="pill is-active" data-status="PENDING" type="button">待审核</button>
-            <button class="pill" data-status="APPROVED" type="button">已通过</button>
-            <button class="pill" data-status="REJECTED" type="button">已驳回</button>
+          <div class="toolbar-filters">
+            <div class="pill-group" id="typeFilters">
+              <button class="pill is-active" data-type="goods" type="button">商品图片</button>
+              <button class="pill" data-type="avatar" type="button">头像</button>
+            </div>
+            <div class="pill-group" id="statusFilters">
+              <button class="pill is-active" data-status="PENDING" type="button">待审核</button>
+              <button class="pill" data-status="APPROVED" type="button">已通过</button>
+              <button class="pill" data-status="REJECTED" type="button">已驳回</button>
+            </div>
           </div>
           <div class="toolbar-actions">
             <div class="search-box">
