@@ -1,4 +1,4 @@
-import { request, clearTokenCache } from '../../utils/request'
+import { request, setToken } from '../../utils/request'
 import { COMMON_MESSAGES, actionFailed } from '../../utils/messages'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@qq\.com$/
@@ -335,8 +335,7 @@ Component({
         data: this.data.loginForm as unknown as Record<string, unknown>
       }).then((res) => {
         if (res.data?.success && res.data?.data) {
-          clearTokenCache()
-          wx.setStorageSync('token', res.data.data.token)
+          setToken(res.data.data.token)
           wx.setStorageSync('user', JSON.stringify(res.data.data.user))
           this.saveEmailHistory(this.data.loginForm.email)
           wx.showToast({ title: '登录成功', icon: 'success' })
@@ -364,8 +363,7 @@ Component({
         }))
         .then((res) => {
           if (res.data?.success && res.data?.data) {
-            clearTokenCache()
-            wx.setStorageSync('token', res.data.data.token)
+            setToken(res.data.data.token)
             wx.setStorageSync('user', JSON.stringify(res.data.data.user))
             wx.showToast({ title: '微信登录成功', icon: 'success' })
             setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
@@ -438,8 +436,7 @@ Component({
         data: this.data.registerForm as unknown as Record<string, unknown>
       }).then((res) => {
         if (res.data?.success && res.data?.data) {
-          clearTokenCache()
-          wx.setStorageSync('token', res.data.data.token)
+          setToken(res.data.data.token)
           wx.setStorageSync('user', JSON.stringify(res.data.data.user))
           this.saveEmailHistory(this.data.registerForm.email)
           wx.showToast({ title: '注册成功', icon: 'success' })

@@ -1,4 +1,4 @@
-import { getToken, clearTokenCache, request } from './request'
+import { getToken, redirectToLogin, request } from './request'
 import { COMMON_MESSAGES } from './messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
@@ -21,12 +21,16 @@ type GetImageInfoFn = (options: {
 const AVATAR_UPLOAD_MAX_EDGE = 1024
 const GOODS_UPLOAD_MAX_EDGE = 2048
 
-function handleLoginRequired(reject: (reason?: unknown) => void) {
-  wx.removeStorageSync('token')
-  wx.removeStorageSync('user')
-  clearTokenCache()
-  wx.redirectTo({ url: '/pages/auth/auth' })
-  reject(new Error(COMMON_MESSAGES.IMAGE_UPLOAD_LOGIN_REQUIRED))
+function handleLoginRequired(
+  reject: (reason?: unknown) => void,
+  failedToken?: string,
+  backendMessage?: string
+) {
+  const message = backendMessage || (failedToken
+    ? COMMON_MESSAGES.SESSION_EXPIRED
+    : COMMON_MESSAGES.IMAGE_UPLOAD_LOGIN_REQUIRED)
+  redirectToLogin(failedToken, undefined, message)
+  reject(new Error(message))
 }
 
 function getResizeOptions(filePath: string, maxEdge: number): Promise<{
@@ -94,21 +98,26 @@ export async function uploadImage(filePath: string, usage: 'avatar' | 'goods' = 
       header: { Authorization: `Bearer ${token}` },
       formData: { usage },
       success: (res: WechatMiniprogram.UploadFileSuccessCallbackResult) => {
-        if (res.statusCode === 401 || res.statusCode === 403) {
-          handleLoginRequired(reject)
-          return
-        }
-
+        let data: Partial<ApiResponse<UploadResult>>
         try {
-          const data = JSON.parse(res.data || '{}')
-          if (res.statusCode >= 400) {
-            reject(new Error(data.message || COMMON_MESSAGES.IMAGE_UPLOAD_FAILED))
+          data = JSON.parse(res.data || '{}') as Partial<ApiResponse<UploadResult>>
+        } catch (_err) {
+          if (res.statusCode === 401) {
+            handleLoginRequired(reject, token)
             return
           }
-          resolve(data.data || {})
-        } catch (_err) {
           reject(new Error(COMMON_MESSAGES.IMAGE_UPLOAD_FAILED))
+          return
         }
+        if (res.statusCode === 401) {
+          handleLoginRequired(reject, token, data.message)
+          return
+        }
+        if (res.statusCode >= 400 || !data.success || !data.data) {
+          reject(new Error(data.message || COMMON_MESSAGES.IMAGE_UPLOAD_FAILED))
+          return
+        }
+        resolve(data.data)
       },
       fail: () => reject(new Error(COMMON_MESSAGES.NETWORK_ERROR))
     })

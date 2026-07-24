@@ -1,4 +1,4 @@
-import { request } from '../../utils/request'
+import { getToken, redirectToLogin, request } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { hasContactMethod, validateContactDraft } from '../../utils/contact'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
@@ -107,9 +107,9 @@ Component({
 
     checkToken(): Promise<boolean> {
       return new Promise((resolve) => {
-        const token = wx.getStorageSync('token')
+        const token = getToken()
         if (!token) {
-          wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
+          redirectToLogin(undefined, '/pages/publish/publish', COMMON_MESSAGES.LOGIN_REQUIRED)
           resolve(false)
           return
         }
@@ -118,27 +118,34 @@ Component({
           method: 'GET',
           header: { Authorization: `Bearer ${token}` },
           success: (res) => {
+            const response = res.data as ApiResponse<UserProfile> | undefined
             if (res.statusCode === 401) {
-              wx.removeStorageSync('token')
-              wx.removeStorageSync('user')
-              wx.redirectTo({ url: '/pages/auth/auth?redirect=/pages/publish/publish' })
+              redirectToLogin(token, '/pages/publish/publish', response?.message)
               resolve(false)
-            } else {
-              const response = res.data as ApiResponse<UserProfile> | undefined
-              if (response?.success && response.data) {
-                const profile = response.data as UserProfile
-                this.setData({
-                  userProfile: profile,
-                  contactDraft: {
-                    wechatId: profile.wechatId || '',
-                    qq: profile.qq || ''
-                  }
-                })
-              }
-              resolve(true)
+              return
             }
+            if (res.statusCode >= 200 && res.statusCode < 300 && response?.success && response.data) {
+              const profile = response.data as UserProfile
+              this.setData({
+                userProfile: profile,
+                contactDraft: {
+                  wechatId: profile.wechatId || '',
+                  qq: profile.qq || ''
+                }
+              })
+              resolve(true)
+              return
+            }
+            const message = response?.message || loadFailed('登录状态')
+            this.setData({ info: message })
+            wx.showToast({ title: message, icon: 'none' })
+            resolve(false)
           },
-          fail: () => resolve(true)
+          fail: () => {
+            this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+            wx.showToast({ title: COMMON_MESSAGES.NETWORK_ERROR, icon: 'none' })
+            resolve(false)
+          }
         })
       })
     },

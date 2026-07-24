@@ -1,5 +1,6 @@
 package com.campustrade.platform.security;
 
+import com.campustrade.platform.common.ApiResponseCode;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -21,6 +22,9 @@ import java.util.Collections;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    public static final String AUTH_ERROR_CODE_ATTRIBUTE =
+            JwtAuthenticationFilter.class.getName() + ".AUTH_ERROR_CODE";
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
@@ -47,9 +51,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (ExpiredJwtException ex) {
                 log.debug("JWT token expired for request {}: {}", request.getRequestURI(), ex.getMessage());
+                request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, ApiResponseCode.AUTH_TOKEN_EXPIRED);
                 SecurityContextHolder.clearContext();
             } catch (JwtException | IllegalArgumentException ex) {
                 log.warn("Invalid JWT token for request {}: {}", request.getRequestURI(), ex.getMessage());
+                request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, ApiResponseCode.AUTH_TOKEN_INVALID);
                 SecurityContextHolder.clearContext();
             }
         }

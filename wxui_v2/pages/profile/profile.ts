@@ -1,4 +1,4 @@
-import { request } from '../../utils/request'
+import { clearToken, request } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { resolveProfileDisplayAvatar, resolveQqAvatarPreview } from '../../utils/avatar'
 import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
@@ -760,8 +760,7 @@ Component({
     },
 
     logout() {
-      wx.removeStorageSync('token')
-      wx.removeStorageSync('user')
+      clearToken()
       wx.reLaunch({ url: '/pages/index/index' })
     },
 
