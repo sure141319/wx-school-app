@@ -1,16 +1,6 @@
-const STORAGE_KEYS = {
-  apiBaseUrl: 'checkui:apiBaseUrl',
-  token: 'checkui:token',
-  reviewer: 'checkui:reviewer'
-}
-
-const DEFAULT_API_BASE_URL = 'https://www.ahut-campus.site/api/v1'
 const BEIJING_TIME_ZONE = 'Asia/Shanghai'
 
 const state = {
-  apiBaseUrl: normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || DEFAULT_API_BASE_URL),
-  token: localStorage.getItem(STORAGE_KEYS.token) || '',
-  reviewer: parseJson(localStorage.getItem(STORAGE_KEYS.reviewer)),
   items: [],
   total: 0,
   page: 0,
@@ -26,13 +16,6 @@ const state = {
 }
 
 const els = {
-  sessionDot: document.querySelector('#sessionDot'),
-  sessionTitle: document.querySelector('#sessionTitle'),
-  loginInfo: document.querySelector('#loginInfo'),
-  loginPrompt: document.querySelector('#loginPrompt'),
-  logoutBtn: document.querySelector('#logoutBtn'),
-  apiBaseUrl: document.querySelector('#apiBaseUrl'),
-  saveConfigBtn: document.querySelector('#saveConfigBtn'),
   keywordInput: document.querySelector('#keywordInput'),
   categorySelect: document.querySelector('#categorySelect'),
   statusSelect: document.querySelector('#statusSelect'),
@@ -52,20 +35,14 @@ const els = {
   confirmModal: document.querySelector('#confirmModal'),
   modalBody: document.querySelector('#modalBody'),
   modalCancel: document.querySelector('#modalCancel'),
-  modalConfirm: document.querySelector('#modalConfirm'),
-  toast: document.querySelector('#toast')
+  modalConfirm: document.querySelector('#modalConfirm')
 }
-
-let toastTimer = null
 
 boot()
 
 function boot() {
-  els.apiBaseUrl.value = state.apiBaseUrl
   els.pageSizeSelect.value = String(state.size)
 
-  els.saveConfigBtn.addEventListener('click', handleSaveConfig)
-  els.logoutBtn.addEventListener('click', handleLogout)
   els.searchBtn.addEventListener('click', handleSearch)
   els.resetBtn.addEventListener('click', handleReset)
   els.pageSizeSelect.addEventListener('change', handlePageSizeChange)
@@ -78,56 +55,33 @@ function boot() {
   els.modalConfirm.addEventListener('click', handleModalConfirm)
   els.keywordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch() })
 
-  renderSession()
+  initAuth({
+    onLoginSuccess: async () => {
+      await Promise.all([loadCategories(), loadGoods()])
+    },
+    onLogout: () => {
+      state.items = []
+      state.total = 0
+      state.page = 0
+      state.categories = []
+      state.selectedIds.clear()
+      renderTable()
+      renderBatchBar()
+      renderCategorySelect()
+      updatePagination()
+    }
+  })
 
-  if (state.token) {
-    hydrateSession()
-  } else {
-    renderTable()
-    updatePagination()
-  }
-}
-
-async function hydrateSession() {
-  try {
-    const reviewer = await request('/auth/me')
-    state.reviewer = reviewer
-    localStorage.setItem(STORAGE_KEYS.reviewer, JSON.stringify(reviewer))
-    renderSession()
-    await Promise.all([loadCategories(), loadGoods()])
-  } catch (error) {
-    clearSession()
-    renderSession()
-    renderTable()
-    updatePagination()
-    showToast(error.message || UI_MESSAGES.SESSION_EXPIRED, 'error')
-  }
-}
-
-function handleLogout() {
-  clearSession()
-  renderSession()
-  state.items = []
-  state.total = 0
-  state.page = 0
-  state.categories = []
-  state.selectedIds.clear()
   renderTable()
-  renderBatchBar()
-  renderCategorySelect()
   updatePagination()
-  showToast('已退出', 'success')
-}
 
-function handleSaveConfig() {
-  const nextBaseUrl = normalizeBaseUrl(els.apiBaseUrl.value)
-  if (!nextBaseUrl) {
-    showToast('请输入有效的 API 地址', 'error')
-    return
+  if (authState.token) {
+    hydrateAuthSession().then((ok) => {
+      if (ok) {
+        Promise.all([loadCategories(), loadGoods()])
+      }
+    })
   }
-  state.apiBaseUrl = nextBaseUrl
-  localStorage.setItem(STORAGE_KEYS.apiBaseUrl, nextBaseUrl)
-  showToast('地址已保存', 'success')
 }
 
 function handleSearch() {
@@ -225,7 +179,7 @@ async function handleModalConfirm() {
 }
 
 async function deleteSingle(goodsId) {
-  if (!state.token) {
+  if (!authState.token) {
     showToast(UI_MESSAGES.LOGIN_REQUIRED, 'error')
     return
   }
@@ -255,7 +209,7 @@ async function deleteSingle(goodsId) {
 }
 
 async function deleteBatch() {
-  if (!state.token || state.selectedIds.size === 0) return
+  if (!authState.token || state.selectedIds.size === 0) return
 
   const idsToDelete = Array.from(state.selectedIds)
   idsToDelete.forEach(id => state.deletingIds.add(id))
@@ -303,7 +257,7 @@ async function loadCategories() {
 }
 
 async function loadGoods() {
-  if (!state.token) {
+  if (!authState.token) {
     state.items = []
     state.total = 0
     renderTable()
@@ -342,17 +296,6 @@ async function loadGoods() {
   }
 }
 
-function renderSession() {
-  const online = Boolean(state.token && state.reviewer)
-  els.sessionDot.classList.toggle('is-online', online)
-  els.sessionTitle.textContent = online
-    ? (state.reviewer.nickname || state.reviewer.email || '管理员')
-    : '未登录'
-
-  els.loginInfo.style.display = online ? 'flex' : 'none'
-  els.loginPrompt.style.display = online ? 'none' : 'flex'
-}
-
 function renderCategorySelect() {
   const currentValue = els.categorySelect.value
   const options = state.categories.map(cat =>
@@ -367,7 +310,7 @@ function renderTable(message) {
   els.selectAllCheckbox.checked = state.items.length > 0 && state.items.every(item => state.selectedIds.has(item.id))
   els.selectAllCheckbox.indeterminate = state.items.some(item => state.selectedIds.has(item.id)) && !state.items.every(item => state.selectedIds.has(item.id))
 
-  if (!state.token) {
+  if (!authState.token) {
     els.goodsTableBody.innerHTML = `
       <tr>
         <td colspan="9" class="empty-table">
@@ -477,56 +420,8 @@ function updatePagination() {
   els.nextPageBtn.disabled = state.loading || state.page >= totalPages - 1 || state.items.length === 0
 }
 
-async function request(path, options = {}) {
-  const auth = options.auth !== false
-  const url = state.apiBaseUrl + path
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
-  }
-
-  if (auth && state.token) {
-    headers.Authorization = `Bearer ${state.token}`
-  }
-
-  let response
-  try {
-    response = await fetch(url, {
-      method: options.method || 'GET',
-      headers,
-      body: options.body === null || options.body === undefined ? undefined : JSON.stringify(options.body)
-    })
-  } catch (_error) {
-    throw new Error(UI_MESSAGES.NETWORK_ERROR)
-  }
-
-  let payload = null
-  try {
-    payload = await response.json()
-  } catch (error) {
-    payload = null
-  }
-
-  if (response.status === 401) {
-    clearSession()
-    renderSession()
-  }
-
-  if (!response.ok || !payload?.success) {
-    const message = payload?.message || (response.status === 401
-      ? UI_MESSAGES.LOGIN_REQUIRED
-      : UI_MESSAGES.REQUEST_FAILED)
-    throw new Error(message)
-  }
-
-  return payload.data
-}
-
-function clearSession() {
-  state.token = ''
-  state.reviewer = null
-  localStorage.removeItem(STORAGE_KEYS.token)
-  localStorage.removeItem(STORAGE_KEYS.reviewer)
+function request(path, options = {}) {
+  return authRequest(path, options)
 }
 
 function getTotalPages() {
@@ -586,20 +481,6 @@ function parseJson(value) {
   } catch (error) {
     return null
   }
-}
-
-function showToast(message, type = 'success') {
-  if (!message) return
-
-  els.toast.textContent = message
-  els.toast.classList.add('is-visible')
-  els.toast.classList.toggle('is-error', type === 'error')
-  els.toast.classList.toggle('is-success', type === 'success')
-
-  window.clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => {
-    els.toast.classList.remove('is-visible')
-  }, 2000)
 }
 
 function escapeHtml(value) {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>公告管理</title>
-  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/styles.css?v=20260724-compact-layout">
   <style>
     .announcement-panel {
       max-width: 720px;
@@ -105,46 +105,27 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">跳到公告表单</a>
   <div class="app-shell">
-    <aside class="sidebar">
-      <section class="brand-block">
+    <header class="topbar">
+      <div class="topbar-brand">
         <h1>公告管理</h1>
-        <p class="status-indicator">
+        <nav class="topbar-nav" aria-label="后台页面">
+          <a href="./index.html">审核台</a>
+          <a href="./goods.html">商品管理</a>
+        </nav>
+      </div>
+      <div class="topbar-user">
+        <p class="status-indicator" aria-live="polite">
           <span class="status-dot" id="sessionDot"></span>
           <span id="sessionTitle">未登录</span>
         </p>
-        <div class="nav-links">
-          <a href="./index.html">&larr; 返回审核台</a>
-          <a href="./goods.html">前往商品管理</a>
-        </div>
-      </section>
+        <button id="showLoginBtn" class="button topbar-login" type="button">登录</button>
+        <button id="logoutBtn" class="button topbar-logout" type="button" hidden>退出</button>
+      </div>
+    </header>
 
-      <section class="panel login-panel">
-        <div id="loginInfo" class="stack" style="display:none;">
-          <p style="margin:0;font-size:0.9rem;">已登录</p>
-          <button id="logoutBtn" class="button ghost" type="button">退出登录</button>
-        </div>
-        <div id="loginPrompt" class="stack">
-          <p style="margin:0;font-size:0.9rem;color:var(--muted);">请先在审核台登录</p>
-          <a href="./index.html" class="button primary" style="text-align:center;text-decoration:none;">去审核台登录</a>
-        </div>
-      </section>
-
-      <section class="panel config-panel">
-        <details>
-          <summary>后端配置</summary>
-          <div class="config-content">
-            <label class="field">
-              <span>API 地址</span>
-              <input id="apiBaseUrl" type="text" placeholder="http://localhost:8080/api/v1">
-            </label>
-            <button id="saveConfigBtn" class="button secondary" type="button">保存</button>
-          </div>
-        </details>
-      </section>
-    </aside>
-
-    <main class="workspace">
+    <main id="mainContent" class="workspace" tabindex="-1">
       <header class="workspace-head">
         <div>
           <h2 style="margin:0 0 6px;">小程序启动公告</h2>
@@ -188,9 +169,36 @@
     </main>
   </div>
 
+  <!-- 登录弹窗 -->
+  <div id="loginModal" class="login-modal-overlay" aria-hidden="true">
+    <div class="login-modal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+      <div class="login-modal-head">
+        <div>
+          <h3 id="loginModalTitle">审核员登录</h3>
+          <p>登录后即可继续处理图片、商品和公告。</p>
+        </div>
+        <button id="closeLoginBtn" class="button ghost login-modal-close" type="button" aria-label="关闭登录弹窗">关闭</button>
+      </div>
+      <form id="loginForm" class="stack">
+        <label class="field">
+          <span>用户名</span>
+          <input id="emailInput" type="text" placeholder="审核员账号" autocomplete="username" required>
+        </label>
+        <label class="field">
+          <span>密码</span>
+          <input id="passwordInput" type="password" placeholder="请输入密码" autocomplete="current-password" required>
+        </label>
+        <div class="auth-actions">
+          <button id="loginBtn" class="button primary" type="submit">登录</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <script src="../js/messages.js"></script>
+  <script src="../js/auth.js?v=20260724-compact-layout"></script>
   <script src="../js/announcement.js?v=20260721-beijing-time"></script>
 </body>
 </html>

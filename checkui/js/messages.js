@@ -10,3 +10,21 @@ window.UI_MESSAGES = Object.freeze({
 window.actionFailedMessage = function actionFailedMessage(subject) {
   return `${subject}失败，请稍后重试`
 }
+
+window.showToast = (function createToast() {
+  let toastTimer = null
+  return function showToast(message, type = 'success') {
+    const toast = document.querySelector('#toast')
+    if (!toast || !message) return
+
+    toast.textContent = message
+    toast.classList.add('is-visible')
+    toast.classList.toggle('is-error', type === 'error')
+    toast.classList.toggle('is-success', type === 'success')
+
+    window.clearTimeout(toastTimer)
+    toastTimer = window.setTimeout(() => {
+      toast.classList.remove('is-visible')
+    }, 2200)
+  }
+})()

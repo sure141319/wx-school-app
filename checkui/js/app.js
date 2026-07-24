@@ -1,7 +1,4 @@
 const STORAGE_KEYS = {
-  apiBaseUrl: 'checkui:apiBaseUrl',
-  token: 'checkui:token',
-  reviewer: 'checkui:reviewer',
   remarkHistory: 'checkui:remarkHistory'
 }
 
@@ -11,13 +8,9 @@ const STATUS_META = {
   REJECTED: { label: '已驳回', className: 'rejected' }
 }
 
-const DEFAULT_API_BASE_URL = 'https://www.ahut-campus.site/api/v1'
 const BEIJING_TIME_ZONE = 'Asia/Shanghai'
 
 const state = {
-  apiBaseUrl: normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || DEFAULT_API_BASE_URL),
-  token: localStorage.getItem(STORAGE_KEYS.token) || '',
-  reviewer: parseJson(localStorage.getItem(STORAGE_KEYS.reviewer)),
   items: [],
   filteredItems: [],
   total: 0,
@@ -34,16 +27,6 @@ const state = {
 }
 
 const els = {
-  apiBaseUrl: document.querySelector('#apiBaseUrl'),
-  saveConfigBtn: document.querySelector('#saveConfigBtn'),
-  originNotice: document.querySelector('#originNotice'),
-  loginForm: document.querySelector('#loginForm'),
-  loginInfo: document.querySelector('#loginInfo'),
-  emailInput: document.querySelector('#emailInput'),
-  passwordInput: document.querySelector('#passwordInput'),
-  logoutBtn: document.querySelector('#logoutBtn'),
-  sessionDot: document.querySelector('#sessionDot'),
-  sessionTitle: document.querySelector('#sessionTitle'),
   typeFilters: document.querySelector('#typeFilters'),
   statusFilters: document.querySelector('#statusFilters'),
   refreshBtn: document.querySelector('#refreshBtn'),
@@ -57,28 +40,17 @@ const els = {
   prevPageBtn: document.querySelector('#prevPageBtn'),
   nextPageBtn: document.querySelector('#nextPageBtn'),
   pageIndicator: document.querySelector('#pageIndicator'),
-  summaryStatus: document.querySelector('#summaryStatus'),
-  summaryPage: document.querySelector('#summaryPage'),
-  summaryTotal: document.querySelector('#summaryTotal'),
   detailContent: document.querySelector('#detailContent'),
-  toast: document.querySelector('#toast'),
   imagePreviewModal: document.querySelector('#imagePreviewModal'),
   previewImage: document.querySelector('#previewImage'),
   closePreviewBtn: document.querySelector('#closePreviewBtn')
 }
 
-let toastTimer = null
-
 boot()
 
 function boot() {
-  els.apiBaseUrl.value = state.apiBaseUrl
   els.pageSizeSelect.value = String(state.size)
-  renderOriginNotice()
 
-  els.saveConfigBtn.addEventListener('click', handleSaveConfig)
-  els.loginForm.addEventListener('submit', handleLogin)
-  els.logoutBtn.addEventListener('click', handleLogout)
   els.refreshBtn.addEventListener('click', () => loadQueue({ keepSelection: true }))
   els.pageSizeSelect.addEventListener('change', handlePageSizeChange)
   els.approveAllBtn.addEventListener('click', handleApproveAll)
@@ -93,105 +65,30 @@ function boot() {
   els.imagePreviewModal.querySelector('.modal-backdrop').addEventListener('click', closeImagePreview)
   document.addEventListener('keydown', handleKeyboardShortcut)
 
+  initAuth({
+    onLoginSuccess: async () => {
+      await loadQueue()
+    },
+    onLogout: () => {
+      state.items = []
+      state.filteredItems = []
+      state.total = 0
+      state.selectedImageId = null
+      renderQueue()
+      renderDetail()
+    }
+  })
+
   renderFilterState()
   renderTypeFilterState()
-  renderSession()
   renderQueue()
   renderDetail()
 
-  if (state.token) {
-    hydrateSession()
-  }
-}
-
-function renderOriginNotice() {
-  const currentOrigin = window.location.origin
-  const allowedOrigins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'https://sure141319.github.io'
-  ]
-  const shouldWarn = !allowedOrigins.includes(currentOrigin)
-
-  els.originNotice.hidden = !shouldWarn
-  if (!shouldWarn) {
-    els.originNotice.textContent = ''
-    return
-  }
-
-  els.originNotice.textContent = `当前来源 ${currentOrigin} 不在 CORS 白名单，请用 localhost:5173 打开`
-}
-
-async function hydrateSession() {
-  try {
-    const reviewer = await request('/auth/me')
-    state.reviewer = reviewer
-    persistReviewer(reviewer)
-    renderSession()
-    await loadQueue()
-    showToast('会话已恢复', 'success')
-  } catch (error) {
-    clearSession()
-    renderSession()
-    renderQueue()
-    renderDetail()
-    showToast(error.message || UI_MESSAGES.SESSION_EXPIRED, 'error')
-  }
-}
-
-async function handleLogin(event) {
-  event.preventDefault()
-
-  const email = els.emailInput.value.trim()
-  const password = els.passwordInput.value
-
-  if (!email || !password) {
-    showToast('请输入账号和密码', 'error')
-    return
-  }
-
-  setLoadingState(true)
-
-  try {
-    const response = await request('/auth/login', {
-      method: 'POST',
-      body: { email, password },
-      auth: false
+  if (authState.token) {
+    hydrateAuthSession().then((ok) => {
+      if (ok) loadQueue()
     })
-
-    state.token = response.token
-    state.reviewer = response.user
-    localStorage.setItem(STORAGE_KEYS.token, response.token)
-    persistReviewer(response.user)
-
-    els.passwordInput.value = ''
-    renderSession()
-    await loadQueue()
-    showToast('登录成功', 'success')
-  } catch (error) {
-    showToast(error.message || actionFailedMessage('登录'), 'error')
-  } finally {
-    setLoadingState(false)
   }
-}
-
-function handleLogout() {
-  clearSession()
-  renderSession()
-  renderQueue()
-  renderDetail()
-  showToast('已退出', 'success')
-}
-
-function handleSaveConfig() {
-  const nextBaseUrl = normalizeBaseUrl(els.apiBaseUrl.value)
-  if (!nextBaseUrl) {
-    showToast('请输入有效的 API 地址', 'error')
-    return
-  }
-  state.apiBaseUrl = nextBaseUrl
-  localStorage.setItem(STORAGE_KEYS.apiBaseUrl, nextBaseUrl)
-  showToast('地址已保存', 'success')
 }
 
 function handlePageSizeChange(event) {
@@ -293,7 +190,7 @@ function filterAndRenderItems() {
 }
 
 function handleKeyboardShortcut(event) {
-  if (!state.token || state.actionLoading) return
+  if (!authState.token || state.actionLoading) return
 
   const activeElement = document.activeElement
   const isInputFocused = activeElement.tagName === 'INPUT' ||
@@ -393,7 +290,7 @@ function saveRemarkToHistory(remark) {
 }
 
 async function handleApproveAll() {
-  if (!state.token || state.actionLoading) {
+  if (!authState.token || state.actionLoading) {
     return
   }
 
@@ -426,7 +323,7 @@ async function handleApproveAll() {
 }
 
 async function handleRejectAll() {
-  if (!state.token || state.actionLoading) {
+  if (!authState.token || state.actionLoading) {
     return
   }
 
@@ -459,7 +356,7 @@ async function handleRejectAll() {
 }
 
 async function loadQueue(options = {}) {
-  if (!state.token) {
+  if (!authState.token) {
     state.items = []
     state.total = 0
     state.selectedImageId = null
@@ -683,29 +580,11 @@ function selectImage(imageId) {
   }
 }
 
-function renderSession() {
-  const reviewer = state.reviewer
-  const online = Boolean(state.token && reviewer)
-
-  els.sessionDot.classList.toggle('is-online', online)
-  els.sessionTitle.textContent = online
-    ? (reviewer.nickname || reviewer.email || '审核员')
-    : '未登录'
-
-  if (els.loginInfo) {
-    els.loginInfo.style.display = online ? '' : 'none'
-  }
-  if (els.loginForm) {
-    els.loginForm.style.display = online ? 'none' : ''
-  }
-  els.logoutBtn.disabled = !online
-  els.emailInput.disabled = state.loading
-  els.passwordInput.disabled = state.loading
-}
-
 function renderTypeFilterState() {
   Array.from(els.typeFilters.querySelectorAll('[data-type]')).forEach(button => {
-    button.classList.toggle('is-active', button.dataset.type === state.currentTab)
+    const active = button.dataset.type === state.currentTab
+    button.classList.toggle('is-active', active)
+    button.setAttribute('aria-pressed', String(active))
   })
   const titleMap = {
     goods: '商品图片审核台',
@@ -716,9 +595,10 @@ function renderTypeFilterState() {
 
 function renderFilterState() {
   Array.from(els.statusFilters.querySelectorAll('[data-status]')).forEach(button => {
-    button.classList.toggle('is-active', button.dataset.status === state.status)
+    const active = button.dataset.status === state.status
+    button.classList.toggle('is-active', active)
+    button.setAttribute('aria-pressed', String(active))
   })
-  els.summaryStatus.textContent = getStatusMeta(state.status).label
   els.approveAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'REJECTED'
   els.rejectAllBtn.hidden = state.currentTab !== 'goods' || state.status !== 'APPROVED'
 }
@@ -727,13 +607,11 @@ function renderQueue(message) {
   renderFilterState()
 
   const totalPages = getTotalPages()
-  els.summaryPage.textContent = `${Math.min(state.page + 1, totalPages)}/${totalPages}`
-  els.summaryTotal.textContent = String(state.total)
   els.pageIndicator.textContent = `第 ${Math.min(state.page + 1, totalPages)} 页`
   els.prevPageBtn.disabled = state.loading || state.page === 0
   els.nextPageBtn.disabled = state.loading || state.page >= totalPages - 1
 
-  if (!state.token) {
+  if (!authState.token) {
     els.queueMeta.textContent = UI_MESSAGES.LOGIN_REQUIRED
     els.queueList.innerHTML = `
       <div class="empty-queue">
@@ -779,7 +657,7 @@ function renderQueue(message) {
     
     if (state.currentTab === 'goods') {
       return `
-        <button class="queue-item ${selectedClass}" type="button" data-item-id="${itemId}">
+        <button class="queue-item ${selectedClass}" type="button" data-item-id="${itemId}" aria-current="${itemId === state.selectedImageId ? 'true' : 'false'}">
           <div class="queue-item-top">
             <div>
               <div class="queue-title">${escapeHtml(item.goodsTitle || `商品 #${item.goodsId}`)}</div>
@@ -796,7 +674,7 @@ function renderQueue(message) {
     }
     
     return `
-      <button class="queue-item ${selectedClass}" type="button" data-item-id="${itemId}">
+      <button class="queue-item ${selectedClass}" type="button" data-item-id="${itemId}" aria-current="${itemId === state.selectedImageId ? 'true' : 'false'}">
         <div class="queue-item-top">
           <div>
             <div class="queue-title">${escapeHtml(item.nickname || `用户 #${item.userId}`)}</div>
@@ -822,7 +700,7 @@ function renderQueue(message) {
 function renderDetail() {
   const selected = getSelectedItem()
 
-  if (!state.token) {
+  if (!authState.token) {
     els.detailContent.innerHTML = `
       <div class="empty-state">
         <h4>${UI_MESSAGES.LOGIN_REQUIRED}</h4>
@@ -981,71 +859,8 @@ function renderDetail() {
   }
 }
 
-async function request(path, options = {}) {
-  const auth = options.auth !== false
-  const url = state.apiBaseUrl + path
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
-  }
-
-  if (auth && state.token) {
-    headers.Authorization = `Bearer ${state.token}`
-  }
-
-  let response
-  try {
-    response = await fetch(url, {
-      method: options.method || 'GET',
-      headers,
-      body: options.body === null || options.body === undefined ? undefined : JSON.stringify(options.body)
-    })
-  } catch (_error) {
-    throw new Error(UI_MESSAGES.NETWORK_ERROR)
-  }
-
-  let payload = null
-  try {
-    payload = await response.json()
-  } catch (error) {
-    payload = null
-  }
-
-  if (response.status === 401) {
-    clearSession()
-  }
-
-  if (!response.ok || !payload?.success) {
-    const message = payload?.message || (response.status === 401
-      ? UI_MESSAGES.LOGIN_REQUIRED
-      : UI_MESSAGES.REQUEST_FAILED)
-    throw new Error(message)
-  }
-
-  return payload.data
-}
-
-function clearSession() {
-  state.token = ''
-  state.reviewer = null
-  state.items = []
-  state.total = 0
-  state.page = 0
-  state.selectedImageId = null
-
-  localStorage.removeItem(STORAGE_KEYS.token)
-  localStorage.removeItem(STORAGE_KEYS.reviewer)
-}
-
-function persistReviewer(reviewer) {
-  localStorage.setItem(STORAGE_KEYS.reviewer, JSON.stringify(reviewer))
-}
-
-function setLoadingState(loading) {
-  state.loading = loading
-  els.emailInput.disabled = loading
-  els.passwordInput.disabled = loading
-  els.saveConfigBtn.disabled = loading
+function request(path, options = {}) {
+  return authRequest(path, options)
 }
 
 function getSelectedItem() {
@@ -1101,10 +916,6 @@ function formatContactValue(value) {
   return escapeHtml(normalized || '未填写')
 }
 
-function normalizeBaseUrl(value) {
-  return (value || '').trim().replace(/\/+$/, '')
-}
-
 function parseJson(value) {
   if (!value) {
     return null
@@ -1114,22 +925,6 @@ function parseJson(value) {
   } catch (error) {
     return null
   }
-}
-
-function showToast(message, type = 'success') {
-  if (!message) {
-    return
-  }
-
-  els.toast.textContent = message
-  els.toast.classList.add('is-visible')
-  els.toast.classList.toggle('is-error', type === 'error')
-  els.toast.classList.toggle('is-success', type === 'success')
-
-  window.clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => {
-    els.toast.classList.remove('is-visible')
-  }, 2000)
 }
 
 function escapeHtml(value) {
