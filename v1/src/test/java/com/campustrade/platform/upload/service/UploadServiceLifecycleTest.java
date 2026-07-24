@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import okhttp3.Headers;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -41,12 +43,12 @@ import static org.mockito.Mockito.when;
 class UploadServiceLifecycleTest {
 
     @Test
-    void rollsBackCompressedMasterWhenThumbnailWriteFails() throws Exception {
+    void cleansAllExpectedObjectsWhenThumbnailWriteOutcomeIsUnknown() throws Exception {
         MinioClient minioClient = mock(MinioClient.class);
         UploadLifecycleService lifecycle = mock(UploadLifecycleService.class);
         UploadObjectDO reservation = new UploadObjectDO();
         reservation.setId(7L);
-        when(lifecycle.reserve(anyLong(), anyString(), anyString(), anyLong())).thenReturn(reservation);
+        stubReservation(lifecycle, reservation);
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
         ObjectWriteResponse response = mock(ObjectWriteResponse.class);
         when(minioClient.putObject(any(PutObjectArgs.class)))
@@ -57,7 +59,13 @@ class UploadServiceLifecycleTest {
 
         assertThrows(AppException.class, () -> service.storeImage(validPng(), "goods", 12L));
 
-        verify(minioClient).removeObject(any(RemoveObjectArgs.class));
+        ArgumentCaptor<RemoveObjectArgs> removeArgs = ArgumentCaptor.forClass(RemoveObjectArgs.class);
+        verify(minioClient, times(2)).removeObject(removeArgs.capture());
+        assertTrue(removeArgs.getAllValues().stream()
+                .anyMatch(args -> args.object().equals(reservation.getObjectKey())));
+        assertTrue(removeArgs.getAllValues().stream()
+                .anyMatch(args -> args.object().equals(reservation.getThumbnailObjectKey())));
+        verify(lifecycle).markForCleanup(7L);
         verify(lifecycle).deleteRecord(7L);
         verify(lifecycle, never()).markStaged(anyLong(), anyLong(), anyLong(), any(), anyLong());
     }
@@ -69,7 +77,7 @@ class UploadServiceLifecycleTest {
         UploadObjectDO reservation = new UploadObjectDO();
         reservation.setId(10L);
         MockMultipartFile goods = noisyJpeg();
-        when(lifecycle.reserve(anyLong(), anyString(), anyString(), anyLong())).thenReturn(reservation);
+        stubReservation(lifecycle, reservation);
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
         when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(mock(ObjectWriteResponse.class));
 
@@ -152,7 +160,7 @@ class UploadServiceLifecycleTest {
         UploadObjectDO reservation = new UploadObjectDO();
         reservation.setId(8L);
         MockMultipartFile avatar = noisyJpeg();
-        when(lifecycle.reserve(anyLong(), anyString(), anyString(), anyLong())).thenReturn(reservation);
+        stubReservation(lifecycle, reservation);
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
         when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(mock(ObjectWriteResponse.class));
 
@@ -184,7 +192,7 @@ class UploadServiceLifecycleTest {
         UploadLifecycleService lifecycle = mock(UploadLifecycleService.class);
         UploadObjectDO reservation = new UploadObjectDO();
         reservation.setId(9L);
-        when(lifecycle.reserve(anyLong(), anyString(), anyString(), anyLong())).thenReturn(reservation);
+        stubReservation(lifecycle, reservation);
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
         byte[] heicHeader = new byte[32];
         System.arraycopy("ftyp".getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, heicHeader, 4, 4);
@@ -197,6 +205,53 @@ class UploadServiceLifecycleTest {
         assertEquals(org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE, error.getStatus());
         verify(minioClient, never()).putObject(any(PutObjectArgs.class));
         verify(lifecycle).deleteRecord(9L);
+    }
+
+    @Test
+    void marksBoundUploadDeletingBeforeTransactionCommitCallback() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        UploadLifecycleService lifecycle = mock(UploadLifecycleService.class);
+        UploadObjectDO record = new UploadObjectDO();
+        record.setId(21L);
+        record.setObjectKey("images/2026/07/goods/goods_u12_old.webp");
+        record.setThumbnailObjectKey("images/2026/07/goods/thumbs/goods_u12_old_thumb.webp");
+        when(lifecycle.beginBoundDeletion(record.getObjectKey())).thenReturn(record);
+        UploadService service = new UploadService(minioClient, properties(), lifecycle);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.deleteUploadGroupAfterCommit(
+                    record.getObjectKey(),
+                    record.getThumbnailObjectKey(),
+                    null,
+                    null
+            );
+
+            verify(lifecycle).beginBoundDeletion(record.getObjectKey());
+            verify(minioClient, never()).removeObject(any(RemoveObjectArgs.class));
+
+            for (TransactionSynchronization synchronization
+                    : TransactionSynchronizationManager.getSynchronizations()) {
+                synchronization.afterCommit();
+            }
+
+            verify(minioClient, times(2)).removeObject(any(RemoveObjectArgs.class));
+            verify(lifecycle).deleteRecord(21L);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    private void stubReservation(UploadLifecycleService lifecycle, UploadObjectDO reservation) {
+        when(lifecycle.reserve(anyLong(), anyString(), anyString(), anyLong(), any()))
+                .thenAnswer(invocation -> {
+                    reservation.setObjectKey(invocation.getArgument(2));
+                    UploadService.ImageVariantKeys variants = invocation.getArgument(4);
+                    reservation.setThumbnailObjectKey(variants.thumbnailObjectKey());
+                    reservation.setDisplayObjectKey(variants.displayObjectKey());
+                    reservation.setAuditThumbnailObjectKey(variants.auditThumbnailObjectKey());
+                    return reservation;
+                });
     }
 
     private MockMultipartFile validPng() throws Exception {

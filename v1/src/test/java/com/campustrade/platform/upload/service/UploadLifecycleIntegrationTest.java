@@ -8,12 +8,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 @SpringBootTest
 @Transactional
@@ -32,7 +29,15 @@ class UploadLifecycleIntegrationTest {
     void persistsStagesAndBindsUploadThroughMapper() {
         Long userId = insertUser();
         String objectKey = "images/2026/07/goods/goods_u" + userId + "_integration.jpg";
-        UploadObjectDO reserved = uploadLifecycleService.reserve(userId, "goods", objectKey, 100L);
+        String thumbnailObjectKey = "images/2026/07/goods/thumbs/goods_u" + userId + "_integration_thumb.webp";
+        UploadObjectDO reserved = uploadLifecycleService.reserve(
+                userId,
+                "goods",
+                objectKey,
+                100L,
+                new UploadService.ImageVariantKeys(thumbnailObjectKey, null, null)
+        );
+        UploadObjectDO uploading = uploadLifecycleService.findByObjectKey(objectKey);
 
         uploadLifecycleService.markStaged(
                 reserved.getId(),
@@ -45,6 +50,7 @@ class UploadLifecycleIntegrationTest {
         UploadObjectDO persisted = uploadLifecycleService.findByObjectKey(objectKey);
 
         assertEquals(UploadLifecycleService.STATUS_BOUND, bound.getStatus());
+        assertEquals(thumbnailObjectKey, uploading.getThumbnailObjectKey());
         assertEquals(160L, persisted.getTotalSizeBytes());
         assertEquals("thumb.webp", persisted.getThumbnailObjectKey());
         assertEquals(88L, persisted.getBoundId());
@@ -52,7 +58,7 @@ class UploadLifecycleIntegrationTest {
 
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void commitsLifecycleDeletionWhenInvokedFromAfterCommitCallback() {
+    void boundDeletionStateRollsBackWithBusinessTransaction() {
         Long userId = insertUser();
         String objectKey = "images/2026/07/goods/goods_u" + userId + "_after_commit.jpg";
         UploadObjectDO reserved = uploadLifecycleService.reserve(userId, "goods", objectKey, 100L);
@@ -66,17 +72,42 @@ class UploadLifecycleIntegrationTest {
         uploadLifecycleService.bindToGoods(objectKey, userId, 99L);
 
         try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                UploadObjectDO deleting = uploadLifecycleService.beginBoundDeletion(objectKey);
+                assertEquals(UploadLifecycleService.STATUS_DELETING, deleting.getStatus());
+                status.setRollbackOnly();
+            });
+
+            UploadObjectDO persisted = uploadLifecycleService.findByObjectKey(objectKey);
+            assertEquals(UploadLifecycleService.STATUS_BOUND, persisted.getStatus());
+        } finally {
+            jdbcTemplate.update("DELETE FROM upload_object_do WHERE object_key = ?", objectKey);
+            jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId);
+        }
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void boundDeletionStateCommitsWithBusinessTransaction() {
+        Long userId = insertUser();
+        String objectKey = "images/2026/07/goods/goods_u" + userId + "_deleting_commit.jpg";
+        UploadObjectDO reserved = uploadLifecycleService.reserve(userId, "goods", objectKey, 100L);
+        uploadLifecycleService.markStaged(
+                reserved.getId(),
+                userId,
+                100L,
+                new UploadService.ImageVariantKeys(null, null, null),
+                100L
+        );
+        uploadLifecycleService.bindToGoods(objectKey, userId, 100L);
+
+        try {
             new TransactionTemplate(transactionManager).executeWithoutResult(status ->
-                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                        @Override
-                        public void afterCommit() {
-                            UploadObjectDO deleting = uploadLifecycleService.beginBoundDeletion(objectKey);
-                            uploadLifecycleService.deleteRecord(deleting.getId());
-                        }
-                    })
+                    uploadLifecycleService.beginBoundDeletion(objectKey)
             );
 
-            assertNull(uploadLifecycleService.findByObjectKey(objectKey));
+            UploadObjectDO persisted = uploadLifecycleService.findByObjectKey(objectKey);
+            assertEquals(UploadLifecycleService.STATUS_DELETING, persisted.getStatus());
         } finally {
             jdbcTemplate.update("DELETE FROM upload_object_do WHERE object_key = ?", objectKey);
             jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId);

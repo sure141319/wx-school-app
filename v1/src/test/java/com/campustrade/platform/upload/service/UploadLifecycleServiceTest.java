@@ -35,10 +35,22 @@ class UploadLifecycleServiceTest {
         });
         LocalDateTime before = LocalDateTime.now().plusHours(23);
 
-        UploadObjectDO record = service.reserve(12L, "goods", "images/demo.jpg", 1024L);
+        UploadService.ImageVariantKeys expectedVariants = new UploadService.ImageVariantKeys(
+                "images/thumbs/demo_thumb.webp",
+                null,
+                null
+        );
+        UploadObjectDO record = service.reserve(
+                12L,
+                "goods",
+                "images/demo.jpg",
+                1024L,
+                expectedVariants
+        );
 
         assertEquals(7L, record.getId());
         assertEquals(UploadLifecycleService.STATUS_UPLOADING, record.getStatus());
+        assertEquals("images/thumbs/demo_thumb.webp", record.getThumbnailObjectKey());
         assertEquals(1024L, record.getTotalSizeBytes());
         assertNotNull(record.getExpiresAt());
         assertTrue(record.getExpiresAt().isAfter(before));

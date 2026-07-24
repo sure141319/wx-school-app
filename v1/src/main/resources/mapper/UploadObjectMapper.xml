@@ -53,10 +53,12 @@
     <insert id="insert" parameterType="com.campustrade.platform.upload.dataobject.UploadObjectDO"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO upload_object_do (
-            user_id, usage_type, object_key, source_size_bytes, total_size_bytes, status,
+            user_id, usage_type, object_key, thumbnail_object_key, display_object_key,
+            audit_thumbnail_object_key, source_size_bytes, total_size_bytes, status,
             created_at, updated_at, expires_at
         ) VALUES (
-            #{userId}, #{usageType}, #{objectKey}, #{sourceSizeBytes}, #{totalSizeBytes}, #{status},
+            #{userId}, #{usageType}, #{objectKey}, #{thumbnailObjectKey}, #{displayObjectKey},
+            #{auditThumbnailObjectKey}, #{sourceSizeBytes}, #{totalSizeBytes}, #{status},
             #{createdAt}, #{updatedAt}, #{expiresAt}
         )
     </insert>

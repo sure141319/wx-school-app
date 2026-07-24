@@ -34,6 +34,21 @@ public class UploadLifecycleService {
 
     @Transactional
     public UploadObjectDO reserve(Long userId, String usage, String objectKey, long totalSizeBytes) {
+        return reserve(
+                userId,
+                usage,
+                objectKey,
+                totalSizeBytes,
+                new UploadService.ImageVariantKeys(null, null, null)
+        );
+    }
+
+    @Transactional
+    public UploadObjectDO reserve(Long userId,
+                                  String usage,
+                                  String objectKey,
+                                  long totalSizeBytes,
+                                  UploadService.ImageVariantKeys expectedVariants) {
         if (userId == null || userId <= 0) {
             throw new AppException(HttpStatus.UNAUTHORIZED, "请先登录后再上传图片");
         }
@@ -60,6 +75,11 @@ public class UploadLifecycleService {
         record.setUserId(userId);
         record.setUsageType(usage);
         record.setObjectKey(objectKey);
+        if (expectedVariants != null) {
+            record.setThumbnailObjectKey(expectedVariants.thumbnailObjectKey());
+            record.setDisplayObjectKey(expectedVariants.displayObjectKey());
+            record.setAuditThumbnailObjectKey(expectedVariants.auditThumbnailObjectKey());
+        }
         record.setSourceSizeBytes(totalSizeBytes);
         record.setTotalSizeBytes(totalSizeBytes);
         record.setStatus(STATUS_UPLOADING);
@@ -139,7 +159,7 @@ public class UploadLifecycleService {
         return record;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public UploadObjectDO beginBoundDeletion(String objectKey) {
         UploadObjectDO record = uploadObjectMapper.findByObjectKeyForUpdate(objectKey);
         if (record == null) {

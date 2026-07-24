@@ -167,9 +167,17 @@ public class UploadService {
         String normalizedUsage = normalizeUsage(usage);
         String extension = ".webp";
         String objectKey = buildObjectKey(extension, normalizedUsage, userId);
+        ImageVariantKeys expectedVariants = USAGE_GOODS.equals(normalizedUsage)
+                ? new ImageVariantKeys(buildThumbnailObjectKey(objectKey), null, null)
+                : ImageVariantKeys.empty();
         UploadLifecycleService lifecycle = requireUploadLifecycle();
-        UploadObjectDO reservation = lifecycle.reserve(userId, normalizedUsage, objectKey, file.getSize());
-        List<String> writtenObjectKeys = new ArrayList<>(2);
+        UploadObjectDO reservation = lifecycle.reserve(
+                userId,
+                normalizedUsage,
+                objectKey,
+                file.getSize(),
+                expectedVariants
+        );
 
         try {
             ensureBucketReady();
@@ -185,11 +193,9 @@ public class UploadService {
 
             if (optimizedAvatar != null) {
                 putWebpVariant(optimizedAvatar);
-                writtenObjectKeys.add(objectKey);
             }
             for (VariantPayload payload : preparedVariants.payloads()) {
                 putWebpVariant(payload);
-                writtenObjectKeys.add(payload.objectKey());
             }
 
             ImageVariantKeys variants = preparedVariants.keys();
@@ -209,11 +215,15 @@ public class UploadService {
                     true
             );
         } catch (Exception ex) {
-            boolean rolledBack = deleteObjectKeys(writtenObjectKeys);
-            if (rolledBack) {
-                lifecycle.deleteRecord(reservation.getId());
-            } else {
+            try {
                 lifecycle.markForCleanup(reservation.getId());
+            } catch (RuntimeException cleanupStateException) {
+                log.warn("Failed to mark upload {} for cleanup", reservation.getObjectKey(), cleanupStateException);
+            }
+            try {
+                deleteClaimedUpload(reservation);
+            } catch (RuntimeException cleanupException) {
+                log.warn("Failed to clean upload {} after upload error", reservation.getObjectKey(), cleanupException);
             }
             if (ex instanceof AppException appException) {
                 throw appException;
@@ -955,7 +965,10 @@ public class UploadService {
         if (!StringUtils.hasText(originalObjectKey)) {
             return;
         }
-        Runnable deletion = () -> deleteUploadGroupNow(
+        UploadLifecycleService lifecycle = requireUploadLifecycle();
+        UploadObjectDO record = lifecycle.beginBoundDeletion(extractObjectKey(originalObjectKey));
+        Runnable deletion = () -> deletePreparedUploadGroup(
+                record,
                 originalObjectKey,
                 thumbnailObjectKey,
                 displayObjectKey,
@@ -973,12 +986,11 @@ public class UploadService {
         });
     }
 
-    private void deleteUploadGroupNow(String originalObjectKey,
-                                      String thumbnailObjectKey,
-                                      String displayObjectKey,
-                                      String auditThumbnailObjectKey) {
-        UploadLifecycleService lifecycle = requireUploadLifecycle();
-        UploadObjectDO record = lifecycle.beginBoundDeletion(extractObjectKey(originalObjectKey));
+    private void deletePreparedUploadGroup(UploadObjectDO record,
+                                           String originalObjectKey,
+                                           String thumbnailObjectKey,
+                                           String displayObjectKey,
+                                           String auditThumbnailObjectKey) {
         if (record != null) {
             deleteClaimedUpload(record);
             return;
