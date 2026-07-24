@@ -4,13 +4,36 @@ import java.time.Duration;
 
 public interface VerificationCodeStore {
 
-    String get(String key);
+    IssueResult tryIssue(String codeKey,
+                         String limitKey,
+                         String attemptKey,
+                         String storedValue,
+                         Duration codeTtl,
+                         Duration limitWindow,
+                         long cooldownThresholdSeconds,
+                         int hourlyLimit);
 
-    void set(String key, String value, Duration ttl);
+    boolean rollbackIssue(String codeKey,
+                          String limitKey,
+                          String attemptKey,
+                          String expectedStoredValue);
 
-    void delete(String key);
+    ValidationResult validateAndConsume(String codeKey,
+                                        String attemptKey,
+                                        String inputCode,
+                                        int maxAttempts,
+                                        Duration attemptTtl);
 
-    Long getExpire(String key);
+    enum IssueResult {
+        ISSUED,
+        COOLDOWN,
+        HOURLY_LIMIT
+    }
 
-    Long increment(String key, Duration ttlOnCreate);
+    enum ValidationResult {
+        VALID,
+        MISSING,
+        INVALID,
+        TOO_MANY_ATTEMPTS
+    }
 }

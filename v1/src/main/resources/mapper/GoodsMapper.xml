@@ -180,19 +180,41 @@
         FROM goods_do g
         JOIN users s ON s.id = g.seller_id
         LEFT JOIN category_do c ON c.id = g.category_id
-        WHERE (#{keyword} IS NULL OR LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
-            OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%'))
+        WHERE 1 = 1
+        <if test="keywords != null and !keywords.isEmpty()">
+          AND (
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+              (LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+                OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%'))
+            </foreach>
+          )
+        </if>
           AND (#{categoryId} IS NULL OR g.category_id = #{categoryId})
           AND (#{status} IS NULL OR g.status = #{status})
-        ORDER BY g.created_at DESC
+        ORDER BY
+        <if test="keywords != null and !keywords.isEmpty()">
+          CASE WHEN (
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+              LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+            </foreach>
+          ) THEN 0 ELSE 1 END,
+        </if>
+          g.created_at DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countSearch" resultType="long">
         SELECT COUNT(1)
         FROM goods_do g
-        WHERE (#{keyword} IS NULL OR LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
-            OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%'))
+        WHERE 1 = 1
+        <if test="keywords != null and !keywords.isEmpty()">
+          AND (
+            <foreach collection="keywords" item="keyword" separator=" OR ">
+              (LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+                OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%'))
+            </foreach>
+          )
+        </if>
           AND (#{categoryId} IS NULL OR g.category_id = #{categoryId})
           AND (#{status} IS NULL OR g.status = #{status})
     </select>

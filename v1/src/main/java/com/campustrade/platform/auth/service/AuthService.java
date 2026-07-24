@@ -77,16 +77,21 @@ public class AuthService {
             throw new AppException(HttpStatus.NOT_FOUND, "邮箱未注册");
         }
 
-        verificationCodeService.ensureCanSend(email, purpose);
-
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-        verificationCodeService.saveCode(email, purpose, code);
-
-        boolean delivered = mailService.sendVerificationCode(email, code, purpose);
+        VerificationCodeService.CodeReservation reservation =
+                verificationCodeService.reserveCode(email, purpose, code);
+        boolean delivered;
+        try {
+            delivered = mailService.sendVerificationCode(email, code, purpose);
+        } catch (RuntimeException ex) {
+            verificationCodeService.rollbackReservation(reservation);
+            throw ex;
+        }
         if (!delivered) {
+            verificationCodeService.rollbackReservation(reservation);
             throw new AppException(HttpStatus.SERVICE_UNAVAILABLE, "邮件服务暂时不可用");
         }
-        return new SendCodeResponseDTO(delivered);
+        return new SendCodeResponseDTO(true);
     }
 
     @Transactional

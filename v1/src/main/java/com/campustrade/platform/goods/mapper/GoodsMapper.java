@@ -30,13 +30,13 @@ public interface GoodsMapper {
 
     GoodsDO findById(@Param("id") Long id);
 
-    List<GoodsDO> searchList(@Param("keyword") String keyword,
+    List<GoodsDO> searchList(@Param("keywords") List<String> keywords,
                              @Param("categoryId") Long categoryId,
                              @Param("status") GoodsStatusEnum status,
                              @Param("limit") int limit,
                              @Param("offset") int offset);
 
-    long countSearch(@Param("keyword") String keyword,
+    long countSearch(@Param("keywords") List<String> keywords,
                      @Param("categoryId") Long categoryId,
                      @Param("status") GoodsStatusEnum status);
 

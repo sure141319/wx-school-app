@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -57,7 +58,7 @@ class AuthServiceTest {
     void sendVerificationCodePreservesRateLimitStatus() {
         doThrow(new AppException(HttpStatus.TOO_MANY_REQUESTS, "请求验证码过于频繁，请稍后再试"))
                 .when(verificationCodeService)
-                .ensureCanSend("student@qq.com", VerificationPurposeEnum.REGISTER);
+                .reserveCode(eq("student@qq.com"), eq(VerificationPurposeEnum.REGISTER), anyString());
 
         AppException exception = assertThrows(
                 AppException.class,
@@ -66,6 +67,43 @@ class AuthServiceTest {
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatus());
         verify(mailService, never()).sendVerificationCode(anyString(), anyString(), any());
+    }
+
+    @Test
+    void sendVerificationCodeRollsBackReservationWhenMailReturnsFalse() {
+        VerificationCodeService.CodeReservation reservation = reservation();
+        when(verificationCodeService.reserveCode(eq("student@qq.com"), eq(VerificationPurposeEnum.REGISTER), anyString()))
+                .thenReturn(reservation);
+        when(mailService.sendVerificationCode(eq("student@qq.com"), anyString(), eq(VerificationPurposeEnum.REGISTER)))
+                .thenReturn(false);
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> authService.sendVerificationCode(
+                        new SendCodeRequestDTO("student@qq.com", VerificationPurposeEnum.REGISTER)
+                )
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.getStatus());
+        verify(verificationCodeService).rollbackReservation(reservation);
+    }
+
+    @Test
+    void sendVerificationCodeRollsBackReservationWhenMailThrows() {
+        VerificationCodeService.CodeReservation reservation = reservation();
+        when(verificationCodeService.reserveCode(eq("student@qq.com"), eq(VerificationPurposeEnum.REGISTER), anyString()))
+                .thenReturn(reservation);
+        when(mailService.sendVerificationCode(eq("student@qq.com"), anyString(), eq(VerificationPurposeEnum.REGISTER)))
+                .thenThrow(new IllegalStateException("smtp down"));
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> authService.sendVerificationCode(
+                        new SendCodeRequestDTO("student@qq.com", VerificationPurposeEnum.REGISTER)
+                )
+        );
+
+        verify(verificationCodeService).rollbackReservation(reservation);
     }
 
     @Test
@@ -139,5 +177,14 @@ class AuthServiceTest {
         user.setNickname(nickname);
         user.setFailedLoginCount(0);
         return user;
+    }
+
+    private VerificationCodeService.CodeReservation reservation() {
+        return new VerificationCodeService.CodeReservation(
+                "code-key",
+                "limit-key",
+                "attempt-key",
+                "reservation-token:123456"
+        );
     }
 }

@@ -69,8 +69,8 @@ class GoodsServiceVisibilityTest {
         GoodsListItemResponseDTO item = new GoodsListItemResponseDTO(
                 10L, "Mac", null, null, null, GoodsStatusEnum.ON_SALE, null, null, null, null
         );
-        when(goodsMapper.searchList("mac", null, GoodsStatusEnum.ON_SALE, 10, 0)).thenReturn(List.of(goods));
-        when(goodsMapper.countSearch("mac", null, GoodsStatusEnum.ON_SALE)).thenReturn(1L);
+        when(goodsMapper.searchList(List.of("mac"), null, GoodsStatusEnum.ON_SALE, 10, 0)).thenReturn(List.of(goods));
+        when(goodsMapper.countSearch(List.of("mac"), null, GoodsStatusEnum.ON_SALE)).thenReturn(1L);
         when(goodsMapper.findCoverImagesByGoodsIds(List.of(10L))).thenReturn(List.of());
         when(goodsAssembler.toListItemResponse(goods)).thenReturn(item);
 
@@ -78,8 +78,39 @@ class GoodsServiceVisibilityTest {
 
         assertEquals(1L, response.total());
         assertSame(item, response.items().get(0));
-        verify(goodsMapper).searchList("mac", null, GoodsStatusEnum.ON_SALE, 10, 0);
-        verify(goodsMapper).countSearch("mac", null, GoodsStatusEnum.ON_SALE);
+        verify(goodsMapper).searchList(List.of("mac"), null, GoodsStatusEnum.ON_SALE, 10, 0);
+        verify(goodsMapper).countSearch(List.of("mac"), null, GoodsStatusEnum.ON_SALE);
+    }
+
+    @Test
+    void publicListExpandsControlledCampusAlias() {
+        when(goodsMapper.searchList(
+                List.of("高数教材", "高等数学教材"),
+                null,
+                GoodsStatusEnum.ON_SALE,
+                10,
+                0
+        )).thenReturn(List.of());
+        when(goodsMapper.countSearch(
+                List.of("高数教材", "高等数学教材"),
+                null,
+                GoodsStatusEnum.ON_SALE
+        )).thenReturn(0L);
+
+        goodsService.list(" 高数教材 ", null, null, 0, 10);
+
+        verify(goodsMapper).searchList(
+                List.of("高数教材", "高等数学教材"),
+                null,
+                GoodsStatusEnum.ON_SALE,
+                10,
+                0
+        );
+        verify(goodsMapper).countSearch(
+                List.of("高数教材", "高等数学教材"),
+                null,
+                GoodsStatusEnum.ON_SALE
+        );
     }
 
     @Test
@@ -196,6 +227,9 @@ class GoodsServiceVisibilityTest {
         GoodsDO existing = goods(10L, 20L, GoodsStatusEnum.ON_SALE);
         GoodsDO updated = goods(10L, 20L, GoodsStatusEnum.PENDING_REVIEW);
         GoodsImageDO legacyImage = image(5L, 10L, legacyKey, ImageAuditStatusEnum.APPROVED);
+        legacyImage.setThumbnailUrl("images/2026/04/legacy_thumb.webp");
+        legacyImage.setDisplayUrl("images/2026/04/legacy_display.webp");
+        legacyImage.setAuditThumbnailUrl("images/2026/04/legacy_audit.jpg");
         GoodsResponseDTO response = new GoodsResponseDTO(
                 10L, "Mac", null, null, null, null, GoodsStatusEnum.PENDING_REVIEW, null, null, List.of(), List.of(), null, null, null
         );
@@ -217,12 +251,18 @@ class GoodsServiceVisibilityTest {
                         "campus",
                         null,
                         List.of(legacyProxyUrl),
-                        null
+                        List.of("images/2026/04/foreign_thumb.webp"),
+                        List.of("images/2026/04/foreign_display.webp"),
+                        List.of("images/2026/04/foreign_audit.jpg")
                 )
         );
 
         assertSame(response, result);
         verify(uploadService, never()).validateUploadedImageReference(legacyProxyUrl, "goods", 20L);
+        verify(uploadService, never()).validateUploadedThumbnailReference(any(), any(), any());
+        verify(uploadService, never()).validateUploadedDisplayReference(any(), any(), any());
+        verify(uploadService, never()).validateUploadedAuditThumbnailReference(any(), any(), any());
+        verify(goodsMapper, never()).updateImageVariants(any(), any(), any(), any());
         verify(goodsMapper, never()).deleteImageById(5L);
     }
 

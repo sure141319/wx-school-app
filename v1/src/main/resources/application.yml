@@ -100,7 +100,7 @@ app:
     cleanup-batch-size: ${UPLOAD_CLEANUP_BATCH_SIZE:100}
   image-audit:
     pending-placeholder-url: ${IMAGE_AUDIT_PENDING_PLACEHOLDER_URL:https://www.ahut-campus.site/campus-trade/images/2026/04/auditing.webp}
-    reviewer-user-ids: ${IMAGE_AUDIT_REVIEWER_USER_IDS:1}
+    reviewer-user-ids: ${IMAGE_AUDIT_REVIEWER_USER_IDS:}
   monitoring:
     goods-list-slow-threshold-ms: ${GOODS_LIST_SLOW_THRESHOLD_MS:300}
   wechat:

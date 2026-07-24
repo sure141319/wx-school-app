@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.time.LocalDateTime;
 
@@ -79,14 +78,7 @@ public class GoodsService {
         goods.setUpdatedAt(now);
 
         goodsMapper.insert(goods);
-        replaceImages(
-                goods.getId(),
-                sellerId,
-                request.imageUrls(),
-                request.imageThumbnailUrls(),
-                request.imageDisplayUrls(),
-                request.imageAuditThumbnailUrls()
-        );
+        replaceImages(goods.getId(), sellerId, request.imageUrls());
         return getDetail(goods.getId());
     }
 
@@ -107,14 +99,7 @@ public class GoodsService {
         update.setAuditRemark(null);
 
         goodsMapper.update(update);
-        replaceImages(
-                goodsId,
-                currentUserId,
-                request.imageUrls(),
-                request.imageThumbnailUrls(),
-                request.imageDisplayUrls(),
-                request.imageAuditThumbnailUrls()
-        );
+        replaceImages(goodsId, currentUserId, request.imageUrls());
         resetImageAuditStatus(goodsId);
         tryAutoApprove(goodsId);
         goodsListCacheInvalidator.evictAfterCommit();
@@ -189,11 +174,11 @@ public class GoodsService {
     )
     public PageResponse<GoodsListItemResponseDTO> list(String keyword, Long categoryId, GoodsStatusEnum status, int page, int size) {
         int offset = page * size;
-        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        List<String> normalizedKeywords = normalizeSearchKeywords(keyword);
         GoodsStatusEnum effectiveStatus = publicListStatus(status);
 
-        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeyword, categoryId, effectiveStatus, size, offset);
-        long total = goodsMapper.countSearch(normalizedKeyword, categoryId, effectiveStatus);
+        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeywords, categoryId, effectiveStatus, size, offset);
+        long total = goodsMapper.countSearch(normalizedKeywords, categoryId, effectiveStatus);
         attachCoverImages(goodsList);
 
         List<GoodsListItemResponseDTO> items = goodsList.stream().map(goodsAssembler::toListItemResponse).toList();
@@ -284,12 +269,7 @@ public class GoodsService {
         }
     }
 
-    private void replaceImages(Long goodsId,
-                               Long ownerUserId,
-                               List<String> imageUrls,
-                               List<String> imageThumbnailUrls,
-                               List<String> imageDisplayUrls,
-                               List<String> imageAuditThumbnailUrls) {
+    private void replaceImages(Long goodsId, Long ownerUserId, List<String> imageUrls) {
         List<GoodsImageDO> oldImages = goodsMapper.findImagesByGoodsId(goodsId);
         Map<String, GoodsImageDO> oldKeyMap = new HashMap<>();
         for (GoodsImageDO image : oldImages) {
@@ -301,8 +281,7 @@ public class GoodsService {
         Map<String, String> displayByImageKey = new HashMap<>();
         Map<String, String> auditThumbnailByImageKey = new HashMap<>();
         if (imageUrls != null) {
-            for (int i = 0; i < imageUrls.size(); i++) {
-                String url = imageUrls.get(i);
+            for (String url : imageUrls) {
                 String key = normalizeImageReference(url, oldKeyMap, ownerUserId);
                 if (StringUtils.hasText(key)) {
                     newKeys.add(key);
@@ -316,18 +295,6 @@ public class GoodsService {
                         putIfPresent(thumbnailByImageKey, key, variants.thumbnailObjectKey());
                         putIfPresent(displayByImageKey, key, variants.displayObjectKey());
                         putIfPresent(auditThumbnailByImageKey, key, variants.auditThumbnailObjectKey());
-                    } else {
-                        String thumbnailKey = extractThumbnailKey(imageThumbnailUrls, i, existingImage, ownerUserId);
-                        putIfPresent(thumbnailByImageKey, key, thumbnailKey);
-                        String displayKey = extractDisplayKey(imageDisplayUrls, i, existingImage, ownerUserId);
-                        putIfPresent(displayByImageKey, key, displayKey);
-                        String auditThumbnailKey = extractAuditThumbnailKey(
-                                imageAuditThumbnailUrls,
-                                i,
-                                existingImage,
-                                ownerUserId
-                        );
-                        putIfPresent(auditThumbnailByImageKey, key, auditThumbnailKey);
                     }
                 }
             }
@@ -361,24 +328,6 @@ public class GoodsService {
                 imagesToInsert.add(image);
             } else {
                 goodsMapper.updateImageSortOrder(existing.getId(), idx++);
-                String thumbnailKey = thumbnailByImageKey.get(key);
-                String displayKey = displayByImageKey.get(key);
-                String auditThumbnailKey = auditThumbnailByImageKey.get(key);
-                String effectiveThumbnailKey = StringUtils.hasText(thumbnailKey) ? thumbnailKey : existing.getThumbnailUrl();
-                String effectiveDisplayKey = StringUtils.hasText(displayKey) ? displayKey : existing.getDisplayUrl();
-                String effectiveAuditThumbnailKey = StringUtils.hasText(auditThumbnailKey)
-                        ? auditThumbnailKey
-                        : existing.getAuditThumbnailUrl();
-                if (!Objects.equals(effectiveThumbnailKey, existing.getThumbnailUrl())
-                        || !Objects.equals(effectiveDisplayKey, existing.getDisplayUrl())
-                        || !Objects.equals(effectiveAuditThumbnailKey, existing.getAuditThumbnailUrl())) {
-                    goodsMapper.updateImageVariants(
-                            existing.getId(),
-                            effectiveThumbnailKey,
-                            effectiveDisplayKey,
-                            effectiveAuditThumbnailKey
-                    );
-                }
             }
         }
 
@@ -402,71 +351,20 @@ public class GoodsService {
         return uploadService.validateUploadedImageReference(trimmedUrl, "goods", ownerUserId);
     }
 
-    private String extractThumbnailKey(List<String> imageThumbnailUrls,
-                                       int index,
-                                       GoodsImageDO existingImage,
-                                       Long ownerUserId) {
-        if (imageThumbnailUrls == null || index >= imageThumbnailUrls.size()) {
-            return null;
+    private List<String> normalizeSearchKeywords(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return List.of();
         }
-        String thumbnailUrl = imageThumbnailUrls.get(index);
-        if (!StringUtils.hasText(thumbnailUrl)) {
-            return null;
-        }
-        String trimmedThumbnailUrl = thumbnailUrl.trim();
-        String thumbnailKey = uploadService.extractObjectKey(trimmedThumbnailUrl);
-        if (existingImage != null
-                && StringUtils.hasText(thumbnailKey)
-                && thumbnailKey.equals(existingImage.getThumbnailUrl())) {
-            return thumbnailKey;
-        }
-        return uploadService.validateUploadedThumbnailReference(trimmedThumbnailUrl, "goods", ownerUserId);
-    }
 
-    private String extractDisplayKey(List<String> imageDisplayUrls,
-                                     int index,
-                                     GoodsImageDO existingImage,
-                                     Long ownerUserId) {
-        if (imageDisplayUrls == null || index >= imageDisplayUrls.size()) {
-            return null;
+        String normalized = keyword.trim();
+        Set<String> terms = new LinkedHashSet<>();
+        terms.add(normalized);
+        if (normalized.contains("高等数学")) {
+            terms.add(normalized.replace("高等数学", "高数"));
+        } else if (normalized.contains("高数")) {
+            terms.add(normalized.replace("高数", "高等数学"));
         }
-        String displayUrl = imageDisplayUrls.get(index);
-        if (!StringUtils.hasText(displayUrl)) {
-            return null;
-        }
-        String trimmedDisplayUrl = displayUrl.trim();
-        String displayKey = uploadService.extractObjectKey(trimmedDisplayUrl);
-        if (existingImage != null
-                && StringUtils.hasText(displayKey)
-                && displayKey.equals(existingImage.getDisplayUrl())) {
-            return displayKey;
-        }
-        return uploadService.validateUploadedDisplayReference(trimmedDisplayUrl, "goods", ownerUserId);
-    }
-
-    private String extractAuditThumbnailKey(List<String> imageAuditThumbnailUrls,
-                                            int index,
-                                            GoodsImageDO existingImage,
-                                            Long ownerUserId) {
-        if (imageAuditThumbnailUrls == null || index >= imageAuditThumbnailUrls.size()) {
-            return null;
-        }
-        String auditThumbnailUrl = imageAuditThumbnailUrls.get(index);
-        if (!StringUtils.hasText(auditThumbnailUrl)) {
-            return null;
-        }
-        String trimmedAuditThumbnailUrl = auditThumbnailUrl.trim();
-        String auditThumbnailKey = uploadService.extractObjectKey(trimmedAuditThumbnailUrl);
-        if (existingImage != null
-                && StringUtils.hasText(auditThumbnailKey)
-                && auditThumbnailKey.equals(existingImage.getAuditThumbnailUrl())) {
-            return auditThumbnailKey;
-        }
-        return uploadService.validateUploadedAuditThumbnailReference(
-                trimmedAuditThumbnailUrl,
-                "goods",
-                ownerUserId
-        );
+        return List.copyOf(terms);
     }
 
     private void resetImageAuditStatus(Long goodsId) {
