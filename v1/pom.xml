@@ -15,7 +15,7 @@
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>campus-trade-backend</name>
-    <description>Campus second-hand trading platform backend</description>
+    <description>Campus idle-information bulletin board backend</description>
 
     <properties>
         <java.version>17</java.version>

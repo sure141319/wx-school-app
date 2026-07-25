@@ -3,6 +3,7 @@ package com.campustrade.platform.goods.assembler;
 import com.campustrade.platform.category.assembler.CategoryAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
+import com.campustrade.platform.goods.dto.response.GoodsDetailResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -123,6 +125,45 @@ class GoodsAssemblerTest {
                 response.imageUrls().get(0)
         );
         assertEquals("images/2026/06/original.jpg", response.imageKeys().get(0));
+    }
+
+    @Test
+    void publicDetailKeepsStableShapeButHidesManagementFields() {
+        UploadService uploadService = mock(UploadService.class);
+        GoodsAssembler assembler = newAssembler(uploadService);
+        GoodsDO goods = goodsWithImages(List.of(image(
+                "images/2026/06/original.jpg",
+                null,
+                ImageAuditStatusEnum.APPROVED
+        )));
+        goods.setAuditRemark("请补充实拍图");
+        when(uploadService.getProxyUrl("images/2026/06/original.jpg"))
+                .thenReturn("https://cdn.example.com/images/2026/06/original.jpg");
+
+        GoodsDetailResponseDTO response = assembler.toDetailResponse(goods, false);
+
+        assertEquals(List.of("https://cdn.example.com/images/2026/06/original.jpg"), response.imageUrls());
+        assertEquals(List.of(), response.imageKeys());
+        assertNull(response.auditRemark());
+    }
+
+    @Test
+    void ownerDetailIncludesManagementFieldsInTheSameContract() {
+        UploadService uploadService = mock(UploadService.class);
+        GoodsAssembler assembler = newAssembler(uploadService);
+        GoodsDO goods = goodsWithImages(List.of(image(
+                "images/2026/06/original.jpg",
+                null,
+                ImageAuditStatusEnum.PENDING
+        )));
+        goods.setAuditRemark("请补充实拍图");
+        when(uploadService.getProxyUrl("images/2026/06/original.jpg"))
+                .thenReturn("https://cdn.example.com/images/2026/06/original.jpg");
+
+        GoodsDetailResponseDTO response = assembler.toDetailResponse(goods, true);
+
+        assertEquals(List.of("images/2026/06/original.jpg"), response.imageKeys());
+        assertEquals("请补充实拍图", response.auditRemark());
     }
 
     @Test

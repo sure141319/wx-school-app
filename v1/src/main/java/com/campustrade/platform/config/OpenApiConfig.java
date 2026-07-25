@@ -24,7 +24,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Campus Trade API")
                         .version("v1")
-                        .description("Campus second-hand trading platform backend API."))
+                        .description("Campus idle-information bulletin board backend API."))
                 .components(new Components().addSecuritySchemes(BEARER_AUTH, jwtScheme))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH));
     }

@@ -11,6 +11,7 @@ import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
+import com.campustrade.platform.goods.dto.response.GoodsDetailResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
@@ -152,14 +153,14 @@ public class GoodsService {
     }
 
     @Transactional(readOnly = true)
-    public Object getDetailForViewer(Long goodsId, Long viewerUserId) {
+    public GoodsDetailResponseDTO getDetailForViewer(Long goodsId, Long viewerUserId) {
         GoodsDO goods = getGoodsOrThrow(goodsId);
         boolean privileged = canViewInternalDetail(viewerUserId, goods);
         if (!privileged && goods.getStatus() != GoodsStatusEnum.ON_SALE) {
             throw new AppException(HttpStatus.NOT_FOUND, "商品不存在或未上架");
         }
         goods.setImages(goodsMapper.findImagesByGoodsId(goodsId));
-        return privileged ? goodsAssembler.toResponse(goods) : goodsAssembler.toPublicResponse(goods);
+        return goodsAssembler.toDetailResponse(goods, privileged);
     }
 
     @Transactional(readOnly = true)

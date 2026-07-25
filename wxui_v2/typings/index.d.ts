@@ -5,34 +5,28 @@ interface ApiResponse<T = unknown> {
   data: T
 }
 
-interface PageInfo {
-  items: unknown[]
+interface PageResponse<T> {
+  items: T[]
   total: number
   page: number
   size: number
 }
 
-interface GoodsItem {
+interface GoodsDetail {
   id: number
   title: string
   description: string
   price: number
-  coverImage: string
-  imageUrls: string[]
-  imageKeys?: string[]
-  categoryName?: string
-  sellerName?: string
-  sellerAvatar?: string
-  qq?: string
+  conditionLevel: string
+  campusLocation: string
   status: string
-  conditionLevel?: string
-  campusLocation?: string
-  createdAt?: string
-  viewCount?: number
-  collectCount?: number
-  category?: Category
-  seller?: SellerInfo
-  auditRemark?: string
+  category: Category | null
+  seller: SellerInfo
+  imageUrls: string[]
+  imageKeys: string[]
+  auditRemark: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 interface GoodsListItem {
@@ -65,18 +59,18 @@ interface MyGoodsListItem {
 }
 
 interface SellerInfo {
-  id?: number
+  id: number
   nickname: string
-  avatarUrl?: string
-  avatarSource?: string
-  email?: string
-  wechatId?: string
-  qq?: string
+  avatarUrl: string
+  avatarSource: string
+  wechatId: string | null
+  qq: string | null
 }
 
 interface Category {
   id: number | string
   name: string
+  sortOrder?: number
 }
 
 interface UserProfile {

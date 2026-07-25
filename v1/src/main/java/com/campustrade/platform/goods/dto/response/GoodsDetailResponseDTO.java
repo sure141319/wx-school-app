@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record PublicGoodsResponseDTO(
+public record GoodsDetailResponseDTO(
         Long id,
         String title,
         String description,
@@ -19,6 +19,8 @@ public record PublicGoodsResponseDTO(
         CategoryResponseDTO category,
         PublicSellerResponseDTO seller,
         List<String> imageUrls,
+        List<String> imageKeys,
+        String auditRemark,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

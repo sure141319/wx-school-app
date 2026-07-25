@@ -8,9 +8,9 @@ import com.campustrade.platform.goods.assembler.GoodsAssembler;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
+import com.campustrade.platform.goods.dto.response.GoodsDetailResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
-import com.campustrade.platform.goods.dto.response.PublicGoodsResponseDTO;
 import com.campustrade.platform.goods.enums.GoodsStatusEnum;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.goods.mapper.GoodsMapper;
@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -184,42 +185,41 @@ class GoodsServiceVisibilityTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
         verify(goodsMapper, never()).findImagesByGoodsId(10L);
-        verify(goodsAssembler, never()).toResponse(any());
-        verify(goodsAssembler, never()).toPublicResponse(any());
+        verify(goodsAssembler, never()).toDetailResponse(any(), anyBoolean());
     }
 
     @Test
-    void anonymousUserReadsOnSaleDetailAsPublicResponse() {
+    void anonymousUserReadsOnSaleDetailWithoutManagementFields() {
         GoodsDO goods = goods(10L, 20L, GoodsStatusEnum.ON_SALE);
-        PublicGoodsResponseDTO publicResponse = new PublicGoodsResponseDTO(
-                10L, "Mac", null, null, null, null, GoodsStatusEnum.ON_SALE, null, null, List.of(), null, null
+        GoodsDetailResponseDTO publicResponse = new GoodsDetailResponseDTO(
+                10L, "Mac", null, null, null, null, GoodsStatusEnum.ON_SALE,
+                null, null, List.of(), List.of(), null, null, null
         );
         when(goodsMapper.findById(10L)).thenReturn(goods);
         when(goodsMapper.findImagesByGoodsId(10L)).thenReturn(List.of());
-        when(goodsAssembler.toPublicResponse(goods)).thenReturn(publicResponse);
+        when(goodsAssembler.toDetailResponse(goods, false)).thenReturn(publicResponse);
 
-        Object response = goodsService.getDetailForViewer(10L, null);
+        GoodsDetailResponseDTO response = goodsService.getDetailForViewer(10L, null);
 
         assertSame(publicResponse, response);
-        verify(goodsAssembler).toPublicResponse(goods);
-        verify(goodsAssembler, never()).toResponse(any());
+        verify(goodsAssembler).toDetailResponse(goods, false);
     }
 
     @Test
-    void ownerReadsPendingDetailAsInternalResponse() {
+    void ownerReadsPendingDetailWithManagementFields() {
         GoodsDO goods = goods(10L, 20L, GoodsStatusEnum.PENDING_REVIEW);
-        GoodsResponseDTO internalResponse = new GoodsResponseDTO(
-                10L, "Mac", null, null, null, null, GoodsStatusEnum.PENDING_REVIEW, null, null, List.of(), List.of(), null, null, null
+        GoodsDetailResponseDTO internalResponse = new GoodsDetailResponseDTO(
+                10L, "Mac", null, null, null, null, GoodsStatusEnum.PENDING_REVIEW,
+                null, null, List.of(), List.of("images/original.webp"), "待补充图片", null, null
         );
         when(goodsMapper.findById(10L)).thenReturn(goods);
         when(goodsMapper.findImagesByGoodsId(10L)).thenReturn(List.of());
-        when(goodsAssembler.toResponse(goods)).thenReturn(internalResponse);
+        when(goodsAssembler.toDetailResponse(goods, true)).thenReturn(internalResponse);
 
-        Object response = goodsService.getDetailForViewer(10L, 20L);
+        GoodsDetailResponseDTO response = goodsService.getDetailForViewer(10L, 20L);
 
         assertSame(internalResponse, response);
-        verify(goodsAssembler).toResponse(goods);
-        verify(goodsAssembler, never()).toPublicResponse(any());
+        verify(goodsAssembler).toDetailResponse(goods, true);
     }
 
     @Test

@@ -15,7 +15,7 @@ interface ContactEmailAdReward {
 }
 
 interface DetailPageData {
-  goods: GoodsItem | null
+  goods: GoodsDetail | null
   loading: boolean
   info: string
   goodsId: string
@@ -136,7 +136,7 @@ Component({
     async loadGoods() {
       this.setData({ loading: true, info: '', displayCreatedAt: '' })
       try {
-        const res = await request<ApiResponse<GoodsItem>>({
+        const res = await request<ApiResponse<GoodsDetail>>({
           url: `${app.globalData.baseUrl}/goods/${this.data.goodsId}`,
           method: 'GET'
         })
@@ -144,21 +144,7 @@ Component({
           this.setData({ info: res.data?.message || loadFailed('商品详情') })
           return
         }
-        const goods = res.data?.data as unknown as GoodsItem | undefined
-
-        if (goods && !goods.seller) {
-          goods.seller = {
-            nickname: goods.sellerName || '同校卖家',
-            avatarUrl: goods.sellerAvatar || ''
-          }
-        }
-        if (goods && !goods.imageUrls) {
-          goods.imageUrls = []
-        }
-
-        if (goods?.seller?.email?.endsWith('@qq.com')) {
-          goods.seller.qq = goods.seller.email.replace('@qq.com', '')
-        }
+        const goods = res.data?.data
 
         this.setData({
           goods: goods || null,
@@ -234,7 +220,7 @@ Component({
       })
     },
 
-    isCurrentUsersGoods(goods?: GoodsItem): boolean {
+    isCurrentUsersGoods(goods?: GoodsDetail): boolean {
       const userId = this.getCurrentUserId()
       const sellerId = goods && goods.seller && goods.seller.id
       return Boolean(userId && sellerId !== undefined && sellerId !== null && userId === String(sellerId))

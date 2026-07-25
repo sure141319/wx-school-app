@@ -1,6 +1,13 @@
 # 校园闲置集市 (Campus Trade)
 
-安徽工业大学校园二手交易平台 —— 专为校内学生设计的闲置物品买卖平台，包含微信小程序端、Spring Boot 后端、审核与公告管理后台。
+面向安徽工业大学学生的校园闲置信息公告栏，包含微信小程序端、Spring Boot 后端，以及维持最低运营能力的审核与公告管理后台。
+
+## 产品边界
+
+- 平台负责闲置信息的发布、结构化展示、搜索与筛选，核心目标是让用户更快找到校内闲置物品。
+- 所有人均可浏览商品；卖家填写的 QQ 会公开给包括未登录访客在内的所有访问者，双方在平台外自行联系。
+- 平台不提供站内聊天、订单、支付、担保、物流、退款或纠纷调解，也不按多学校平台设计。
+- 长期产品事实、技术决策边界和运营优先级以 [`AGENTS.md`](AGENTS.md) 为准。
 
 ## 技术栈
 
@@ -24,6 +31,7 @@ campus_app/
 ├── wxui_v2/               # 微信小程序前端
 ├── checkui/               # 图片审核、商品与公告管理后台
 ├── scripts/verify.ps1      # 后端与小程序统一质量门禁
+├── AGENTS.md               # 产品事实与技术决策边界
 └── CLAUDE.md              # AI 辅助开发指南
 ```
 
@@ -92,7 +100,7 @@ python -m http.server 5173     # 启动静态文件服务
 
 ## 功能概览
 
-### 微信小程序 (5 个页面)
+### 微信小程序 (6 个页面)
 
 | 页面 | 路径 | 功能 |
 |---|---|---|
@@ -101,59 +109,23 @@ python -m http.server 5173     # 启动静态文件服务
 | 商品详情 | `pages/goods/detail` | 图片轮播、价格/成色/校区信息、卖家 QQ 一键复制 |
 | 发布商品 | `pages/publish/publish` | 发布/编辑商品、多图上传、分类选择 |
 | 个人中心 | `pages/profile/profile` | 个人资料编辑、我发布的商品管理 (编辑/上下架/删除) |
+| 平台说明 | `pages/about/about` | 平台定位、联系方式公开范围与风险提示 |
 
 **交互特点：**
-- 买卖双方通过卖家 QQ 号联系 (卖家注册邮箱即 QQ 邮箱)
+- 未登录访客也可以查看并复制卖家公开的 QQ，买卖双方在平台外自行联系
 - 新发布或修改的商品自动进入审核状态 (`PENDING_REVIEW`)
 - 审核中的商品图片在前端显示为占位图
 
-### 后端 API (34 个接口)
+### 后端 API
 
-所有接口均返回统一格式 `ApiResponse<T>` (`{ success, message, data }`)，分页接口内嵌 `PageResponse` (`{ items, total, page, size }`)。
+运行中的后端通过 OpenAPI 提供唯一、可执行的接口清单：
 
-**认证** (`/api/v1/auth/*`) —— 公开接口
-- `POST /auth/email-code` — 发送验证码
-- `POST /auth/register` — 注册
-- `POST /auth/login` — 登录
-- `POST /auth/reset-password` — 重置密码
-- `GET /auth/me` — 当前用户信息 (需认证)
+- Swagger UI：`GET /api/v1/docs`
+- OpenAPI JSON：`GET /api/v1/openapi.json`
 
-**商品** (`/api/v1/goods/*`)
-- `GET /goods` — 商品列表 (支持 keyword/categoryId/status 筛选，分页 + 缓存)
-- `GET /goods/{id}` — 商品详情
-- `POST /goods` — 创建商品 (需认证)
-- `PUT /goods/{id}` — 更新商品 (需认证)
-- `DELETE /goods/{id}` — 删除商品 (需认证)
-- `PATCH /goods/{id}/status` — 上下架 (需认证)
-- `GET /goods/mine` — 我的商品 (需认证)
+所有业务接口使用 `ApiResponse<T>`（`{ success, code, message, data }`）；分页数据使用 `PageResponse<T>`（`{ items, total, page, size }`）。商品详情固定返回 `GoodsDetailResponseDTO`，不会再因访问者身份切换 DTO 类型；无权查看的管理字段使用空数组或 `null`。
 
-**分类** (`/api/v1/categories`) —— 公开接口
-- `GET /categories` — 获取所有启用的分类
-
-**用户** (`/api/v1/users/*`) —— 需认证
-- `GET /users/me` — 获取个人资料
-- `PUT /users/me` — 更新个人资料 (头像修改触发审核)
-
-**文件上传** (`/api/v1/uploads/*`) —— 需认证
-- `POST /uploads/image` — 上传图片
-
-**图片审核** (`/api/v1/audit/images/*`) —— 需审核权限
-- `GET /audit/images` — 商品图片审核队列
-- `POST /audit/images/{id}/approve` — 通过图片
-- `POST /audit/images/{id}/reject` — 驳回图片
-- `POST /audit/images/approve-all-rejected` — 批量通过全部已驳回图片（需确认标识）
-- `POST /audit/images/reject-all-approved` — 批量驳回全部已通过图片（需确认标识）
-- `GET /audit/images/avatars` — 头像审核队列
-- `POST /audit/images/avatars/{userId}/approve` — 通过头像
-- `POST /audit/images/avatars/{userId}/reject` — 驳回头像
-
-**图片代理** (`/api/v1/images/**`) —— 公开接口
-- `GET /images/{year}/{month}/{filename}` — MinIO 图片代理，带 7 天浏览器缓存
-
-**公告**
-- `GET /announcements/current` — 获取当前启用公告（公开）
-- `GET /audit/announcement` — 获取公告配置（需审核权限）
-- `PUT /audit/announcement` — 更新公告配置并递增版本（需审核权限）
+契约约定与维护方式见 [`v1/API_DOCUMENTATION.md`](v1/API_DOCUMENTATION.md)。接口新增或修改应同步更新控制器/DTO、OpenAPI 输出和契约测试，不再手工维护容易失真的接口数量。
 
 ### 管理后台 (3 个页面)
 

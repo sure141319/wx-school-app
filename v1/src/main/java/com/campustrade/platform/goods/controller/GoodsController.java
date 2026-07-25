@@ -3,6 +3,7 @@ package com.campustrade.platform.goods.controller;
 import com.campustrade.platform.goods.dto.request.GoodsSaveRequestDTO;
 import com.campustrade.platform.goods.dto.request.GoodsStatusUpdateRequestDTO;
 import com.campustrade.platform.goods.dto.response.ContactEmailEligibilityResponseDTO;
+import com.campustrade.platform.goods.dto.response.GoodsDetailResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
@@ -58,7 +59,7 @@ public class GoodsController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<?> detail(@PathVariable Long id) {
+    public ApiResponse<GoodsDetailResponseDTO> detail(@PathVariable Long id) {
         UserPrincipal principal = AuthUtils.currentUserOrNull();
         Long viewerUserId = principal == null ? null : principal.userId();
         return ApiResponse.ok(goodsService.getDetailForViewer(id, viewerUserId));

@@ -1,1094 +1,119 @@
-# Campus Trade Platform - API 文档
+# Campus Trade API 契约说明
 
-> 版本: v1 | 基础路径: `/api/v1` | 协议: HTTPS | 数据格式: JSON
+本文档只维护稳定的接口约定与变更规则。完整接口、参数、响应 Schema 和校验约束以运行中后端生成的 OpenAPI 为唯一清单，避免手写接口列表与代码长期漂移。
 
-> 契约来源：后端启动后会自动生成 OpenAPI 文档，`GET /api/v1/openapi.json` 为权威机器可读契约，`GET /api/v1/docs` 为 Swagger UI。本文档保留为人工阅读材料，发布前以 OpenAPI 输出为准。
+## 契约入口
 
----
+后端默认监听 `http://localhost:8080`：
 
-## 目录
+- Swagger UI：`http://localhost:8080/api/v1/docs`
+- OpenAPI JSON：`http://localhost:8080/api/v1/openapi.json`
 
-- [通用说明](#通用说明)
-- [认证模型](#认证模型)
-- [数据字典](#数据字典)
-- [认证接口](#1-认证接口-auth)
-- [商品接口](#2-商品接口-goods)
-- [分类接口](#3-分类接口-categories)
-- [用户接口](#4-用户接口-users)
-- [上传接口](#5-上传接口-uploads)
-- [图片代理](#6-图片代理-images)
-- [图片审核](#7-图片审核-audit)
-- [公告接口](#8-公告接口-announcements)
-- [接口总览表](#接口总览表)
+接口统一使用 `/api/v1` 前缀。生产环境请替换域名，不要修改路径约定。
 
----
+## 产品与权限边界
 
-## 通用说明
+- 商品浏览、分类查询、当前公告和图片代理允许匿名访问。
+- 商品详情中的卖家 QQ 属于公开联系方式，未登录访客也可以查看和复制。
+- 发布、编辑、上下架、删除、个人资料和上传操作需要登录。
+- `/api/v1/audit/**` 用于最低限度的内容治理，只向具备审核权限的账号开放。
+- 平台只提供闲置信息展示、搜索与筛选，不提供聊天、订单、支付、担保、物流、退款或纠纷处理接口。
 
-### 统一响应格式
+具体授权规则以 `SecurityConfig` 和各业务服务中的资源归属校验共同为准。
 
-所有接口返回统一的 `ApiResponse<T>` 结构：
+## 统一响应
+
+普通业务响应使用 `ApiResponse<T>`：
 
 ```json
 {
   "success": true,
+  "code": "OK",
   "message": "操作成功",
-  "data": { ... }
+  "data": {}
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `success` | `boolean` | 请求是否成功 |
-| `message` | `string` | 可读状态信息 |
-| `data` | `T` | 实际响应数据，失败时为 `null` |
+- `success`：请求是否成功。
+- `code`：稳定的机器可读业务码；客户端分支判断优先使用它。
+- `message`：面向用户或排障的中文说明，不作为程序分支的唯一依据。
+- `data`：业务数据；无返回数据时可以为 `null`。
 
-### 分页响应格式
-
-列表类接口使用 `PageResponse<T>` 分页结构：
+分页数据统一使用 `PageResponse<T>`：
 
 ```json
 {
-  "items": [ ... ],
-  "total": 100,
+  "items": [],
+  "total": 0,
   "page": 0,
   "size": 10
 }
 ```
 
+`page` 从 `0` 开始。客户端应根据 `items`、`total`、`page` 和 `size` 判断是否继续加载。
+
+## 认证
+
+需要认证的接口使用 JWT Bearer Token：
+
+```http
+Authorization: Bearer <token>
+```
+
+认证失败、权限不足、参数校验失败和业务冲突仍返回 `ApiResponse` 结构，并通过 HTTP 状态码与 `code` 表达错误类型。
+
+## 商品详情稳定契约
+
+`GET /api/v1/goods/{id}` 固定返回 `ApiResponse<GoodsDetailResponseDTO>`。匿名访客、普通登录用户、商品所有者和审核人员使用同一个 DTO，不再根据访问者身份切换响应类型。
+
+`GoodsDetailResponseDTO` 的稳定字段为：
+
 | 字段 | 类型 | 说明 |
-|------|------|------|
-| `items` | `T[]` | 当前页数据列表 |
-| `total` | `long` | 总记录数 |
-| `page` | `int` | 当前页码（从 0 开始） |
-| `size` | `int` | 每页条数 |
-
-### 错误响应
-
-| HTTP 状态码 | 场景 |
-|-------------|------|
-| `400` | 参数校验失败、请求格式错误 |
-| `401` | 未认证、JWT 无效或过期 |
-| `403` | 权限不足 |
-| `404` | 资源不存在 |
-| `409` | 资源冲突（如邮箱已注册） |
-| `429` | 请求过于频繁 |
-| `413` | 上传文件超过 10MB 限制 |
-| `500` | 服务器内部错误 |
-
-### 技术栈
-
-- **框架**: Spring Boot 3.3.5, Java 17
-- **ORM**: MyBatis
-- **数据库**: MySQL (Flyway 迁移)
-- **缓存**: Redis + Spring Cache
-- **对象存储**: MinIO
-- **邮件**: SMTP (QQ 邮箱)
-
----
-
-## 认证模型
-
-### JWT Bearer Token
-
-- **请求头**: `Authorization: Bearer <token>`
-- **Token 获取**: 通过登录或注册接口返回
-- **有效期**: 默认 1440 分钟（24 小时），可通过 `app.jwtExpirationMinutes` 配置
-- **Token 载荷**: 包含 `sub`（userId）和 `email` 声明
-
-### 接口权限分类
-
-| 类型 | 说明 |
-|------|------|
-| **公开接口** | 无需认证，所有用户可访问 |
-| **认证接口** | 需要有效的 JWT Token |
-
----
-
-## 数据字典
-
-### GoodsStatusEnum（商品状态）
-
-| 值 | 说明 |
-|----|------|
-| `ON_SALE` | 在售中 |
-| `OFF_SHELF` | 已下架 |
-
-### ImageAuditStatusEnum（图片审核状态）
-
-| 值 | 说明 |
-|----|------|
-| `PENDING` | 待审核 |
-| `APPROVED` | 审核通过 |
-| `REJECTED` | 审核驳回 |
-
-### VerificationPurposeEnum（验证码用途）
-
-| 值 | 说明 |
-|----|------|
-| `REGISTER` | 注册验证 |
-| `RESET_PASSWORD` | 重置密码验证 |
-| `BIND_EMAIL` | 绑定邮箱验证 |
-
----
-
-## 1. 认证接口 `/auth`
-
-> 所有认证接口均为**公开接口**，无需 JWT Token。
-
-### 1.1 发送邮箱验证码
-
-```
-POST /api/v1/auth/email-code
-```
-
-**请求体** (`SendCodeRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `email` | `string` | 是 | 必须为 `@qq.com` 邮箱 |
-| `purpose` | `string` | 否 | `REGISTER` 或 `RESET_PASSWORD`，默认 `REGISTER` |
-
-**请求示例**:
-```json
-{
-  "email": "123456@qq.com",
-  "purpose": "REGISTER"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "验证码已发送",
-  "data": {
-    "delivered": true
-  }
-}
-```
-
-**业务规则**:
-- 注册场景：邮箱已存在时拒绝发送
-- 重置密码场景：邮箱不存在时拒绝发送
-- 验证码有效期 5 分钟
-- 重发冷却 60 秒
-- 每小时限制 6 次请求
-- 单个验证码最多允许错误 5 次，超过后需重新获取
-
----
-
-### 1.2 用户注册
-
-```
-POST /api/v1/auth/register
-```
-
-**请求体** (`RegisterRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `email` | `string` | 是 | 必须为 `@qq.com` 邮箱 |
-| `code` | `string` | 是 | 6 位数字验证码 |
-| `password` | `string` | 是 | 6-64 字符 |
-| `nickname` | `string` | 是 | 1-64 字符 |
-
-**请求示例**:
-```json
-{
-  "email": "123456@qq.com",
-  "code": "654321",
-  "password": "mypassword",
-  "nickname": "校园用户"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "注册成功",
-  "data": {
-    "token": "eyJhbGci...",
-    "user": {
-      "id": 1,
-      "email": "123456@qq.com",
-      "nickname": "校园用户",
-      "avatarUrl": null
-    }
-  }
-}
-```
-
----
-
-### 1.3 用户登录
-
-```
-POST /api/v1/auth/login
-```
-
-**请求体** (`LoginRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `email` | `string` | 是 | 必须为 `@qq.com` 邮箱 |
-| `password` | `string` | 是 | 6-64 字符 |
-
-**请求示例**:
-```json
-{
-  "email": "123456@qq.com",
-  "password": "mypassword"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "登录成功",
-  "data": {
-    "token": "eyJhbGci...",
-    "user": {
-      "id": 1,
-      "email": "123456@qq.com",
-      "nickname": "校园用户",
-      "avatarUrl": "https://..."
-    }
-  }
-}
-```
-
-**安全规则**:
-- 连续登录失败 5 次后账号锁定 15 分钟
-
----
-
-### 1.4 重置密码
-
-```
-POST /api/v1/auth/reset-password
-```
-
-**请求体** (`ResetPasswordRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `email` | `string` | 是 | 必须为 `@qq.com` 邮箱 |
-| `code` | `string` | 是 | 6 位数字验证码 |
-| `newPassword` | `string` | 是 | 6-64 字符 |
-
-**请求示例**:
-```json
-{
-  "email": "123456@qq.com",
-  "code": "654321",
-  "newPassword": "newpassword123"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "密码重置成功",
-  "data": null
-}
-```
-
----
-
-### 1.5 获取当前用户信息
-
-```
-GET /api/v1/auth/me
-```
-
-**权限**: 需要 JWT Token
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "id": 1,
-    "email": "123456@qq.com",
-    "nickname": "校园用户",
-    "avatarUrl": "https://..."
-  }
-}
-```
-
----
-
-## 2. 商品接口 `/goods`
-
-### 2.1 搜索/列表商品（公开）
-
-```
-GET /api/v1/goods
-```
-
-**查询参数**:
-
-| 参数 | 类型 | 必填 | 校验规则 | 默认值 |
-|------|------|------|----------|--------|
-| `keyword` | `string` | 否 | 最大 100 字符 | - |
-| `categoryId` | `Long` | 否 | - | - |
-| `status` | `string` | 否 | `ON_SALE` 或 `OFF_SHELF` | - |
-| `page` | `int` | 否 | >= 0 | `0` |
-| `size` | `int` | 否 | 1-50 | `10` |
-
-**请求示例**:
-```
-GET /api/v1/goods?status=ON_SALE&page=0&size=24&keyword=教材&categoryId=1
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "items": [
-      {
-        "id": 1,
-        "title": "二手教材",
-        "description": "九成新，无笔记",
-        "price": 25.50,
-        "conditionLevel": "八成新",
-        "campusLocation": "图书馆",
-        "status": "ON_SALE",
-        "category": { "id": 1, "name": "书籍", "sortOrder": 1 },
-        "seller": { "id": 2, "nickname": "卖家", "avatarUrl": "..." },
-        "imageUrls": ["https://...", "https://..."],
-        "createdAt": "2026-04-01T10:00:00",
-        "updatedAt": "2026-04-01T10:00:00"
-      }
-    ],
-    "total": 50,
-    "page": 0,
-    "size": 10
-  }
-}
-```
-
----
-
-### 2.2 商品详情（公开）
-
-```
-GET /api/v1/goods/{id}
-```
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `id` | `Long` | 是 |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "id": 1,
-    "title": "二手教材",
-    "description": "九成新，无笔记",
-    "price": 25.50,
-    "conditionLevel": "八成新",
-    "campusLocation": "图书馆",
-    "status": "ON_SALE",
-    "category": { "id": 1, "name": "书籍", "sortOrder": 1 },
-    "seller": { "id": 2, "nickname": "卖家", "avatarUrl": "..." },
-    "imageUrls": ["https://...", "https://..."],
-    "createdAt": "2026-04-01T10:00:00",
-    "updatedAt": "2026-04-01T10:00:00"
-  }
-}
-```
-
----
-
-### 2.3 发布商品
-
-```
-POST /api/v1/goods
-```
-
-**权限**: 需要 JWT Token
-
-**请求体** (`GoodsSaveRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `title` | `string` | 是 | 最大 120 字符 |
-| `description` | `string` | 是 | 最大 5000 字符 |
-| `price` | `BigDecimal` | 是 | >= 0.01 |
-| `conditionLevel` | `string` | 是 | 最大 50 字符 |
-| `campusLocation` | `string` | 是 | 最大 120 字符 |
-| `categoryId` | `Long` | 否 | - |
-| `imageUrls` | `string[]` | 是 | 1-9 个元素，每个最大 500 字符 |
-
-**请求示例**:
-```json
-{
-  "title": "二手教材",
-  "description": "九成新，无笔记，适合考研",
-  "price": 25.50,
-  "conditionLevel": "八成新",
-  "campusLocation": "图书馆",
-  "categoryId": 1,
-  "imageUrls": ["https://...", "https://..."]
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "商品发布成功",
-  "data": {
-    "id": 1,
-    "title": "二手教材",
-    "description": "九成新，无笔记，适合考研",
-    "price": 25.50,
-    "conditionLevel": "八成新",
-    "campusLocation": "图书馆",
-    "status": "ON_SALE",
-    "category": { "id": 1, "name": "书籍", "sortOrder": 1 },
-    "seller": { "id": 1, "email": "...", "nickname": "校园用户", "avatarUrl": "..." },
-    "imageUrls": ["https://...", "https://..."],
-    "createdAt": "2026-04-01T10:00:00",
-    "updatedAt": "2026-04-01T10:00:00"
-  }
-}
-```
-
----
-
-### 2.4 更新商品
-
-```
-PUT /api/v1/goods/{id}
-```
-
-**权限**: 需要 JWT Token（仅商品所有者可操作）
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `id` | `Long` | 是 |
-
-**请求体**: 同 `2.3 发布商品`
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "商品更新成功",
-  "data": { ... }
-}
-```
-
----
-
-### 2.5 删除商品
-
-```
-DELETE /api/v1/goods/{id}
-```
-
-**权限**: 需要 JWT Token（仅商品所有者可操作）
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `id` | `Long` | 是 |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "商品删除成功",
-  "data": null
-}
-```
-
----
-
-### 2.6 更新商品状态
-
-```
-PATCH /api/v1/goods/{id}/status
-```
-
-**权限**: 需要 JWT Token（仅商品所有者可操作）
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `id` | `Long` | 是 |
-
-**请求体** (`GoodsStatusUpdateRequestDTO`):
-
-| 字段 | 类型 | 必填 |
-|------|------|------|
-| `status` | `string` | 是 |
-
-**请求示例**:
-```json
-{
-  "status": "OFF_SHELF"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "商品状态更新成功",
-  "data": { ... }
-}
-```
-
----
-
-### 2.7 我的商品
-
-```
-GET /api/v1/goods/mine
-```
-
-**权限**: 需要 JWT Token
-
-**查询参数**:
-
-| 参数 | 类型 | 必填 | 校验规则 | 默认值 |
-|------|------|------|----------|--------|
-| `page` | `int` | 否 | >= 0 | `0` |
-| `size` | `int` | 否 | 1-50 | `10` |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "items": [ ... ],
-    "total": 5,
-    "page": 0,
-    "size": 10
-  }
-}
-```
-
----
-
-### 2.8 查询联系邮件资格
-
-```
-GET /api/v1/goods/{id}/contact-email-eligibility
-```
-
-**权限**: 需要 JWT Token
-
-该接口只返回买卖双方是否绑定邮箱，不返回任何真实邮箱地址。
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "buyerEmailBound": true,
-    "sellerEmailBound": true,
-    "ownGoods": false
-  }
-}
-```
-
----
-
-### 2.9 发送联系邮件
-
-```
-POST /api/v1/goods/{id}/contact-email
-```
-
-**权限**: 需要 JWT Token
-
-后端重新校验商品状态和买卖双方邮箱，再向卖家发送购买意向邮件；邮件的回复地址为买家邮箱。
-
-**失败场景**:
-
-| 状态码 | 消息 |
-|--------|------|
-| `400` | `请先绑定邮箱` |
-| `400` | `卖家未绑定邮箱，无法发送` |
-| `400` | `不能联系自己发布的商品` |
-| `404` | `商品不存在或未上架` |
-| `503` | `邮件发送失败，请稍后重试` |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "邮件发送成功",
-  "data": null
-}
-```
-
----
-
-## 3. 分类接口 `/categories`
-
-> 所有分类接口均为**公开接口**。
-
-### 3.1 获取全部分类
-
-```
-GET /api/v1/categories
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": [
-    { "id": 1, "name": "书籍", "sortOrder": 1 },
-    { "id": 2, "name": "电子产品", "sortOrder": 2 },
-    { "id": 3, "name": "生活用品", "sortOrder": 3 }
-  ]
-}
-```
-
----
-
-## 4. 用户接口 `/users`
-
-> 所有用户接口均**需要 JWT Token**。
-
-### 4.1 获取个人资料
-
-```
-GET /api/v1/users/me
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "id": 1,
-    "email": "123456@qq.com",
-    "nickname": "校园用户",
-    "avatarUrl": "https://..."
-  }
-}
-```
-
----
-
-### 4.2 更新个人资料
-
-```
-PUT /api/v1/users/me
-```
-
-**请求体** (`UpdateProfileRequestDTO`):
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `nickname` | `string` | 是 | 最大 64 字符 |
-| `avatarUrl` | `string` | 否 | 最大 500 字符 |
-
-**请求示例**:
-```json
-{
-  "nickname": "新昵称",
-  "avatarUrl": "https://..."
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "个人资料更新成功",
-  "data": {
-    "id": 1,
-    "email": "123456@qq.com",
-    "nickname": "新昵称",
-    "avatarUrl": "https://..."
-  }
-}
-```
-
----
-
-### 4.3 绑定微信登录
-
-```
-POST /api/v1/users/me/wechat-bind
-```
-
-**请求体**:
-```json
-{
-  "code": "wx.login 返回的临时 code"
-}
-```
-
----
-
-### 4.4 解绑微信登录
-
-```
-DELETE /api/v1/users/me/wechat-bind
-```
-
-邮箱已绑定时允许解绑；如果微信是账号唯一登录方式，返回 `400` 和 `请先绑定邮箱，再解绑微信`。
-
----
-
-### 4.5 绑定 QQ 邮箱
-
-```
-POST /api/v1/users/me/email-bind
-```
-
-**请求体**:
-```json
-{
-  "email": "123456@qq.com",
-  "code": "123456",
-  "password": "secret123"
-}
-```
-
----
-
-### 4.6 解绑 QQ 邮箱
-
-```
-DELETE /api/v1/users/me/email-bind
-```
-
-微信已绑定时允许解绑，并同时清除原邮箱密码；如果邮箱是账号唯一登录方式，返回 `400` 和 `请先绑定微信，再解绑邮箱`。
-
----
-
-## 5. 上传接口 `/uploads`
-
-### 5.1 上传图片
-
-```
-POST /api/v1/uploads/image
-```
-
-**权限**: 需要 JWT Token
-
-**Content-Type**: `multipart/form-data`
-
-**表单参数**:
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `file` | `MultipartFile` | 是 | 图片文件，最大 10MB；仅支持 jpg/jpeg/png/webp/heic/heif，并校验 MIME 与文件头 |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "图片上传成功",
-  "data": {
-    "url": "https://...",
-    "filename": "abc123.jpg"
-  }
-}
-```
-
----
-
-## 6. 图片代理 `/images`
-
-> 图片代理接口为**公开接口**。
-
-### 6.1 获取图片
-
-```
-GET /api/v1/images/{year}/{month}/{filename}
-```
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `year` | `string` | 是 | 4 位数字（如 `2026`） |
-| `month` | `string` | 是 | 2 位数字（`01`-`12`） |
-| `filename` | `string` | 是 | 不包含 `..`、`/`、`\` |
-
-**响应**: 原始图片字节流
-
-**响应头**:
-- `Content-Type`: 根据文件类型自动设置
-- `Cache-Control`: `max-age=604800, public`（7 天缓存）
-- `ETag`: MinIO 对象 ETag
-
----
-
-## 7. 图片审核 `/audit`
-
-> 所有审核接口均**需要 JWT Token**，且当前用户必须是配置的审核员（`app.imageAudit.reviewerUserIds`）。
-
-### 7.1 获取待审核图片列表
-
-```
-GET /api/v1/audit/images
-```
-
-**查询参数**:
-
-| 参数 | 类型 | 必填 | 默认值 |
-|------|------|------|--------|
-| `status` | `string` | 否 | - |
-| `page` | `int` | 否 | `0` |
-| `size` | `int` | 否 | `10`（最大 50） |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "items": [
-      {
-        "imageId": 1,
-        "goodsId": 5,
-        "goodsTitle": "二手教材",
-        "sellerId": 2,
-        "sellerNickname": "卖家",
-        "originalImageUrl": "https://...",
-        "sortOrder": 0,
-        "auditStatus": "PENDING",
-        "auditRemark": null,
-        "auditedBy": null,
-        "auditedAt": null,
-        "createdAt": "2026-04-01T10:00:00"
-      }
-    ],
-    "total": 5,
-    "page": 0,
-    "size": 10
-  }
-}
-```
-
----
-
-### 7.2 通过图片
-
-```
-POST /api/v1/audit/images/{imageId}/approve
-```
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `imageId` | `Long` | 是 |
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "图片审核通过",
-  "data": {
-    "imageId": 1,
-    "auditStatus": "APPROVED",
-    "auditedBy": 1,
-    "auditedAt": "2026-04-01T10:00:00"
-  }
-}
-```
-
----
-
-### 7.3 驳回图片
-
-```
-POST /api/v1/audit/images/{imageId}/reject
-```
-
-**路径参数**:
-
-| 参数 | 类型 | 必填 |
-|------|------|------|
-| `imageId` | `Long` | 是 |
-
-**请求体** (`ImageRejectRequestDTO`，可选）:
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `remark` | `string` | 否 | 最大 500 字符 |
-
-**请求示例**:
-```json
-{
-  "remark": "图片包含违规内容"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "图片已驳回",
-  "data": {
-    "imageId": 1,
-    "auditStatus": "REJECTED",
-    "auditRemark": "图片包含违规内容",
-    "auditedBy": 1,
-    "auditedAt": "2026-04-01T10:00:00"
-  }
-}
-```
-
----
-
-### 7.4 批量通过已驳回图片
-
-```
-POST /api/v1/audit/images/approve-all-rejected
-```
-
-接口会处理全部 `REJECTED` 商品图片，不限于审核台当前页。商品的全部图片通过后，商品状态会自动更新为在售。
-
-**请求体**:
-
-| 字段 | 类型 | 必填 | 校验规则 |
-|------|------|------|----------|
-| `confirmation` | `string` | 是 | 必须为 `APPROVE_ALL_REJECTED` |
-
-**请求示例**:
-
-```json
-{
-  "confirmation": "APPROVE_ALL_REJECTED"
-}
-```
-
-**图片响应示例**:
-
-```json
-{
-  "success": true,
-  "message": "已通过 12 张图片",
-  "data": 12
-}
-```
-
-未提供正确确认标识时返回 `400 Bad Request`，消息为“批量通过需确认操作”。
-
----
-
-## 8. 公告接口 `/announcements`
-
-### 8.1 获取当前启用公告
-
-```
-GET /api/v1/announcements/current
-```
-
-公开接口。存在已启用公告时返回标题、正文和版本号：
-
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": {
-    "title": "校园通知",
-    "content": "今晚 23:00 将进行短时维护。",
-    "revision": 4
-  }
-}
-```
-
-公告关闭时请求仍返回成功，但 `data` 为 `null`。
-
-### 8.2 获取公告管理配置
-
-```
-GET /api/v1/audit/announcement
-Authorization: Bearer <token>
-```
-
-需要 JWT Token，且当前用户必须是配置的审核员。响应包含 `title`、`content`、`enabled`、`revision` 和 `updatedAt`。
-
-### 8.3 更新公告配置
-
-```
-PUT /api/v1/audit/announcement
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-```json
-{
-  "title": "校园通知",
-  "content": "今晚 23:00 将进行短时维护。",
-  "enabled": true
-}
-```
-
-标题最多 50 个字符，正文最多 1000 个字符，二者均不能为空。标题、正文或启用状态实际变化时，公告版本号递增；提交完全相同的内容不会产生新版本。
-
----
-
-## 接口总览表
-
-| # | 方法 | 路径 | 认证 | 说明 |
-|---|------|------|------|------|
-| 1 | `POST` | `/api/v1/auth/email-code` | 公开 | 发送邮箱验证码 |
-| 2 | `POST` | `/api/v1/auth/register` | 公开 | 用户注册 |
-| 3 | `POST` | `/api/v1/auth/login` | 公开 | 用户登录 |
-| 4 | `POST` | `/api/v1/auth/reset-password` | 公开 | 重置密码 |
-| 5 | `GET` | `/api/v1/auth/me` | 需要 | 获取当前用户信息 |
-| 6 | `GET` | `/api/v1/goods` | 公开 | 搜索/列表商品 |
-| 7 | `GET` | `/api/v1/goods/{id}` | 公开 | 商品详情 |
-| 8 | `GET` | `/api/v1/goods/{id}/contact-email-eligibility` | 需要 | 查询联系邮件资格 |
-| 9 | `POST` | `/api/v1/goods/{id}/contact-email` | 需要 | 发送联系邮件 |
-| 10 | `POST` | `/api/v1/goods` | 需要 | 发布商品 |
-| 11 | `PUT` | `/api/v1/goods/{id}` | 需要 | 更新商品 |
-| 12 | `DELETE` | `/api/v1/goods/{id}` | 需要 | 删除商品 |
-| 13 | `PATCH` | `/api/v1/goods/{id}/status` | 需要 | 更新商品状态 |
-| 14 | `GET` | `/api/v1/goods/mine` | 需要 | 我的商品列表 |
-| 15 | `GET` | `/api/v1/categories` | 公开 | 获取全部分类 |
-| 16 | `GET` | `/api/v1/users/me` | 需要 | 获取个人资料 |
-| 17 | `PUT` | `/api/v1/users/me` | 需要 | 更新个人资料 |
-| 18 | `POST` | `/api/v1/users/me/wechat-bind` | 需要 | 绑定微信登录 |
-| 19 | `DELETE` | `/api/v1/users/me/wechat-bind` | 需要 | 解绑微信登录 |
-| 20 | `POST` | `/api/v1/users/me/email-bind` | 需要 | 绑定 QQ 邮箱 |
-| 21 | `DELETE` | `/api/v1/users/me/email-bind` | 需要 | 解绑 QQ 邮箱 |
-| 22 | `POST` | `/api/v1/uploads/image` | 需要 | 上传图片 |
-| 23 | `GET` | `/api/v1/images/{year}/{month}/{filename}` | 公开 | 获取图片 |
-| 24 | `GET` | `/api/v1/audit/images` | 需要 | 待审核图片列表 |
-| 25 | `POST` | `/api/v1/audit/images/{id}/approve` | 需要 | 通过图片 |
-| 26 | `POST` | `/api/v1/audit/images/{id}/reject` | 需要 | 驳回图片 |
-| 27 | `POST` | `/api/v1/audit/images/approve-all-rejected` | 需要 | 批量通过已驳回图片 |
-| 28 | `POST` | `/api/v1/audit/images/reject-all-approved` | 需要 | 批量驳回已通过图片 |
-| 29 | `GET` | `/api/v1/audit/images/avatars` | 需要 | 头像审核列表 |
-| 30 | `POST` | `/api/v1/audit/images/avatars/{userId}/approve` | 需要 | 通过头像 |
-| 31 | `POST` | `/api/v1/audit/images/avatars/{userId}/reject` | 需要 | 驳回头像 |
-| 32 | `GET` | `/api/v1/announcements/current` | 公开 | 获取当前启用公告 |
-| 33 | `GET` | `/api/v1/audit/announcement` | 审核员 | 获取公告管理配置 |
-| 34 | `PUT` | `/api/v1/audit/announcement` | 审核员 | 更新公告配置 |
+|---|---|---|
+| `id` | number | 商品 ID |
+| `title` / `description` | string | 标题与描述 |
+| `price` | number | 价格 |
+| `conditionLevel` | string | 成色 |
+| `campusLocation` | string | 校内地点 |
+| `status` | string | 商品状态 |
+| `category` | object/null | 分类公开信息；未归类时为 `null` |
+| `seller` | object | 卖家公开信息，包含 `id`、昵称、头像、微信号和 QQ |
+| `imageUrls` | string[] | 可展示的图片代理地址 |
+| `imageKeys` | string[] | 所有者或审核人员用于编辑的对象键；其他访问者固定为空数组 |
+| `auditRemark` | string/null | 所有者或审核人员可见的审核备注；其他访问者为 `null` |
+| `createdAt` / `updatedAt` | string | 北京时间业务时间 |
+
+公开响应不得包含卖家邮箱、微信 OpenID、密码摘要或其他内部身份字段。前端不得再从邮箱推导 QQ。
+
+## 接口分组
+
+OpenAPI 中按以下业务前缀组织接口：
+
+- `/api/v1/auth`：注册、登录、验证码和账号认证。
+- `/api/v1/goods`：商品搜索、详情、发布与个人商品管理。
+- `/api/v1/categories`：分类查询。
+- `/api/v1/users`：个人资料及账号绑定。
+- `/api/v1/uploads`、`/api/v1/images`：图片上传与公开代理。
+- `/api/v1/announcements`：当前公告。
+- `/api/v1/audit`：审核与最低限度的运营管理。
+
+具体方法、请求体和当前可用端点只从 OpenAPI 查询，不在本文重复维护。
+
+## 时间契约
+
+- 所有业务时间、用户可见时间和自然日边界统一使用 `Asia/Shanghai`。
+- 接口中的 `LocalDateTime` 表示北京时间墙上时间，不带时区偏移。
+- 客户端不得把该值当成 UTC，也不得固定加 8 小时修补环境配置错误。
+- JWT 有效期、缓存 TTL 和限流窗口等持续时长可以使用时间戳或 UTC 内部计算。
+
+## 契约变更规则
+
+修改接口时按以下顺序维护：
+
+1. 在控制器方法、请求 DTO 和响应 DTO 中表达真实类型及校验约束。
+2. 保持 `ApiResponse<T>` 与 `PageResponse<T>` 外层结构稳定。
+3. 同步更新小程序 TypeScript 类型和调用代码。
+4. 更新本文件中的稳定约定；不要复制 OpenAPI 已能生成的逐接口清单。
+5. 运行 `OpenApiDocumentationTest` 和完整后端测试，确认 `/api/v1/openapi.json` 可以生成且关键 Schema 未漂移。
+
+破坏性变更应优先通过新增字段、小步迁移和兼容期完成；生产系统修改必须保留可回滚路径。

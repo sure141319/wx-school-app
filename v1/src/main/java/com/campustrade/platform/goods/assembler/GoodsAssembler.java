@@ -4,14 +4,16 @@ import com.campustrade.platform.category.assembler.CategoryAssembler;
 import com.campustrade.platform.category.dto.response.CategoryResponseDTO;
 import com.campustrade.platform.goods.dataobject.GoodsDO;
 import com.campustrade.platform.goods.dataobject.GoodsImageDO;
+import com.campustrade.platform.goods.dto.response.GoodsDetailResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsListItemResponseDTO;
 import com.campustrade.platform.goods.dto.response.GoodsResponseDTO;
 import com.campustrade.platform.goods.dto.response.MyGoodsListItemResponseDTO;
-import com.campustrade.platform.goods.dto.response.PublicGoodsResponseDTO;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Component
 public class GoodsAssembler {
@@ -54,9 +56,12 @@ public class GoodsAssembler {
         );
     }
 
-    public PublicGoodsResponseDTO toPublicResponse(GoodsDO goods) {
+    public GoodsDetailResponseDTO toDetailResponse(GoodsDO goods, boolean includeManagementFields) {
         CategoryResponseDTO categoryResponse = goods.getCategory() == null ? null : categoryAssembler.toResponse(goods.getCategory());
-        return new PublicGoodsResponseDTO(
+        List<GoodsImageDO> sortedImages = goods.getImages().stream()
+                .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                .toList();
+        return new GoodsDetailResponseDTO(
                 goods.getId(),
                 goods.getTitle(),
                 goods.getDescription(),
@@ -66,10 +71,13 @@ public class GoodsAssembler {
                 goods.getStatus(),
                 categoryResponse,
                 userProfileAssembler.toPublicSellerResponse(goods.getSeller()),
-                goods.getImages().stream()
-                        .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+                sortedImages.stream()
                         .map(this::toVisibleImageUrl)
                         .toList(),
+                includeManagementFields
+                        ? sortedImages.stream().map(GoodsImageDO::getImageUrl).toList()
+                        : List.of(),
+                includeManagementFields ? goods.getAuditRemark() : null,
                 goods.getCreatedAt(),
                 goods.getUpdatedAt()
         );

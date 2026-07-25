@@ -1,8 +1,23 @@
-import { clearToken, request } from '../../utils/request'
+import { clearToken } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { resolveProfileDisplayAvatar, resolveQqAvatarPreview } from '../../utils/avatar'
 import { COMMON_MESSAGES, actionFailed, isUserCancellation, loadFailed } from '../../utils/messages'
 import { updateStoredUser } from '../../utils/storage'
+import {
+  bindEmailAccount,
+  bindWechatAccount,
+  deleteMyGoods,
+  fetchMyGoods,
+  fetchProfile,
+  getProfileApiErrorMessage,
+  getWechatLoginCode,
+  isAccountMergeMessage,
+  saveProfile as saveProfileRequest,
+  sendEmailBindCode,
+  unbindEmailAccount,
+  unbindWechatAccount,
+  updateMyGoodsStatus
+} from '../../services/profile-api'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
@@ -175,16 +190,8 @@ Component({
       const requestSequence = ((this as any)._profileRequestSequence || 0) + 1
       ;(this as any)._profileRequestSequence = requestSequence
       try {
-        const res = await request<ApiResponse<UserProfile>>({
-          url: `${app.globalData.baseUrl}/users/me`,
-          method: 'GET'
-        })
+        const profile = await fetchProfile(app.globalData.baseUrl)
         if (requestSequence !== (this as any)._profileRequestSequence) return
-        if (!res.data?.success) {
-          this.setData({ info: res.data?.message || loadFailed('个人资料') })
-          return
-        }
-        const profile = (res.data?.data as unknown as UserProfile) || { nickname: '', avatarUrl: '' }
         this.setData({
           profile,
           profileDraft: { ...profile },
@@ -195,9 +202,9 @@ Component({
           avatarChanged: false
         })
         ;(this as any)._lastProfileLoadTime = Date.now()
-      } catch (_err) {
+      } catch (error) {
         if (requestSequence === (this as any)._profileRequestSequence) {
-          this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+          this.setData({ info: getProfileApiErrorMessage(error, loadFailed('个人资料')) })
         }
       }
     },
@@ -216,19 +223,10 @@ Component({
       }
 
       try {
-        const res = await request<ApiResponse<PageInfo>>({
-          url: `${app.globalData.baseUrl}/goods/mine?page=${nextPage}&size=${this.data.size}`,
-          method: 'GET'
-        })
+        const pageData = await fetchMyGoods(app.globalData.baseUrl, nextPage, this.data.size)
         if (requestSequence !== (this as any)._goodsRequestSequence) return
-        if (!res.data?.success) {
-          this.setData({ info: res.data?.message || loadFailed('商品列表') })
-          return
-        }
-
-        const pageData = res.data?.data as unknown as PageInfo | undefined
-        const items = (pageData?.items || []) as unknown as MyGoodsListItem[]
-        const total = pageData?.total || 0
+        const items = pageData.items
+        const total = pageData.total
         const hasMore = items.length === this.data.size && (nextPage + 1) * this.data.size < total
 
         const allItems: MyGoodsListItem[] = (append && !resetPage)
@@ -243,9 +241,9 @@ Component({
         if (resetPage) {
           ;(this as any)._lastGoodsLoadTime = Date.now()
         }
-      } catch (_err) {
+      } catch (error) {
         if (requestSequence === (this as any)._goodsRequestSequence && !append) {
-          this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+          this.setData({ info: getProfileApiErrorMessage(error, loadFailed('商品列表')) })
         }
       } finally {
         if (requestSequence === (this as any)._goodsRequestSequence) {
@@ -355,21 +353,14 @@ Component({
 
       this.setData({ saving: true, info: '' })
       try {
-        const data: Record<string, unknown> = { nickname, wechatId, qq }
-        if (this.data.avatarChanged && this.data.avatarValue) {
-          data.avatarUrl = this.data.avatarValue
-        }
-
-        const res = await request<ApiResponse<UserProfile>>({
-          url: `${app.globalData.baseUrl}/users/me`,
-          method: 'PUT',
-          data
+        const profile = await saveProfileRequest(app.globalData.baseUrl, {
+          nickname,
+          wechatId,
+          qq,
+          ...(this.data.avatarChanged && this.data.avatarValue
+            ? { avatarUrl: this.data.avatarValue }
+            : {})
         })
-        if (!res.data?.success) {
-          this.setData({ info: res.data?.message || actionFailed('保存') })
-          return
-        }
-        const profile = (res.data?.data as unknown as UserProfile) || this.data.profile
         updateStoredUser({
           nickname: profile.nickname,
           avatarUrl: profile.avatarUrl,
@@ -390,8 +381,8 @@ Component({
           info: ''
         })
         wx.showToast({ title: '保存成功', icon: 'success' })
-      } catch (_err) {
-        this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+      } catch (error) {
+        this.setData({ info: getProfileApiErrorMessage(error, actionFailed('保存')) })
       } finally {
         this.setData({ saving: false })
       }
@@ -451,22 +442,13 @@ Component({
       try {
         let code: string
         try {
-          code = await this.getWechatLoginCode()
+          code = await getWechatLoginCode()
         } catch (_err) {
           this.setData({ accountBindMessage: COMMON_MESSAGES.WECHAT_BIND_FAILED })
           return
         }
 
-        const res = await request<ApiResponse<UserProfile>>({
-          url: `${app.globalData.baseUrl}/users/me/wechat-bind`,
-          method: 'POST',
-          data: { code }
-        })
-        if (!res.data?.success || !res.data?.data) {
-          this.setData({ accountBindMessage: res.data?.message || actionFailed('绑定微信') })
-          return
-        }
-        const profile = res.data.data as UserProfile
+        const profile = await bindWechatAccount(app.globalData.baseUrl, code)
         this.updateStoredProfile(profile)
         this.setData({
           profile,
@@ -477,8 +459,12 @@ Component({
           accountMergeHint: false
         })
         wx.showToast({ title: '绑定成功', icon: 'success' })
-      } catch (_err) {
-        this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+      } catch (error) {
+        const message = getProfileApiErrorMessage(error, actionFailed('绑定微信'))
+        this.setData({
+          accountBindMessage: message,
+          accountMergeHint: isAccountMergeMessage(message)
+        })
       } finally {
         this.setData({ bindingWechat: false })
       }
@@ -519,15 +505,7 @@ Component({
     async unbindWechat() {
       this.setData({ unbindingWechat: true, accountBindMessage: '' })
       try {
-        const res = await request<ApiResponse<UserProfile>>({
-          url: `${app.globalData.baseUrl}/users/me/wechat-bind`,
-          method: 'DELETE'
-        })
-        if (!res.data || !res.data.success || !res.data.data) {
-          this.setData({ accountBindMessage: (res.data && res.data.message) || actionFailed('解绑微信') })
-          return
-        }
-        const profile = res.data.data
+        const profile = await unbindWechatAccount(app.globalData.baseUrl)
         this.updateStoredProfile(profile)
         this.setData({
           profile,
@@ -535,14 +513,16 @@ Component({
           accountBindMessage: ''
         })
         wx.showToast({ title: '微信已解绑', icon: 'success' })
-      } catch (_err) {
-        this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+      } catch (error) {
+        this.setData({
+          accountBindMessage: getProfileApiErrorMessage(error, actionFailed('解绑微信'))
+        })
       } finally {
         this.setData({ unbindingWechat: false })
       }
     },
 
-    sendBindEmailCode() {
+    async sendBindEmailCode() {
       if (this.data.sendingBindEmailCode || this.data.profile.email) return
       const email = (this.data.bindEmailForm.email || '').trim().toLowerCase()
       if (!QQ_EMAIL_REGEX.test(email)) {
@@ -551,30 +531,25 @@ Component({
       }
 
       this.setData({ sendingBindEmailCode: true, accountBindMessage: '', accountMergeHint: false })
-      request<ApiResponse>({
-        url: `${app.globalData.baseUrl}/auth/email-code`,
-        method: 'POST',
-        data: { email, purpose: 'BIND_EMAIL' }
-      })
-        .then((res) => {
-          if (!res.data?.success) {
-            this.setData({
-              accountBindMessage: res.data?.message || actionFailed('发送验证码'),
-              accountMergeHint: this.isAccountMergeMessage(res.data?.message)
-            })
-            return
-          }
-          this.setData({ 'bindEmailForm.email': email, accountBindMessage: '验证码已发送', accountMergeHint: false })
+      try {
+        await sendEmailBindCode(app.globalData.baseUrl, email)
+        this.setData({
+          'bindEmailForm.email': email,
+          accountBindMessage: '验证码已发送',
+          accountMergeHint: false
         })
-        .catch(() => {
-          this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR, accountMergeHint: false })
+      } catch (error) {
+        const message = getProfileApiErrorMessage(error, actionFailed('发送验证码'))
+        this.setData({
+          accountBindMessage: message,
+          accountMergeHint: isAccountMergeMessage(message)
         })
-        .finally(() => {
-          this.setData({ sendingBindEmailCode: false })
-        })
+      } finally {
+        this.setData({ sendingBindEmailCode: false })
+      }
     },
 
-    bindEmail() {
+    async bindEmail() {
       if (this.data.bindingEmail || this.data.profile.email) return
       const email = (this.data.bindEmailForm.email || '').trim().toLowerCase()
       const code = (this.data.bindEmailForm.code || '').trim()
@@ -593,37 +568,27 @@ Component({
       }
 
       this.setData({ bindingEmail: true, accountBindMessage: '', accountMergeHint: false })
-      request<ApiResponse<UserProfile>>({
-        url: `${app.globalData.baseUrl}/users/me/email-bind`,
-        method: 'POST',
-        data: { email, code, password }
-      })
-        .then((res) => {
-          if (!res.data?.success || !res.data?.data) {
-            this.setData({
-              accountBindMessage: res.data?.message || actionFailed('绑定邮箱'),
-              accountMergeHint: this.isAccountMergeMessage(res.data?.message)
-            })
-            return
-          }
-          const profile = res.data.data as UserProfile
-          this.updateStoredProfile(profile)
-          this.setData({
-            profile,
-            profileDraft: { ...profile },
-            bindEmailForm: { email: profile.email || email, code: '', password: '' },
-            showBindEmailForm: false,
-            accountBindMessage: '',
-            accountMergeHint: false
-          })
-          wx.showToast({ title: '邮箱已绑定', icon: 'success' })
+      try {
+        const profile = await bindEmailAccount(app.globalData.baseUrl, { email, code, password })
+        this.updateStoredProfile(profile)
+        this.setData({
+          profile,
+          profileDraft: { ...profile },
+          bindEmailForm: { email: profile.email || email, code: '', password: '' },
+          showBindEmailForm: false,
+          accountBindMessage: '',
+          accountMergeHint: false
         })
-        .catch(() => {
-          this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR, accountMergeHint: false })
+        wx.showToast({ title: '邮箱已绑定', icon: 'success' })
+      } catch (error) {
+        const message = getProfileApiErrorMessage(error, actionFailed('绑定邮箱'))
+        this.setData({
+          accountBindMessage: message,
+          accountMergeHint: isAccountMergeMessage(message)
         })
-        .finally(() => {
-          this.setData({ bindingEmail: false })
-        })
+      } finally {
+        this.setData({ bindingEmail: false })
+      }
     },
 
     confirmUnbindEmail() {
@@ -652,15 +617,7 @@ Component({
     async unbindEmail() {
       this.setData({ unbindingEmail: true, accountBindMessage: '' })
       try {
-        const res = await request<ApiResponse<UserProfile>>({
-          url: `${app.globalData.baseUrl}/users/me/email-bind`,
-          method: 'DELETE'
-        })
-        if (!res.data || !res.data.success || !res.data.data) {
-          this.setData({ accountBindMessage: (res.data && res.data.message) || actionFailed('解绑邮箱') })
-          return
-        }
-        const profile = res.data.data
+        const profile = await unbindEmailAccount(app.globalData.baseUrl)
         this.updateStoredProfile(profile)
         this.setData({
           profile,
@@ -670,15 +627,13 @@ Component({
           accountBindMessage: ''
         })
         wx.showToast({ title: '邮箱已解绑', icon: 'success' })
-      } catch (_err) {
-        this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+      } catch (error) {
+        this.setData({
+          accountBindMessage: getProfileApiErrorMessage(error, actionFailed('解绑邮箱'))
+        })
       } finally {
         this.setData({ unbindingEmail: false })
       }
-    },
-
-    isAccountMergeMessage(message?: string) {
-      return Boolean(message && (message.includes('已注册') || message.includes('账号合并')))
     },
 
     updateStoredProfile(profile: UserProfile) {
@@ -690,22 +645,6 @@ Component({
         wechatOpenid: profile.wechatOpenid,
         wechatId: profile.wechatId,
         qq: profile.qq
-      })
-    },
-
-    getWechatLoginCode(): Promise<string> {
-      return new Promise((resolve, reject) => {
-        wx.login({
-          timeout: 10000,
-          success: (res) => {
-            if (res.code) {
-              resolve(res.code)
-            } else {
-              reject(new Error(res.errMsg || 'wx.login failed'))
-            }
-          },
-          fail: reject
-        })
       })
     },
 
@@ -725,20 +664,12 @@ Component({
       }
       const nextStatus = status === 'ON_SALE' ? 'OFF_SHELF' : 'ON_SALE'
       try {
-        const res = await request<ApiResponse>({
-          url: `${app.globalData.baseUrl}/goods/${id}/status`,
-          method: 'PATCH',
-          data: { status: nextStatus }
-        })
-        if (!res.data?.success) {
-          this.setData({ info: res.data?.message || actionFailed('状态更新') })
-          return
-        }
+        await updateMyGoodsStatus(app.globalData.baseUrl, id, nextStatus)
         wx.showToast({ title: nextStatus === 'ON_SALE' ? '已上架' : '已下架', icon: 'success' })
         wx.setStorageSync(GOODS_LIST_DIRTY_KEY, true)
         this.loadMyGoods(true)
-      } catch (_err) {
-        this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+      } catch (error) {
+        this.setData({ info: getProfileApiErrorMessage(error, actionFailed('状态更新')) })
       }
     },
 
@@ -753,19 +684,12 @@ Component({
         success: async (res) => {
           if (!res.confirm) return
           try {
-            const deleteRes = await request<ApiResponse>({
-              url: `${app.globalData.baseUrl}/goods/${id}`,
-              method: 'DELETE'
-            })
-            if (!deleteRes.data?.success) {
-              this.setData({ info: deleteRes.data?.message || actionFailed('删除') })
-              return
-            }
+            await deleteMyGoods(app.globalData.baseUrl, id)
             wx.showToast({ title: '已删除', icon: 'success' })
             wx.setStorageSync(GOODS_LIST_DIRTY_KEY, true)
             this.loadMyGoods(true)
-          } catch (_err) {
-            this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+          } catch (error) {
+            this.setData({ info: getProfileApiErrorMessage(error, actionFailed('删除')) })
           }
         }
       })

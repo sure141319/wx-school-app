@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const profileTs = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.ts'), 'utf8')
+const profileApiTs = fs.readFileSync(path.resolve(__dirname, '../services/profile-api.ts'), 'utf8')
 const profileWxml = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.wxml'), 'utf8')
 const appWxss = fs.readFileSync(path.resolve(__dirname, '../app.wxss'), 'utf8')
 
@@ -12,9 +13,9 @@ assert.match(
   'WeChat unbind should require email login to remain available'
 )
 assert.match(
-  profileTs,
+  profileApiTs,
   /\/users\/me\/wechat-bind`[\s\S]*?method: 'DELETE'/,
-  'WeChat unbind should call the authenticated delete endpoint'
+  'profile API service should call the authenticated WeChat unbind endpoint'
 )
 assert.match(
   profileTs,
@@ -22,9 +23,9 @@ assert.match(
   'email unbind should require WeChat login to remain available'
 )
 assert.match(
-  profileTs,
+  profileApiTs,
   /\/users\/me\/email-bind`[\s\S]*?method: 'DELETE'/,
-  'email unbind should call the authenticated delete endpoint'
+  'profile API service should call the authenticated email unbind endpoint'
 )
 assert.match(profileWxml, /bindtap="confirmUnbindWechat"/, 'bound WeChat row should expose unbind')
 assert.match(profileWxml, /bindtap="confirmUnbindEmail"/, 'bound email row should expose unbind')

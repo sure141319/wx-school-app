@@ -171,7 +171,7 @@ Component({
     async loadGoods(id: string) {
       this.setData({ loading: true })
       try {
-        const res = await request<ApiResponse<GoodsItem>>({
+        const res = await request<ApiResponse<GoodsDetail>>({
           url: `${app.globalData.baseUrl}/goods/${id}`,
           method: 'GET'
         })
@@ -179,7 +179,7 @@ Component({
           this.setData({ info: res.data?.message || loadFailed('商品信息') })
           return
         }
-        const goods = res.data?.data as unknown as GoodsItem | undefined
+        const goods = res.data?.data
         if (!goods) return
         const price = String(goods.price || '')
         this.setData({
@@ -193,7 +193,7 @@ Component({
             categoryId: String(goods.category?.id || ''),
             photos: (goods.imageUrls || []).map((url, i) => ({
               url,
-              filename: (goods.imageKeys || [])[i] || url,
+              filename: goods.imageKeys[i] || url,
               staged: false
             }))
           }

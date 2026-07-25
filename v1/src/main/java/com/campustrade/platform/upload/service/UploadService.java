@@ -21,26 +21,13 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReadParam;
-import javax.imageio.ImageReader;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.ImageInputStream;
-import javax.imageio.stream.ImageOutputStream;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -51,33 +38,10 @@ import java.util.UUID;
 @Service
 public class UploadService {
 
-    private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif");
-    private static final Map<String, List<String>> ALLOWED_CONTENT_TYPES_BY_EXTENSION = Map.of(
-            ".jpg", List.of("image/jpeg", "image/jpg", "image/pjpeg"),
-            ".jpeg", List.of("image/jpeg", "image/jpg", "image/pjpeg"),
-            ".png", List.of("image/png"),
-            ".webp", List.of("image/webp"),
-            ".heic", List.of("image/heic", "image/heif"),
-            ".heif", List.of("image/heif", "image/heic")
-    );
-    private static final int IMAGE_HEADER_BYTES = 32;
-    private static final long MAX_UPLOAD_BYTES = 10L * 1024L * 1024L;
-    private static final int MAX_IMAGE_WIDTH = 10_000;
-    private static final int MAX_IMAGE_HEIGHT = 10_000;
-    private static final long MAX_IMAGE_PIXELS = 50_000_000L;
     private static final DateTimeFormatter OBJECT_PREFIX_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final DateTimeFormatter OBJECT_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final String USAGE_AVATAR = "avatar";
     private static final String USAGE_GOODS = "goods";
-    private static final int THUMBNAIL_MAX_SIZE = 640;
-    private static final int THUMBNAIL_DECODE_MAX_SIZE = 960;
-    private static final int AVATAR_DECODE_MAX_SIZE = 768;
-    private static final int AVATAR_MAX_SIZE = 320;
-    private static final int VARIANT_DECODE_MAX_SIZE = 2_560;
-    private static final int DISPLAY_MAX_SIZE = 1_600;
-    private static final float THUMBNAIL_QUALITY = 0.70f;
-    private static final float AVATAR_QUALITY = 0.72f;
-    private static final float DISPLAY_QUALITY = 0.82f;
     private static final String WEBP_FORMAT = "webp";
     private static final String WEBP_CONTENT_TYPE = "image/webp";
     private static final String IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
@@ -86,6 +50,8 @@ public class UploadService {
     private final MinioClient minioClient;
     private final AppProperties.Minio minioProperties;
     private final UploadLifecycleService uploadLifecycleService;
+    private final UploadImageProcessor imageProcessor;
+    private final UploadImageValidator imageValidator;
     private final String apiBaseUrl;
     private volatile boolean bucketReady;
 
@@ -145,13 +111,23 @@ public class UploadService {
     @Autowired
     public UploadService(MinioClient minioClient,
                          AppProperties appProperties,
-                         UploadLifecycleService uploadLifecycleService) {
+                         UploadLifecycleService uploadLifecycleService,
+                         UploadImageProcessor imageProcessor,
+                         UploadImageValidator imageValidator) {
         this.minioClient = minioClient;
         this.minioProperties = appProperties.getMinio();
         this.uploadLifecycleService = uploadLifecycleService;
+        this.imageProcessor = imageProcessor;
+        this.imageValidator = imageValidator == null ? new UploadImageValidator(imageProcessor) : imageValidator;
         this.apiBaseUrl = StringUtils.hasText(appProperties.getApiBaseUrl())
                 ? trimTrailingSlash(appProperties.getApiBaseUrl().trim())
                 : "";
+    }
+
+    public UploadService(MinioClient minioClient,
+                         AppProperties appProperties,
+                         UploadLifecycleService uploadLifecycleService) {
+        this(minioClient, appProperties, uploadLifecycleService, new UploadImageProcessor(), null);
     }
 
     public UploadService(MinioClient minioClient, AppProperties appProperties) {
@@ -252,15 +228,7 @@ public class UploadService {
     }
 
     byte[] optimizeAvatar(InputStream inputStream) throws IOException {
-        BufferedImage source = readImageWithSubsampling(inputStream, AVATAR_DECODE_MAX_SIZE);
-        if (source == null) {
-            throw new AppException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "头像格式暂不支持，请选择 JPG、PNG 或 WebP 图片");
-        }
-        byte[] encoded = encodeWebp(resize(source, AVATAR_MAX_SIZE), AVATAR_QUALITY);
-        if (encoded.length == 0) {
-            throw new IOException("WebP encoder is unavailable");
-        }
-        return encoded;
+        return imageProcessor.optimizeAvatar(inputStream);
     }
 
     public String generateThumbnailForObject(String urlOrObjectKey) {
@@ -331,28 +299,22 @@ public class UploadService {
     private PreparedVariants prepareVariants(InputStream inputStream,
                                               String objectKey,
                                               boolean includeCompressedMaster) throws Exception {
-        BufferedImage source = readImageForVariants(inputStream);
-        if (source == null) {
+        UploadImageProcessor.ProcessedVariants processed = imageProcessor.prepareVariants(
+                inputStream,
+                includeCompressedMaster
+        );
+        if (processed.thumbnail() == null) {
             log.warn("Skip WebP variant generation for unsupported image format: {}", objectKey);
             return PreparedVariants.empty();
         }
 
         String thumbnailObjectKey = buildThumbnailObjectKey(objectKey);
-
         return new PreparedVariants(
-                includeCompressedMaster
-                        ? prepareWebpVariant(objectKey, resize(source, DISPLAY_MAX_SIZE), DISPLAY_QUALITY)
-                        : null,
-                prepareWebpVariant(thumbnailObjectKey, resize(source, THUMBNAIL_MAX_SIZE), THUMBNAIL_QUALITY)
+                processed.master() == null
+                        ? null
+                        : new VariantPayload(objectKey, processed.master()),
+                new VariantPayload(thumbnailObjectKey, processed.thumbnail())
         );
-    }
-
-    private VariantPayload prepareWebpVariant(String objectKey, BufferedImage image, float quality) throws Exception {
-        byte[] bytes = encodeWebp(image, quality);
-        if (bytes.length == 0) {
-            throw new IOException("WebP encoder is unavailable");
-        }
-        return new VariantPayload(objectKey, bytes);
     }
 
     private void putWebpVariant(VariantPayload payload) throws Exception {
@@ -369,97 +331,15 @@ public class UploadService {
     }
 
     BufferedImage readImageForThumbnail(InputStream inputStream) throws IOException {
-        return readImageWithSubsampling(inputStream, THUMBNAIL_DECODE_MAX_SIZE);
+        return imageProcessor.readImageForThumbnail(inputStream);
     }
 
     BufferedImage readImageForVariants(InputStream inputStream) throws IOException {
-        return readImageWithSubsampling(inputStream, VARIANT_DECODE_MAX_SIZE);
-    }
-
-    private BufferedImage readImageWithSubsampling(InputStream inputStream, int decodeMaxSize) throws IOException {
-        try (ImageInputStream imageInput = ImageIO.createImageInputStream(inputStream)) {
-            if (imageInput == null) {
-                return null;
-            }
-
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
-            if (!readers.hasNext()) {
-                return null;
-            }
-
-            ImageReader reader = readers.next();
-            try {
-                reader.setInput(imageInput, true, true);
-                int width = reader.getWidth(0);
-                int height = reader.getHeight(0);
-                validateImageDimensions(width, height);
-
-                ImageReadParam readParam = reader.getDefaultReadParam();
-                int subsampling = calculateSubsampling(width, height, decodeMaxSize);
-                readParam.setSourceSubsampling(subsampling, subsampling, 0, 0);
-                return reader.read(0, readParam);
-            } finally {
-                reader.dispose();
-            }
-        }
-    }
-
-    private BufferedImage resize(BufferedImage source, int maxSize) {
-        int sourceWidth = source.getWidth();
-        int sourceHeight = source.getHeight();
-        double scale = Math.min(
-                (double) maxSize / sourceWidth,
-                (double) maxSize / sourceHeight
-        );
-        scale = Math.min(1.0d, scale);
-
-        int targetWidth = Math.max(1, (int) Math.round(sourceWidth * scale));
-        int targetHeight = Math.max(1, (int) Math.round(sourceHeight * scale));
-        BufferedImage target = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
-
-        Graphics2D graphics = target.createGraphics();
-        try {
-            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics.setColor(Color.WHITE);
-            graphics.fillRect(0, 0, targetWidth, targetHeight);
-            graphics.drawImage(source, 0, 0, targetWidth, targetHeight, null);
-        } finally {
-            graphics.dispose();
-        }
-        return target;
+        return imageProcessor.readImageForVariants(inputStream);
     }
 
     byte[] encodeWebp(BufferedImage image, float quality) throws IOException {
-        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(WEBP_FORMAT);
-        if (!writers.hasNext()) {
-            return new byte[0];
-        }
-
-        ImageWriter writer = writers.next();
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
-             ImageOutputStream imageOutput = ImageIO.createImageOutputStream(output)) {
-            writer.setOutput(imageOutput);
-            ImageWriteParam params = writer.getDefaultWriteParam();
-            if (params.canWriteCompressed()) {
-                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                String[] compressionTypes = params.getCompressionTypes();
-                if (compressionTypes != null) {
-                    for (String compressionType : compressionTypes) {
-                        if ("Lossy".equalsIgnoreCase(compressionType)) {
-                            params.setCompressionType(compressionType);
-                            break;
-                        }
-                    }
-                }
-                params.setCompressionQuality(Math.max(0.0f, Math.min(1.0f, quality)));
-            }
-            writer.write(null, new IIOImage(image, null, null), params);
-            return output.toByteArray();
-        } finally {
-            writer.dispose();
-        }
+        return imageProcessor.encodeWebp(image, quality);
     }
 
     private void ensureBucketReady() {
@@ -491,162 +371,15 @@ public class UploadService {
     }
 
     void validateImage(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "请选择要上传的图片");
-        }
-        if (file.getSize() > MAX_UPLOAD_BYTES) {
-            throw new AppException(HttpStatus.PAYLOAD_TOO_LARGE, "图片文件不能超过 10MB");
-        }
-        String extension = getExtension(file.getOriginalFilename());
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "仅支持 jpg/jpeg/png/webp/heic/heif 格式图片");
-        }
-        String contentType = normalizeContentType(file.getContentType());
-        List<String> allowedContentTypes = ALLOWED_CONTENT_TYPES_BY_EXTENSION.get(extension);
-        if (!allowedContentTypes.contains(contentType)) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "图片格式与文件类型不匹配");
-        }
-        if (!hasExpectedImageSignature(file, extension)) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
-        }
-        validateImageDimensions(file, extension);
-    }
-
-    private void validateImageDimensions(MultipartFile file, String extension) {
-        try (InputStream inputStream = file.getInputStream();
-             ImageInputStream imageInput = ImageIO.createImageInputStream(inputStream)) {
-            if (imageInput == null) {
-                throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
-            }
-
-            Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
-            if (!readers.hasNext()) {
-                if (".jpg".equals(extension) || ".jpeg".equals(extension) || ".png".equals(extension)) {
-                    throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
-                }
-                return;
-            }
-
-            ImageReader reader = readers.next();
-            try {
-                reader.setInput(imageInput, true, true);
-                validateImageDimensions(reader.getWidth(0), reader.getHeight(0));
-            } finally {
-                reader.dispose();
-            }
-        } catch (AppException ex) {
-            throw ex;
-        } catch (IOException | RuntimeException ex) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效", ex);
-        }
+        imageValidator.validate(file);
     }
 
     void validateImageDimensions(int width, int height) {
-        long pixels = (long) width * height;
-        if (width <= 0 || height <= 0
-                || width > MAX_IMAGE_WIDTH
-                || height > MAX_IMAGE_HEIGHT
-                || pixels > MAX_IMAGE_PIXELS) {
-            throw new AppException(
-                    HttpStatus.PAYLOAD_TOO_LARGE,
-                    "图片分辨率过大，最大支持 10000×10000 且不超过 5000 万像素"
-            );
-        }
+        imageProcessor.validateImageDimensions(width, height);
     }
 
     int calculateThumbnailSubsampling(int width, int height) {
-        return calculateSubsampling(width, height, THUMBNAIL_DECODE_MAX_SIZE);
-    }
-
-    private int calculateSubsampling(int width, int height, int decodeMaxSize) {
-        int largestDimension = Math.max(width, height);
-        return Math.max(1, (int) Math.ceil((double) largestDimension / decodeMaxSize));
-    }
-
-    private String normalizeContentType(String contentType) {
-        if (!StringUtils.hasText(contentType)) {
-            return "";
-        }
-        String normalized = contentType.trim().toLowerCase(Locale.ROOT);
-        int parameterIndex = normalized.indexOf(';');
-        return parameterIndex >= 0 ? normalized.substring(0, parameterIndex).trim() : normalized;
-    }
-
-    private boolean hasExpectedImageSignature(MultipartFile file, String extension) {
-        byte[] header = readImageHeader(file);
-        return switch (extension) {
-            case ".jpg", ".jpeg" -> startsWith(header, new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
-            case ".png" -> startsWith(header, new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
-            case ".webp" -> header.length >= 12 && asciiEquals(header, 0, "RIFF") && asciiEquals(header, 8, "WEBP");
-            case ".heic", ".heif" -> isHeifFamily(header);
-            default -> false;
-        };
-    }
-
-    private byte[] readImageHeader(MultipartFile file) {
-        try (InputStream inputStream = file.getInputStream()) {
-            return inputStream.readNBytes(IMAGE_HEADER_BYTES);
-        } catch (IOException ex) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "图片文件读取失败", ex);
-        }
-    }
-
-    private boolean startsWith(byte[] value, byte[] prefix) {
-        if (value.length < prefix.length) {
-            return false;
-        }
-        for (int i = 0; i < prefix.length; i++) {
-            if (value[i] != prefix[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean isHeifFamily(byte[] header) {
-        if (header.length < 12 || !asciiEquals(header, 4, "ftyp")) {
-            return false;
-        }
-        for (int offset = 8; offset + 4 <= header.length; offset += 4) {
-            if (isHeifBrand(header, offset)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isHeifBrand(byte[] header, int offset) {
-        return asciiEquals(header, offset, "heic")
-                || asciiEquals(header, offset, "heix")
-                || asciiEquals(header, offset, "hevc")
-                || asciiEquals(header, offset, "hevx")
-                || asciiEquals(header, offset, "heif")
-                || asciiEquals(header, offset, "mif1")
-                || asciiEquals(header, offset, "msf1");
-    }
-
-    private boolean asciiEquals(byte[] value, int offset, String expected) {
-        if (offset < 0 || value.length < offset + expected.length()) {
-            return false;
-        }
-        for (int i = 0; i < expected.length(); i++) {
-            if (value[offset + i] != (byte) expected.charAt(i)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private String getExtension(String filename) {
-        if (!StringUtils.hasText(filename)) {
-            return ".jpg";
-        }
-        String lower = filename.toLowerCase(Locale.ROOT);
-        int index = lower.lastIndexOf('.');
-        if (index < 0) {
-            return ".jpg";
-        }
-        return lower.substring(index);
+        return imageProcessor.calculateThumbnailSubsampling(width, height);
     }
 
     private String buildObjectKey(String extension, String usage, Long userId) {
@@ -695,17 +428,6 @@ public class UploadService {
         String basename = dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
         String prefix = StringUtils.hasText(directory) ? directory + "/" + directoryName + "/" : directoryName + "/";
         return prefix + basename + "_" + suffix + "." + WEBP_FORMAT;
-    }
-
-    private String resolveContentType(MultipartFile file) {
-        return switch (getExtension(file.getOriginalFilename())) {
-            case ".jpg", ".jpeg" -> "image/jpeg";
-            case ".png" -> "image/png";
-            case ".webp" -> "image/webp";
-            case ".heic" -> "image/heic";
-            case ".heif" -> "image/heif";
-            default -> "application/octet-stream";
-        };
     }
 
     private String buildPublicUrl(String objectKey) {

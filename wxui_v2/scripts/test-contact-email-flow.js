@@ -44,7 +44,7 @@ assert.match(
 )
 assert.match(
   detailTs,
-  /isCurrentUsersGoods\(goods\?: GoodsItem\)[\s\S]*?userId === String\(sellerId\)/,
+  /isCurrentUsersGoods\(goods\?: GoodsDetail\)[\s\S]*?userId === String\(sellerId\)/,
   'detail page should identify goods published by the current account'
 )
 assert.match(

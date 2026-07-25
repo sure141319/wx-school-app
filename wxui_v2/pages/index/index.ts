@@ -145,7 +145,7 @@ Component({
         if (this.data.keyword.trim()) params.keyword = this.data.keyword.trim()
         if (this.data.categoryId) params.categoryId = this.data.categoryId
 
-        const res = await request<ApiResponse<PageInfo>>({
+        const res = await request<ApiResponse<PageResponse<GoodsListItem>>>({
           url: `${app.globalData.baseUrl}/goods`,
           method: 'GET',
           data: params
@@ -162,8 +162,8 @@ Component({
           return
         }
 
-        const pageData = res.data?.data as unknown as PageInfo | undefined
-        const items = ((pageData?.items || []) as unknown as GoodsListItem[])
+        const pageData = res.data?.data
+        const items = pageData?.items || []
         const total = pageData?.total || 0
         const hasMore = items.length === this.data.size && (nextPage + 1) * this.data.size < total
 
