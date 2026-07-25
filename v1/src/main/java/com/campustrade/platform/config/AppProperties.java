@@ -44,7 +44,7 @@ public class AppProperties {
         @Min(0)
         private int resendCooldownSeconds = 60;
         @Min(1)
-        private int hourlyLimit = 8;
+        private int hourlyLimit = 6;
         @Min(1)
         private int maxAttempts = 5;
         @NotBlank
@@ -141,7 +141,7 @@ public class AppProperties {
         @Min(1)
         private int categoryTtlMinutes = 30;
         @Min(1)
-        private int goodsListTtlMinutes = 2;
+        private int goodsListTtlMinutes = 10;
     }
 
     @Getter
