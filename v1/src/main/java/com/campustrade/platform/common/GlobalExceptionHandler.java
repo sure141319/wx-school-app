@@ -9,11 +9,15 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -21,6 +25,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String INTERNAL_ERROR_MESSAGE = "服务器开小差了，请稍后重试";
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleAppException(AppException ex) {
@@ -32,7 +37,7 @@ public class GlobalExceptionHandler {
             log.warn("Application error: status={}, message={}", ex.getStatus(), ex.getMessage());
         }
         return ResponseEntity.status(ex.getStatus())
-                .body(ApiResponse.fail(ex.getCode(), ex.getMessage(), null));
+                .body(ApiResponse.fail(ex.getCode(), publicMessage(ex), null));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -42,7 +47,11 @@ public class GlobalExceptionHandler {
             errors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ApiResponseCode.VALIDATION_FAILED, "请检查填写内容", errors));
+                .body(ApiResponse.fail(
+                        ApiResponseCode.VALIDATION_FAILED,
+                        firstValidationMessage(errors),
+                        errors
+                ));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -55,13 +64,49 @@ public class GlobalExceptionHandler {
             errors.putIfAbsent(field, violation.getMessage());
         });
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ApiResponseCode.VALIDATION_FAILED, "请检查填写内容", errors));
+                .body(ApiResponse.fail(
+                        ApiResponseCode.VALIDATION_FAILED,
+                        firstValidationMessage(errors),
+                        errors
+                ));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotReadable(HttpMessageNotReadableException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.fail(ApiResponseCode.REQUEST_BODY_INVALID, "请求参数格式错误", null));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String message = readableParameterName(ex.getName()) + "格式错误";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ApiResponseCode.REQUEST_INVALID, message, null));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(MissingServletRequestParameterException ex) {
+        String message = switch (ex.getParameterName()) {
+            case "objectKey" -> "图片标识不能为空";
+            default -> "缺少必填参数：" + ex.getParameterName();
+        };
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ApiResponseCode.REQUEST_INVALID, message, null));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestPart(MissingServletRequestPartException ex) {
+        String message = "file".equals(ex.getRequestPartName())
+                ? "请选择要上传的图片"
+                : "缺少必填上传内容：" + ex.getRequestPartName();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ApiResponseCode.UPLOAD_REQUEST_INVALID, message, null));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ApiResponse.fail(ApiResponseCode.REQUEST_INVALID, "请求格式不支持", null));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -99,6 +144,33 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail(ApiResponseCode.INTERNAL_ERROR, "服务器开小差了，请稍后重试", null));
+                .body(ApiResponse.fail(ApiResponseCode.INTERNAL_ERROR, INTERNAL_ERROR_MESSAGE, null));
+    }
+
+    private String publicMessage(AppException ex) {
+        if (ex.getStatus() == HttpStatus.INTERNAL_SERVER_ERROR) {
+            return INTERNAL_ERROR_MESSAGE;
+        }
+        return ex.getMessage();
+    }
+
+    private String firstValidationMessage(Map<String, String> errors) {
+        return errors.values().stream()
+                .filter(message -> message != null && !message.isBlank())
+                .findFirst()
+                .orElse("请检查填写内容");
+    }
+
+    private String readableParameterName(String parameterName) {
+        return switch (parameterName) {
+            case "page" -> "页码";
+            case "size" -> "每页数量";
+            case "status" -> "状态参数";
+            case "categoryId" -> "商品分类参数";
+            case "id" -> "商品编号";
+            case "imageId" -> "图片编号";
+            case "userId" -> "用户编号";
+            default -> "请求参数“" + parameterName + "”";
+        };
     }
 }

@@ -1,7 +1,7 @@
 import { getToken, redirectToLogin, request } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { hasContactMethod, validateContactDraft } from '../../utils/contact'
-import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
+import { COMMON_MESSAGES, actionFailed, isUserCancellation, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 
@@ -287,6 +287,10 @@ Component({
           } finally {
             wx.hideLoading()
           }
+        },
+        fail: (err) => {
+          if (isUserCancellation(err)) return
+          this.setData({ info: COMMON_MESSAGES.IMAGE_SELECTION_FAILED })
         }
       })
     },

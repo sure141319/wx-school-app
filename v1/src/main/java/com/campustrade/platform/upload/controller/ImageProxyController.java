@@ -36,7 +36,7 @@ public class ImageProxyController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
 
         validateDatePath(year, month);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/" + filename, ifNoneMatch);
     }
 
@@ -52,7 +52,7 @@ public class ImageProxyController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
 
         validateDatePath(year, month);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/thumbs/" + filename, ifNoneMatch);
     }
 
@@ -64,7 +64,7 @@ public class ImageProxyController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
 
         validateDatePath(year, month);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/display/" + filename, ifNoneMatch);
     }
 
@@ -76,7 +76,7 @@ public class ImageProxyController {
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
 
         validateDatePath(year, month);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/audit/" + filename, ifNoneMatch);
     }
 
@@ -90,7 +90,7 @@ public class ImageProxyController {
 
         validateDatePath(year, month);
         validateUsagePath(usage);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/" + usage + "/" + filename, ifNoneMatch);
     }
 
@@ -104,7 +104,7 @@ public class ImageProxyController {
 
         validateDatePath(year, month);
         validateUsagePath(usage);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/" + usage + "/thumbs/" + filename, ifNoneMatch);
     }
 
@@ -118,7 +118,7 @@ public class ImageProxyController {
 
         validateDatePath(year, month);
         validateUsagePath(usage);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/" + usage + "/display/" + filename, ifNoneMatch);
     }
 
@@ -132,7 +132,7 @@ public class ImageProxyController {
 
         validateDatePath(year, month);
         validateUsagePath(usage);
-        validatePathSegment(filename, "Invalid filename parameter");
+        validatePathSegment(filename, "图片文件名参数无效");
         return serveObject("images/" + year + "/" + month + "/" + usage + "/audit/" + filename, ifNoneMatch);
     }
 
@@ -191,16 +191,16 @@ public class ImageProxyController {
 
     private void validateDatePath(String year, String month) {
         if (!year.matches("^\\d{4}$")) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "Invalid year parameter");
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片地址中的年份格式错误");
         }
         if (!month.matches("^(0[1-9]|1[0-2])$")) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "Invalid month parameter");
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片地址中的月份格式错误");
         }
     }
 
     private void validateUsagePath(String usage) {
         if (!"avatar".equals(usage) && !"goods".equals(usage)) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "Invalid image usage parameter");
+            throw new AppException(HttpStatus.BAD_REQUEST, "图片用途参数无效");
         }
     }
 

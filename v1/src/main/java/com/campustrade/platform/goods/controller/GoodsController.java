@@ -44,11 +44,15 @@ public class GoodsController {
 
 @GetMapping
     public ApiResponse<PageResponse<GoodsListItemResponseDTO>> list(
-            @RequestParam(required = false) @Size(max = 100) String keyword,
+            @RequestParam(required = false)
+            @Size(max = 100, message = "搜索关键词不能超过100个字符") String keyword,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) GoodsStatusEnum status,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "页码不能小于0") int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "每页数量不能小于1")
+            @Max(value = 50, message = "每页数量不能超过50") int size) {
         return ApiResponse.ok(goodsService.list(keyword, categoryId, status, page, size));
     }
 
@@ -100,8 +104,11 @@ public class GoodsController {
 
     @GetMapping("/mine")
     public ApiResponse<PageResponse<MyGoodsListItemResponseDTO>> myGoods(
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "页码不能小于0") int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "每页数量不能小于1")
+            @Max(value = 50, message = "每页数量不能超过50") int size) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok(goodsService.myGoods(principal.userId(), page, size));
     }

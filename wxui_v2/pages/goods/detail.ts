@@ -213,6 +213,9 @@ Component({
         data: qq,
         success() {
           wx.showToast({ title: 'QQ 号已复制', icon: 'success' })
+        },
+        fail() {
+          wx.showToast({ title: COMMON_MESSAGES.COPY_FAILED, icon: 'none' })
         }
       })
     },
@@ -224,6 +227,9 @@ Component({
         data: wechatId,
         success() {
           wx.showToast({ title: '微信号已复制', icon: 'success' })
+        },
+        fail() {
+          wx.showToast({ title: COMMON_MESSAGES.COPY_FAILED, icon: 'none' })
         }
       })
     },

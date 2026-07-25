@@ -350,33 +350,38 @@ Component({
       })
     },
 
-    handleWechatLogin() {
+    async handleWechatLogin() {
       if (this.data.wechatLoading) return
       this.setData({ wechatLoading: true, message: '' })
       const app = getApp<{ globalData: { baseUrl: string } }>()
 
-      this.getWechatLoginCode()
-        .then((code) => request<ApiResponse<{ token: string; user: UserProfile }>>({
+      try {
+        let code: string
+        try {
+          code = await this.getWechatLoginCode()
+        } catch (_err) {
+          this.setData({ message: COMMON_MESSAGES.WECHAT_LOGIN_FAILED })
+          return
+        }
+
+        const res = await request<ApiResponse<{ token: string; user: UserProfile }>>({
           url: `${app.globalData.baseUrl}/auth/wechat-login`,
           method: 'POST',
           data: { code }
-        }))
-        .then((res) => {
-          if (res.data?.success && res.data?.data) {
-            setToken(res.data.data.token)
-            wx.setStorageSync('user', JSON.stringify(res.data.data.user))
-            wx.showToast({ title: '微信登录成功', icon: 'success' })
-            setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
-          } else {
-            this.setData({ message: res.data?.message || actionFailed('微信登录') })
-          }
         })
-        .catch(() => {
-          this.setData({ message: COMMON_MESSAGES.NETWORK_ERROR })
-        })
-        .finally(() => {
-          this.setData({ wechatLoading: false })
-        })
+        if (res.data?.success && res.data?.data) {
+          setToken(res.data.data.token)
+          wx.setStorageSync('user', JSON.stringify(res.data.data.user))
+          wx.showToast({ title: '微信登录成功', icon: 'success' })
+          setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+        } else {
+          this.setData({ message: res.data?.message || actionFailed('微信登录') })
+        }
+      } catch (_err) {
+        this.setData({ message: COMMON_MESSAGES.NETWORK_ERROR })
+      } finally {
+        this.setData({ wechatLoading: false })
+      }
     },
 
     getWechatLoginCode(): Promise<string> {
@@ -510,6 +515,9 @@ Component({
         data: '1078739008',
         success: () => {
           wx.showToast({ title: '已复制', icon: 'success' })
+        },
+        fail: () => {
+          wx.showToast({ title: COMMON_MESSAGES.COPY_FAILED, icon: 'none' })
         }
       })
     }

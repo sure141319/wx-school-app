@@ -36,8 +36,11 @@ public class AuditImageController {
     @GetMapping
     public ApiResponse<PageResponse<AuditImageResponseDTO>> list(
             @RequestParam(required = false) ImageAuditStatusEnum status,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "页码不能小于0") int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "每页数量不能小于1")
+            @Max(value = 50, message = "每页数量不能超过50") int size) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok(auditImageService.list(principal.userId(), status, page, size));
     }
@@ -79,7 +82,9 @@ public class AuditImageController {
 
     @PostMapping({"/thumbnails/backfill", "/variants/backfill"})
     public ApiResponse<ThumbnailBackfillResponseDTO> backfillThumbnails(
-            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+            @RequestParam(defaultValue = "50")
+            @Min(value = 1, message = "回填数量不能小于1")
+            @Max(value = 200, message = "回填数量不能超过200") int size) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok("历史缩略图回填完成", auditImageService.backfillMissingThumbnails(principal.userId(), size));
     }
@@ -87,8 +92,11 @@ public class AuditImageController {
     @GetMapping("/avatars")
     public ApiResponse<PageResponse<AvatarAuditResponseDTO>> listAvatars(
             @RequestParam(required = false) ImageAuditStatusEnum status,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "页码不能小于0") int page,
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "每页数量不能小于1")
+            @Max(value = 50, message = "每页数量不能超过50") int size) {
         UserPrincipal principal = AuthUtils.currentUser();
         return ApiResponse.ok(auditImageService.listAvatars(principal.userId(), status, page, size));
     }

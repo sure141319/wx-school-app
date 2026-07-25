@@ -1,7 +1,7 @@
 import { clearToken, request } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { resolveProfileDisplayAvatar, resolveQqAvatarPreview } from '../../utils/avatar'
-import { COMMON_MESSAGES, actionFailed, loadFailed } from '../../utils/messages'
+import { COMMON_MESSAGES, actionFailed, isUserCancellation, loadFailed } from '../../utils/messages'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
@@ -320,6 +320,10 @@ Component({
           } finally {
             wx.hideLoading()
           }
+        },
+        fail: (err) => {
+          if (isUserCancellation(err)) return
+          this.setData({ info: COMMON_MESSAGES.IMAGE_SELECTION_FAILED })
         }
       })
     },
@@ -431,38 +435,44 @@ Component({
       this.setData({ 'bindEmailForm.password': e.detail.value, accountBindMessage: '', accountMergeHint: false })
     },
 
-    bindWechat() {
+    async bindWechat() {
       if (this.data.bindingWechat || this.data.saving || this.data.profile.wechatOpenid) return
       this.setData({ bindingWechat: true, info: '' })
-      this.getWechatLoginCode()
-        .then((code) => request<ApiResponse<UserProfile>>({
+
+      try {
+        let code: string
+        try {
+          code = await this.getWechatLoginCode()
+        } catch (_err) {
+          this.setData({ accountBindMessage: COMMON_MESSAGES.WECHAT_BIND_FAILED })
+          return
+        }
+
+        const res = await request<ApiResponse<UserProfile>>({
           url: `${app.globalData.baseUrl}/users/me/wechat-bind`,
           method: 'POST',
           data: { code }
-        }))
-        .then((res) => {
-          if (!res.data?.success || !res.data?.data) {
-            this.setData({ accountBindMessage: res.data?.message || actionFailed('绑定微信') })
-            return
-          }
-          const profile = res.data.data as UserProfile
-          this.updateStoredProfile(profile)
-          this.setData({
-            profile,
-            profileDraft: { ...profile },
-            displayAvatarUrl: resolveProfileDisplayAvatar(profile),
-            draftAvatarUrl: resolveProfileDisplayAvatar(profile),
-            accountBindMessage: '',
-            accountMergeHint: false
-          })
-          wx.showToast({ title: '绑定成功', icon: 'success' })
         })
-        .catch(() => {
-          this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+        if (!res.data?.success || !res.data?.data) {
+          this.setData({ accountBindMessage: res.data?.message || actionFailed('绑定微信') })
+          return
+        }
+        const profile = res.data.data as UserProfile
+        this.updateStoredProfile(profile)
+        this.setData({
+          profile,
+          profileDraft: { ...profile },
+          displayAvatarUrl: resolveProfileDisplayAvatar(profile),
+          draftAvatarUrl: resolveProfileDisplayAvatar(profile),
+          accountBindMessage: '',
+          accountMergeHint: false
         })
-        .finally(() => {
-          this.setData({ bindingWechat: false })
-        })
+        wx.showToast({ title: '绑定成功', icon: 'success' })
+      } catch (_err) {
+        this.setData({ accountBindMessage: COMMON_MESSAGES.NETWORK_ERROR })
+      } finally {
+        this.setData({ bindingWechat: false })
+      }
     },
 
     confirmUnbindWechat() {
@@ -821,6 +831,9 @@ Component({
         data: '1078739008',
         success: () => {
           wx.showToast({ title: '已复制', icon: 'success' })
+        },
+        fail: () => {
+          wx.showToast({ title: COMMON_MESSAGES.COPY_FAILED, icon: 'none' })
         }
       })
     }

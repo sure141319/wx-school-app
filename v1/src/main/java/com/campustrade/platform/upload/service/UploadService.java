@@ -672,7 +672,7 @@ public class UploadService {
         if (USAGE_AVATAR.equals(normalized) || USAGE_GOODS.equals(normalized)) {
             return normalized;
         }
-        throw new AppException(HttpStatus.BAD_REQUEST, "Invalid image usage");
+        throw new AppException(HttpStatus.BAD_REQUEST, "图片用途参数无效");
     }
 
     private String buildThumbnailObjectKey(String objectKey) {

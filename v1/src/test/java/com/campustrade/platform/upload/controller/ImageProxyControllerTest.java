@@ -1,5 +1,6 @@
 package com.campustrade.platform.upload.controller;
 
+import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.upload.service.UploadService;
 import io.minio.StatObjectResponse;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -134,6 +136,28 @@ class ImageProxyControllerTest {
                         .header(HttpHeaders.IF_NONE_MATCH, "\"abc123\""))
                 .andExpect(status().isNotModified());
         verify(uploadService, never()).getImageStream(objectKey);
+    }
+
+    @Test
+    void invalidImagePathUsesFriendlyChineseMessages() {
+        ImageProxyController controller = new ImageProxyController(mock(UploadService.class));
+
+        AppException invalidYear = assertThrows(
+                AppException.class,
+                () -> controller.serveImage("20x6", "07", "demo.jpg")
+        );
+        AppException invalidUsage = assertThrows(
+                AppException.class,
+                () -> controller.serveUsageImage("2026", "07", "other", "demo.jpg", null)
+        );
+        AppException invalidFilename = assertThrows(
+                AppException.class,
+                () -> controller.serveImage("2026", "07", "../demo.jpg")
+        );
+
+        assertEquals("图片地址中的年份格式错误", invalidYear.getMessage());
+        assertEquals("图片用途参数无效", invalidUsage.getMessage());
+        assertEquals("图片文件名参数无效", invalidFilename.getMessage());
     }
 
     private static class TrackingInputStream extends ByteArrayInputStream {
