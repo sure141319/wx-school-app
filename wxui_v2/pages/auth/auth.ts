@@ -373,7 +373,7 @@ Component({
           setToken(res.data.data.token)
           wx.setStorageSync('user', JSON.stringify(res.data.data.user))
           wx.showToast({ title: '微信登录成功', icon: 'success' })
-          setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+          setTimeout(() => this.goAfterAuth(), 500)
         } else {
           this.setData({ message: res.data?.message || actionFailed('微信登录') })
         }

@@ -1,12 +1,12 @@
 package com.campustrade.platform.auth.service;
 
 import com.campustrade.platform.auth.assembler.AuthAssembler;
+import com.campustrade.platform.auth.dto.request.LoginRequestDTO;
 import com.campustrade.platform.auth.dto.request.SendCodeRequestDTO;
 import com.campustrade.platform.auth.dto.request.WechatLoginRequestDTO;
 import com.campustrade.platform.auth.dto.response.AuthResponseDTO;
 import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
 import com.campustrade.platform.common.AppException;
-import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.security.JwtTokenProvider;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
 import com.campustrade.platform.user.dataobject.UserDO;
@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -37,21 +39,21 @@ class AuthServiceTest {
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final JwtTokenProvider tokenProvider = mock(JwtTokenProvider.class);
     private final MailService mailService = mock(MailService.class);
-    private final AppProperties appProperties = new AppProperties();
     private final AuthAssembler authAssembler = mock(AuthAssembler.class);
     private final UserProfileAssembler userProfileAssembler = mock(UserProfileAssembler.class);
     private final VerificationCodeService verificationCodeService = mock(VerificationCodeService.class);
     private final WechatSessionClient wechatSessionClient = mock(WechatSessionClient.class);
+    private final LoginFailureService loginFailureService = mock(LoginFailureService.class);
     private final AuthService authService = new AuthService(
             userMapper,
             passwordEncoder,
             tokenProvider,
             mailService,
-            appProperties,
             authAssembler,
             userProfileAssembler,
             verificationCodeService,
-            wechatSessionClient
+            wechatSessionClient,
+            loginFailureService
     );
 
     @Test
@@ -104,6 +106,26 @@ class AuthServiceTest {
         );
 
         verify(verificationCodeService).rollbackReservation(reservation);
+    }
+
+    @Test
+    void loginRecordsFailureBeforeRejectingWrongPassword() {
+        UserDO user = new UserDO();
+        user.setId(7L);
+        user.setEmail("student@qq.com");
+        user.setPasswordHash("encoded-password");
+        user.setFailedLoginCount(0);
+        when(userMapper.findByEmail("student@qq.com")).thenReturn(user);
+        when(passwordEncoder.matches("wrong-password", "encoded-password")).thenReturn(false);
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> authService.login(new LoginRequestDTO("student@qq.com", "wrong-password"))
+        );
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        verify(loginFailureService).recordFailure(7L, 0, null);
+        verify(userMapper, never()).updateAuthState(anyLong(), anyInt(), any());
     }
 
     @Test

@@ -179,5 +179,9 @@ public class AppProperties {
         private String appSecret = "";
         @NotBlank
         private String code2SessionUrl = "https://api.weixin.qq.com/sns/jscode2session";
+        @Min(1)
+        private int connectTimeoutMs = 3000;
+        @Min(1)
+        private int readTimeoutMs = 5000;
     }
 }

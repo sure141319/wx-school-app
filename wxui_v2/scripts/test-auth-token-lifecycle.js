@@ -29,6 +29,8 @@ assert.doesNotMatch(requestTs, /statusCode === 401 \|\| res\.statusCode === 403/
 
 assert.equal((authTs.match(/setToken\(res\.data\.data\.token\)/g) || []).length, 3,
   'all three successful authentication flows should update storage and memory through setToken')
+assert.equal((authTs.match(/setTimeout\(\(\) => this\.goAfterAuth\(\), 500\)/g) || []).length, 3,
+  'email login, WeChat login, and registration should all preserve the requested return path')
 assert.doesNotMatch(authTs, /setStorageSync\('token'/, 'authentication page should not bypass setToken')
 
 assert.match(profileTs, /logout\(\)\s*\{\s*clearToken\(\)/,

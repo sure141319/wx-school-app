@@ -7,6 +7,7 @@ import com.campustrade.platform.auth.service.VerificationCodeService;
 import com.campustrade.platform.auth.service.WechatSession;
 import com.campustrade.platform.auth.service.WechatSessionClient;
 import com.campustrade.platform.common.AppException;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
@@ -28,17 +29,20 @@ public class UserService {
     private final WechatSessionClient wechatSessionClient;
     private final PasswordEncoder passwordEncoder;
     private final VerificationCodeService verificationCodeService;
+    private final GoodsListCacheInvalidator goodsListCacheInvalidator;
 
     public UserService(UserMapper userMapper,
                        UploadService uploadService,
                        WechatSessionClient wechatSessionClient,
                        PasswordEncoder passwordEncoder,
-                       VerificationCodeService verificationCodeService) {
+                       VerificationCodeService verificationCodeService,
+                       GoodsListCacheInvalidator goodsListCacheInvalidator) {
         this.userMapper = userMapper;
         this.uploadService = uploadService;
         this.wechatSessionClient = wechatSessionClient;
         this.passwordEncoder = passwordEncoder;
         this.verificationCodeService = verificationCodeService;
+        this.goodsListCacheInvalidator = goodsListCacheInvalidator;
     }
 
     @Transactional(readOnly = true)
@@ -78,6 +82,7 @@ public class UserService {
             userMapper.updateAvatarAuditStatus(userId, ImageAuditStatusEnum.PENDING, null, null);
         }
 
+        goodsListCacheInvalidator.evictAfterCommit();
         return getById(userId);
     }
 

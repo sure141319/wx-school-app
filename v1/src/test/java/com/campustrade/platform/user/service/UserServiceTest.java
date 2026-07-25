@@ -7,6 +7,7 @@ import com.campustrade.platform.auth.service.WechatSession;
 import com.campustrade.platform.auth.service.WechatSessionClient;
 import com.campustrade.platform.auth.service.VerificationCodeService;
 import com.campustrade.platform.common.AppException;
+import com.campustrade.platform.config.cache.GoodsListCacheInvalidator;
 import com.campustrade.platform.goods.enums.ImageAuditStatusEnum;
 import com.campustrade.platform.upload.service.UploadService;
 import com.campustrade.platform.user.dataobject.UserDO;
@@ -34,12 +35,14 @@ class UserServiceTest {
     private final WechatSessionClient wechatSessionClient = mock(WechatSessionClient.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final VerificationCodeService verificationCodeService = mock(VerificationCodeService.class);
+    private final GoodsListCacheInvalidator goodsListCacheInvalidator = mock(GoodsListCacheInvalidator.class);
     private final UserService userService = new UserService(
             userMapper,
             uploadService,
             wechatSessionClient,
             passwordEncoder,
-            verificationCodeService
+            verificationCodeService,
+            goodsListCacheInvalidator
     );
 
     @Test
@@ -57,6 +60,7 @@ class UserServiceTest {
 
         assertEquals("new-name", result.getNickname());
         verify(userMapper).updateProfile(userId, "new-name", objectKey, null, null);
+        verify(goodsListCacheInvalidator).evictAfterCommit();
         verify(userMapper, never()).updateAvatarAuditStatus(anyLong(), any(), any(), any());
         verify(uploadService, never()).deleteObject(any());
     }

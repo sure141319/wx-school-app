@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -24,7 +25,13 @@ public class DefaultWechatSessionClient implements WechatSessionClient {
 
     public DefaultWechatSessionClient(AppProperties appProperties) {
         this.appProperties = appProperties;
-        this.restClient = RestClient.create();
+        AppProperties.Wechat wechat = appProperties.getWechat();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(wechat.getConnectTimeoutMs());
+        requestFactory.setReadTimeout(wechat.getReadTimeoutMs());
+        this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
     }
 
     @Override

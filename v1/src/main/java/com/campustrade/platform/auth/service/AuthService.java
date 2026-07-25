@@ -11,7 +11,6 @@ import com.campustrade.platform.auth.dto.response.SendCodeResponseDTO;
 import com.campustrade.platform.auth.enums.VerificationPurposeEnum;
 import com.campustrade.platform.common.AppException;
 import com.campustrade.platform.common.time.BeijingTime;
-import com.campustrade.platform.config.AppProperties;
 import com.campustrade.platform.security.JwtTokenProvider;
 import com.campustrade.platform.security.UserPrincipal;
 import com.campustrade.platform.user.assembler.UserProfileAssembler;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
@@ -36,30 +34,30 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final MailService mailService;
-    private final AppProperties appProperties;
     private final AuthAssembler authAssembler;
     private final UserProfileAssembler userProfileAssembler;
     private final VerificationCodeService verificationCodeService;
     private final WechatSessionClient wechatSessionClient;
+    private final LoginFailureService loginFailureService;
 
     public AuthService(UserMapper userMapper,
                        PasswordEncoder passwordEncoder,
                        JwtTokenProvider tokenProvider,
                        MailService mailService,
-                       AppProperties appProperties,
                        AuthAssembler authAssembler,
                        UserProfileAssembler userProfileAssembler,
                        VerificationCodeService verificationCodeService,
-                       WechatSessionClient wechatSessionClient) {
+                       WechatSessionClient wechatSessionClient,
+                       LoginFailureService loginFailureService) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.mailService = mailService;
-        this.appProperties = appProperties;
         this.authAssembler = authAssembler;
         this.userProfileAssembler = userProfileAssembler;
         this.verificationCodeService = verificationCodeService;
         this.wechatSessionClient = wechatSessionClient;
+        this.loginFailureService = loginFailureService;
     }
 
     @Transactional
@@ -128,13 +126,11 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            int nextFailCount = user.getFailedLoginCount() + 1;
-            LocalDateTime lockedUntil = user.getLockedUntil();
-            if (nextFailCount >= appProperties.getAuth().getMaxLoginFailures()) {
-                lockedUntil = BeijingTime.now().plusMinutes(appProperties.getAuth().getLockMinutes());
-                nextFailCount = 0;
-            }
-            userMapper.updateAuthState(user.getId(), nextFailCount, lockedUntil);
+            loginFailureService.recordFailure(
+                    user.getId(),
+                    user.getFailedLoginCount(),
+                    user.getLockedUntil()
+            );
             throw new AppException(HttpStatus.UNAUTHORIZED, "邮箱或密码错误");
         }
 

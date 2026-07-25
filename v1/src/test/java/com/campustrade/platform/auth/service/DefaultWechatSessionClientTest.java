@@ -5,13 +5,16 @@ import com.campustrade.platform.config.AppProperties;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class DefaultWechatSessionClientTest {
 
@@ -80,6 +83,36 @@ class DefaultWechatSessionClientTest {
                 () -> new DefaultWechatSessionClient(new AppProperties()).exchange("wx-code")
         );
 
+        assertEquals("微信登录服务暂时不可用，请稍后重试", exception.getMessage());
+    }
+
+    @Test
+    void exchangeStopsWaitingWhenWechatResponseExceedsReadTimeout() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/jscode2session", exchange -> {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+            } finally {
+                exchange.close();
+            }
+        });
+        server.start();
+
+        AppProperties properties = configuredProperties();
+        properties.getWechat().setConnectTimeoutMs(200);
+        properties.getWechat().setReadTimeoutMs(50);
+
+        AppException exception = assertTimeoutPreemptively(
+                Duration.ofSeconds(2),
+                () -> assertThrows(
+                        AppException.class,
+                        () -> new DefaultWechatSessionClient(properties).exchange("wx-code")
+                )
+        );
+
+        assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatus());
         assertEquals("微信登录服务暂时不可用，请稍后重试", exception.getMessage());
     }
 

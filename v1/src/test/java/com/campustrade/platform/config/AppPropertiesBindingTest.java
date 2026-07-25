@@ -69,7 +69,9 @@ class AppPropertiesBindingTest {
                 Map.entry("app.upload.cleanup-interval-ms", properties.getUpload().getCleanupIntervalMs()),
                 Map.entry("app.upload.cleanup-batch-size", properties.getUpload().getCleanupBatchSize()),
                 Map.entry("app.monitoring.goods-list-slow-threshold-ms", properties.getMonitoring().getGoodsListSlowThresholdMs()),
-                Map.entry("app.wechat.code2-session-url", properties.getWechat().getCode2SessionUrl())
+                Map.entry("app.wechat.code2-session-url", properties.getWechat().getCode2SessionUrl()),
+                Map.entry("app.wechat.connect-timeout-ms", properties.getWechat().getConnectTimeoutMs()),
+                Map.entry("app.wechat.read-timeout-ms", properties.getWechat().getReadTimeoutMs())
         );
 
         sharedDefaults.forEach((key, expected) ->
