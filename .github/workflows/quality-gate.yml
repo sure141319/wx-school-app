@@ -25,8 +25,12 @@ jobs:
       - name: Install HEIC and HEIF decoder
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libheif-examples
+          sudo apt-get install --yes libheif-examples libheif-plugin-libde265
           heif-convert --version
+          heif-convert v1/src/test/resources/images/heic-32.heic "$RUNNER_TEMP/heic-smoke.png"
+          heif-convert v1/src/test/resources/images/heif-32.heif "$RUNNER_TEMP/heif-smoke.png"
+          test -s "$RUNNER_TEMP/heic-smoke.png"
+          test -s "$RUNNER_TEMP/heif-smoke.png"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5

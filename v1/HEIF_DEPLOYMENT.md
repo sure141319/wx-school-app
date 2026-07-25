@@ -12,11 +12,17 @@
 sudo apt-get update
 sudo apt-get install libheif-examples
 
+# Ubuntu 24.04 将 HEVC 解码器拆分成独立插件；如果软件源中存在该包，必须一并安装
+if apt-cache show libheif-plugin-libde265 >/dev/null 2>&1; then
+  sudo apt-get install libheif-plugin-libde265
+fi
+
 heif-convert --version
 ```
 
 其他 Linux 发行版应安装包含 `heif-convert` 的 `libheif` 工具包。建议使用
-仍接受安全更新的 `libheif` 版本。
+仍接受安全更新的 `libheif` 版本，并确认同时提供 HEVC/H.265 解码插件。仅执行
+`heif-convert --version` 不能证明 HEIC 解码可用，部署后仍须用真实 HEIC 文件验证。
 
 如果命令不在 `PATH` 中，可配置：
 
