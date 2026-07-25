@@ -198,13 +198,74 @@ class UploadServiceLifecycleTest {
         System.arraycopy("ftyp".getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, heicHeader, 4, 4);
         System.arraycopy("heic".getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, heicHeader, 8, 4);
         MockMultipartFile avatar = new MockMultipartFile("file", "avatar.heic", "image/heic", heicHeader);
-        UploadService service = new UploadService(minioClient, properties(), lifecycle);
+        HeifImageDecoder decoder = new HeifImageDecoder((input, output, log, timeout) -> {
+            throw new HeifImageDecoder.HeifConversionException(
+                    HeifImageDecoder.FailureReason.INVALID_IMAGE,
+                    "invalid test image"
+            );
+        });
+        UploadImageProcessor processor = new UploadImageProcessor(decoder);
+        UploadService service = new UploadService(
+                minioClient,
+                properties(),
+                lifecycle,
+                processor,
+                new UploadImageValidator(processor)
+        );
 
         AppException error = assertThrows(AppException.class, () -> service.storeImage(avatar, "avatar", 12L));
 
-        assertEquals(org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE, error.getStatus());
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, error.getStatus());
         verify(minioClient, never()).putObject(any(PutObjectArgs.class));
         verify(lifecycle).deleteRecord(9L);
+    }
+
+    @Test
+    void storesHeicAvatarAsOptimizedWebp() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        UploadLifecycleService lifecycle = mock(UploadLifecycleService.class);
+        UploadObjectDO reservation = new UploadObjectDO();
+        reservation.setId(11L);
+        stubReservation(lifecycle, reservation);
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(mock(ObjectWriteResponse.class));
+
+        byte[] heicHeader = new byte[UploadImageFormat.HEADER_BYTES];
+        System.arraycopy("ftyp".getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, heicHeader, 4, 4);
+        System.arraycopy("heic".getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, heicHeader, 8, 4);
+        MockMultipartFile avatar = new MockMultipartFile("file", "avatar.heic", "image/heic", heicHeader);
+        HeifImageDecoder decoder = new HeifImageDecoder((input, output, log, timeout) -> {
+            try {
+                BufferedImage image = new BufferedImage(640, 320, BufferedImage.TYPE_INT_RGB);
+                ImageIO.write(image, "png", output.toFile());
+            } catch (Exception ex) {
+                throw new HeifImageDecoder.HeifConversionException(
+                        HeifImageDecoder.FailureReason.INVALID_IMAGE,
+                        "test conversion failed",
+                        ex
+                );
+            }
+        });
+        UploadImageProcessor processor = new UploadImageProcessor(decoder);
+        UploadService service = new UploadService(
+                minioClient,
+                properties(),
+                lifecycle,
+                processor,
+                new UploadImageValidator(processor)
+        );
+
+        UploadResponseDTO result = service.storeImage(avatar, "avatar", 12L);
+
+        assertTrue(result.filename().endsWith(".webp"));
+        verify(minioClient).putObject(any(PutObjectArgs.class));
+        verify(lifecycle).markStaged(
+                eq(11L),
+                eq(12L),
+                eq(avatar.getSize()),
+                any(),
+                longThat(size -> size > 0)
+        );
     }
 
     @Test

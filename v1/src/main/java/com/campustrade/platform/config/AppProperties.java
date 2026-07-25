@@ -127,6 +127,14 @@ public class AppProperties {
         private long cleanupIntervalMs = 60L * 60L * 1000L;
         @Min(1)
         private int cleanupBatchSize = 100;
+        @NotBlank
+        private String heifConverterCommand = "heif-convert";
+        @Min(1)
+        private int heifConverterTimeoutSeconds = 30;
+        @Min(1)
+        private int maxConcurrentHeifConversions = 1;
+        @Min(1)
+        private long maxHeifDecodedBytes = 256L * 1024L * 1024L;
     }
 
     @Getter

@@ -65,6 +65,26 @@ class UploadServiceValidationTest {
     }
 
     @Test
+    void acceptsHeicAndHeifHeadersForDeferredNativeDecode() {
+        UploadService service = newService();
+        MockMultipartFile heic = new MockMultipartFile(
+                "file",
+                "goods.heic",
+                "image/heic",
+                heifHeader("heic")
+        );
+        MockMultipartFile heif = new MockMultipartFile(
+                "file",
+                "goods.heif",
+                "application/octet-stream",
+                heifHeader("mif1")
+        );
+
+        assertDoesNotThrow(() -> service.validateImage(heic));
+        assertDoesNotThrow(() -> service.validateImage(heif));
+    }
+
+    @Test
     void rejectsFileLargerThanServiceLimitBeforeReadingIt() {
         UploadService service = newService();
         MultipartFile file = mock(MultipartFile.class);
@@ -223,5 +243,14 @@ class UploadServiceValidationTest {
         properties.getMinio().setSecretKey("secret");
         properties.getMinio().setBucket("campus-trade");
         return new UploadService(minioClient, properties);
+    }
+
+    private byte[] heifHeader(String brand) {
+        byte[] header = new byte[UploadImageFormat.HEADER_BYTES];
+        byte[] fileType = "ftyp".getBytes(StandardCharsets.US_ASCII);
+        byte[] brandBytes = brand.getBytes(StandardCharsets.US_ASCII);
+        System.arraycopy(fileType, 0, header, 4, fileType.length);
+        System.arraycopy(brandBytes, 0, header, 8, brandBytes.length);
+        return header;
     }
 }

@@ -214,7 +214,7 @@ public class UploadService {
             if (!prepared.completeForUpload()) {
                 throw new AppException(
                         HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-                        "图片格式暂不支持，请选择 JPG、PNG 或 WebP 图片"
+                        "图片格式暂不支持，请选择 JPEG、PNG、HEIC、HEIF 或 WebP 图片"
                 );
             }
             return prepared;

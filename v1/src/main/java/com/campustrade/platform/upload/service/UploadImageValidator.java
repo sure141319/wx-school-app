@@ -25,10 +25,21 @@ public class UploadImageValidator {
             ".jpeg", List.of("image/jpeg", "image/jpg", "image/pjpeg"),
             ".png", List.of("image/png"),
             ".webp", List.of("image/webp"),
-            ".heic", List.of("image/heic", "image/heif"),
-            ".heif", List.of("image/heif", "image/heic")
+            ".heic", List.of(
+                    "image/heic",
+                    "image/heif",
+                    "image/heic-sequence",
+                    "image/heif-sequence",
+                    "application/octet-stream"
+            ),
+            ".heif", List.of(
+                    "image/heif",
+                    "image/heic",
+                    "image/heif-sequence",
+                    "image/heic-sequence",
+                    "application/octet-stream"
+            )
     );
-    private static final int IMAGE_HEADER_BYTES = 32;
     private static final long MAX_UPLOAD_BYTES = 10L * 1024L * 1024L;
 
     private final UploadImageProcessor imageProcessor;
@@ -68,10 +79,10 @@ public class UploadImageValidator {
 
             Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
             if (!readers.hasNext()) {
-                if (".jpg".equals(extension) || ".jpeg".equals(extension) || ".png".equals(extension)) {
-                    throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
+                if (".heic".equals(extension) || ".heif".equals(extension)) {
+                    return;
                 }
-                return;
+                throw new AppException(HttpStatus.BAD_REQUEST, "图片文件内容无效");
             }
 
             ImageReader reader = readers.next();
@@ -102,15 +113,17 @@ public class UploadImageValidator {
         return switch (extension) {
             case ".jpg", ".jpeg" -> startsWith(header, new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
             case ".png" -> startsWith(header, new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
-            case ".webp" -> header.length >= 12 && asciiEquals(header, 0, "RIFF") && asciiEquals(header, 8, "WEBP");
-            case ".heic", ".heif" -> isHeifFamily(header);
+            case ".webp" -> header.length >= 12
+                    && UploadImageFormat.asciiEquals(header, 0, "RIFF")
+                    && UploadImageFormat.asciiEquals(header, 8, "WEBP");
+            case ".heic", ".heif" -> UploadImageFormat.isHeifFamily(header);
             default -> false;
         };
     }
 
     private byte[] readImageHeader(MultipartFile file) {
         try (InputStream inputStream = file.getInputStream()) {
-            return inputStream.readNBytes(IMAGE_HEADER_BYTES);
+            return inputStream.readNBytes(UploadImageFormat.HEADER_BYTES);
         } catch (IOException ex) {
             throw new AppException(HttpStatus.BAD_REQUEST, "图片文件读取失败", ex);
         }
@@ -122,40 +135,6 @@ public class UploadImageValidator {
         }
         for (int i = 0; i < prefix.length; i++) {
             if (value[i] != prefix[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean isHeifFamily(byte[] header) {
-        if (header.length < 12 || !asciiEquals(header, 4, "ftyp")) {
-            return false;
-        }
-        for (int offset = 8; offset + 4 <= header.length; offset += 4) {
-            if (isHeifBrand(header, offset)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isHeifBrand(byte[] header, int offset) {
-        return asciiEquals(header, offset, "heic")
-                || asciiEquals(header, offset, "heix")
-                || asciiEquals(header, offset, "hevc")
-                || asciiEquals(header, offset, "hevx")
-                || asciiEquals(header, offset, "heif")
-                || asciiEquals(header, offset, "mif1")
-                || asciiEquals(header, offset, "msf1");
-    }
-
-    private boolean asciiEquals(byte[] value, int offset, String expected) {
-        if (offset < 0 || value.length < offset + expected.length()) {
-            return false;
-        }
-        for (int i = 0; i < expected.length(); i++) {
-            if (value[offset + i] != (byte) expected.charAt(i)) {
                 return false;
             }
         }

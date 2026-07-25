@@ -1,6 +1,7 @@
 package com.campustrade.platform.upload.service;
 
 import com.campustrade.platform.common.AppException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,9 +26,6 @@ import java.util.Iterator;
 @Component
 public class UploadImageProcessor {
 
-    private static final int MAX_IMAGE_WIDTH = 10_000;
-    private static final int MAX_IMAGE_HEIGHT = 10_000;
-    private static final long MAX_IMAGE_PIXELS = 50_000_000L;
     private static final int THUMBNAIL_MAX_SIZE = 640;
     private static final int THUMBNAIL_DECODE_MAX_SIZE = 960;
     private static final int AVATAR_DECODE_MAX_SIZE = 768;
@@ -37,6 +36,17 @@ public class UploadImageProcessor {
     private static final float AVATAR_QUALITY = 0.72f;
     private static final float DISPLAY_QUALITY = 0.82f;
     private static final String WEBP_FORMAT = "webp";
+
+    private final HeifImageDecoder heifImageDecoder;
+
+    @Autowired
+    public UploadImageProcessor(HeifImageDecoder heifImageDecoder) {
+        this.heifImageDecoder = heifImageDecoder;
+    }
+
+    public UploadImageProcessor() {
+        this(HeifImageDecoder.withDefaults());
+    }
 
     record ProcessedVariants(byte[] master, byte[] thumbnail) {
 
@@ -61,7 +71,10 @@ public class UploadImageProcessor {
     byte[] optimizeAvatar(InputStream inputStream) throws IOException {
         BufferedImage source = readImageWithSubsampling(inputStream, AVATAR_DECODE_MAX_SIZE);
         if (source == null) {
-            throw new AppException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "头像格式暂不支持，请选择 JPG、PNG 或 WebP 图片");
+            throw new AppException(
+                    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                    "头像格式暂不支持，请选择 JPEG、PNG、HEIC、HEIF 或 WebP 图片"
+            );
         }
         return encodeRequiredWebp(resize(source, AVATAR_MAX_SIZE), AVATAR_QUALITY);
     }
@@ -75,16 +88,7 @@ public class UploadImageProcessor {
     }
 
     void validateImageDimensions(int width, int height) {
-        long pixels = (long) width * height;
-        if (width <= 0 || height <= 0
-                || width > MAX_IMAGE_WIDTH
-                || height > MAX_IMAGE_HEIGHT
-                || pixels > MAX_IMAGE_PIXELS) {
-            throw new AppException(
-                    HttpStatus.PAYLOAD_TOO_LARGE,
-                    "图片分辨率过大，最大支持 10000×10000 且不超过 5000 万像素"
-            );
-        }
+        UploadImageLimits.validateDimensions(width, height);
     }
 
     int calculateThumbnailSubsampling(int width, int height) {
@@ -131,7 +135,16 @@ public class UploadImageProcessor {
     }
 
     private BufferedImage readImageWithSubsampling(InputStream inputStream, int decodeMaxSize) throws IOException {
-        try (ImageInputStream imageInput = ImageIO.createImageInputStream(inputStream)) {
+        BufferedInputStream bufferedInput = new BufferedInputStream(inputStream);
+        bufferedInput.mark(UploadImageFormat.HEADER_BYTES);
+        byte[] header = bufferedInput.readNBytes(UploadImageFormat.HEADER_BYTES);
+        bufferedInput.reset();
+
+        if (UploadImageFormat.isHeifFamily(header)) {
+            return heifImageDecoder.decode(bufferedInput, decodeMaxSize);
+        }
+
+        try (ImageInputStream imageInput = ImageIO.createImageInputStream(bufferedInput)) {
             if (imageInput == null) {
                 return null;
             }

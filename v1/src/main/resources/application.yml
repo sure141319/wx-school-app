@@ -100,6 +100,10 @@ app:
     staged-ttl-hours: ${UPLOAD_STAGED_TTL_HOURS:24}
     cleanup-interval-ms: ${UPLOAD_CLEANUP_INTERVAL_MS:3600000}
     cleanup-batch-size: ${UPLOAD_CLEANUP_BATCH_SIZE:100}
+    heif-converter-command: ${HEIF_CONVERTER_COMMAND:heif-convert}
+    heif-converter-timeout-seconds: ${HEIF_CONVERTER_TIMEOUT_SECONDS:30}
+    max-concurrent-heif-conversions: ${MAX_CONCURRENT_HEIF_CONVERSIONS:1}
+    max-heif-decoded-bytes: ${MAX_HEIF_DECODED_BYTES:268435456}
   image-audit:
     pending-placeholder-url: ${IMAGE_AUDIT_PENDING_PLACEHOLDER_URL:https://www.ahut-campus.site/campus-trade/images/2026/04/auditing.webp}
     reviewer-user-ids: ${IMAGE_AUDIT_REVIEWER_USER_IDS:}
