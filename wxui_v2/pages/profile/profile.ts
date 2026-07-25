@@ -2,6 +2,7 @@ import { clearToken, request } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { resolveProfileDisplayAvatar, resolveQqAvatarPreview } from '../../utils/avatar'
 import { COMMON_MESSAGES, actionFailed, isUserCancellation, loadFailed } from '../../utils/messages'
+import { updateStoredUser } from '../../utils/storage'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 const QQ_REGEX = /^\d{5,12}$/
@@ -171,11 +172,14 @@ Component({
     },
 
     async loadProfile() {
+      const requestSequence = ((this as any)._profileRequestSequence || 0) + 1
+      ;(this as any)._profileRequestSequence = requestSequence
       try {
         const res = await request<ApiResponse<UserProfile>>({
           url: `${app.globalData.baseUrl}/users/me`,
           method: 'GET'
         })
+        if (requestSequence !== (this as any)._profileRequestSequence) return
         if (!res.data?.success) {
           this.setData({ info: res.data?.message || loadFailed('个人资料') })
           return
@@ -192,12 +196,16 @@ Component({
         })
         ;(this as any)._lastProfileLoadTime = Date.now()
       } catch (_err) {
-        this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+        if (requestSequence === (this as any)._profileRequestSequence) {
+          this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+        }
       }
     },
 
     async loadMyGoods(resetPage = false, append = false) {
       const nextPage = resetPage ? 0 : this.data.page
+      const requestSequence = ((this as any)._goodsRequestSequence || 0) + 1
+      ;(this as any)._goodsRequestSequence = requestSequence
 
       if (resetPage) {
         this.setData({ loading: true, hasMore: true, page: 0 })
@@ -212,6 +220,7 @@ Component({
           url: `${app.globalData.baseUrl}/goods/mine?page=${nextPage}&size=${this.data.size}`,
           method: 'GET'
         })
+        if (requestSequence !== (this as any)._goodsRequestSequence) return
         if (!res.data?.success) {
           this.setData({ info: res.data?.message || loadFailed('商品列表') })
           return
@@ -235,11 +244,13 @@ Component({
           ;(this as any)._lastGoodsLoadTime = Date.now()
         }
       } catch (_err) {
-        if (!append) {
+        if (requestSequence === (this as any)._goodsRequestSequence && !append) {
           this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
         }
       } finally {
-        this.setData({ loading: false, loadingMore: false })
+        if (requestSequence === (this as any)._goodsRequestSequence) {
+          this.setData({ loading: false, loadingMore: false })
+        }
       }
     },
 
@@ -359,16 +370,14 @@ Component({
           return
         }
         const profile = (res.data?.data as unknown as UserProfile) || this.data.profile
-        const user = JSON.parse(wx.getStorageSync('user') || '{}')
-        wx.setStorageSync('user', JSON.stringify({
-          ...user,
+        updateStoredUser({
           nickname: profile.nickname,
           avatarUrl: profile.avatarUrl,
           avatarSource: profile.avatarSource,
           wechatOpenid: profile.wechatOpenid,
           wechatId: profile.wechatId,
           qq: profile.qq
-        }))
+        })
         this.setData({
           profile,
           profileDraft: { ...profile },
@@ -673,9 +682,7 @@ Component({
     },
 
     updateStoredProfile(profile: UserProfile) {
-      const user = JSON.parse(wx.getStorageSync('user') || '{}')
-      wx.setStorageSync('user', JSON.stringify({
-        ...user,
+      updateStoredUser({
         email: profile.email,
         nickname: profile.nickname,
         avatarUrl: profile.avatarUrl,
@@ -683,7 +690,7 @@ Component({
         wechatOpenid: profile.wechatOpenid,
         wechatId: profile.wechatId,
         qq: profile.qq
-      }))
+      })
     },
 
     getWechatLoginCode(): Promise<string> {

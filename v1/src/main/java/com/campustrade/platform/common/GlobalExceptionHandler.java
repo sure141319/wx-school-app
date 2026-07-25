@@ -3,6 +3,7 @@ package com.campustrade.platform.common;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -138,6 +139,17 @@ public class GlobalExceptionHandler {
         log.warn("Access denied: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.fail(ApiResponseCode.AUTH_ACCESS_DENIED, "无权进行此操作", null));
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateKey(DuplicateKeyException ex) {
+        log.warn("Duplicate key conflict");
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail(
+                        ApiResponseCode.RESOURCE_CONFLICT,
+                        "数据状态已发生变化，请刷新后重试",
+                        null
+                ));
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,6 +1,7 @@
 package com.campustrade.platform.common;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
@@ -88,5 +89,16 @@ class GlobalExceptionHandlerTest {
 
         assertEquals("图片标识不能为空", missingObjectKey.getBody().message());
         assertEquals("请选择要上传的图片", missingFile.getBody().message());
+    }
+
+    @Test
+    void dataIntegrityConflictReturnsRetryableConflictInsteadOfInternalError() {
+        var response = handler.handleDuplicateKey(
+                new DuplicateKeyException("duplicate key")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals(ApiResponseCode.RESOURCE_CONFLICT, response.getBody().code());
+        assertEquals("数据状态已发生变化，请刷新后重试", response.getBody().message());
     }
 }

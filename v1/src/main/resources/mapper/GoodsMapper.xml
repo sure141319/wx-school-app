@@ -184,8 +184,8 @@
         <if test="keywords != null and !keywords.isEmpty()">
           AND (
             <foreach collection="keywords" item="keyword" separator=" OR ">
-              (LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
-                OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%'))
+              (LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '!'
+                OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '!')
             </foreach>
           )
         </if>
@@ -195,7 +195,7 @@
         <if test="keywords != null and !keywords.isEmpty()">
           CASE WHEN (
             <foreach collection="keywords" item="keyword" separator=" OR ">
-              LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
+              LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '!'
             </foreach>
           ) THEN 0 ELSE 1 END,
         </if>
@@ -210,8 +210,8 @@
         <if test="keywords != null and !keywords.isEmpty()">
           AND (
             <foreach collection="keywords" item="keyword" separator=" OR ">
-              (LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%')
-                OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%'))
+              (LOWER(g.title) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '!'
+                OR LOWER(g.description) LIKE CONCAT('%', LOWER(#{keyword}), '%') ESCAPE '!')
             </foreach>
           )
         </if>

@@ -173,12 +173,30 @@ public class GoodsService {
             key = "new org.springframework.cache.interceptor.SimpleKey(#keyword == null ? null : #keyword.trim(), #categoryId, #status == null ? 'ON_SALE' : #status.name(), #page, #size)"
     )
     public PageResponse<GoodsListItemResponseDTO> list(String keyword, Long categoryId, GoodsStatusEnum status, int page, int size) {
-        int offset = page * size;
         List<String> normalizedKeywords = normalizeSearchKeywords(keyword);
         GoodsStatusEnum effectiveStatus = publicListStatus(status);
+        return queryGoodsList(normalizedKeywords, categoryId, effectiveStatus, page, size);
+    }
 
-        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeywords, categoryId, effectiveStatus, size, offset);
-        long total = goodsMapper.countSearch(normalizedKeywords, categoryId, effectiveStatus);
+    @Transactional(readOnly = true)
+    public PageResponse<GoodsListItemResponseDTO> listForReviewer(Long reviewerUserId,
+                                                                 String keyword,
+                                                                 Long categoryId,
+                                                                 GoodsStatusEnum status,
+                                                                 int page,
+                                                                 int size) {
+        ensureReviewer(reviewerUserId);
+        return queryGoodsList(normalizeSearchKeywords(keyword), categoryId, status, page, size);
+    }
+
+    private PageResponse<GoodsListItemResponseDTO> queryGoodsList(List<String> normalizedKeywords,
+                                                                  Long categoryId,
+                                                                  GoodsStatusEnum status,
+                                                                  int page,
+                                                                  int size) {
+        long offset = (long) page * size;
+        List<GoodsDO> goodsList = goodsMapper.searchList(normalizedKeywords, categoryId, status, size, offset);
+        long total = goodsMapper.countSearch(normalizedKeywords, categoryId, status);
         attachCoverImages(goodsList);
 
         List<GoodsListItemResponseDTO> items = goodsList.stream().map(goodsAssembler::toListItemResponse).toList();
@@ -244,6 +262,12 @@ public class GoodsService {
 
     private boolean isReviewer(Long userId) {
         return userId != null && appProperties.getImageAudit().getReviewerUserIds().contains(userId);
+    }
+
+    private void ensureReviewer(Long userId) {
+        if (!isReviewer(userId)) {
+            throw new AppException(HttpStatus.FORBIDDEN, "无权管理商品");
+        }
     }
 
     private boolean affectsPublicList(GoodsStatusEnum oldStatus, GoodsStatusEnum newStatus) {
@@ -358,13 +382,20 @@ public class GoodsService {
 
         String normalized = keyword.trim();
         Set<String> terms = new LinkedHashSet<>();
-        terms.add(normalized);
+        terms.add(escapeLikePattern(normalized));
         if (normalized.contains("高等数学")) {
-            terms.add(normalized.replace("高等数学", "高数"));
+            terms.add(escapeLikePattern(normalized.replace("高等数学", "高数")));
         } else if (normalized.contains("高数")) {
-            terms.add(normalized.replace("高数", "高等数学"));
+            terms.add(escapeLikePattern(normalized.replace("高数", "高等数学")));
         }
         return List.copyOf(terms);
+    }
+
+    private String escapeLikePattern(String value) {
+        return value
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
     }
 
     private void resetImageAuditStatus(Long goodsId) {

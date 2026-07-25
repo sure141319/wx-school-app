@@ -278,7 +278,7 @@ async function loadGoods() {
     if (state.categoryId) params.set('categoryId', state.categoryId)
     if (state.status) params.set('status', state.status)
 
-    const pageData = await request(`/goods?${params.toString()}`, { auth: false })
+    const pageData = await request(`/audit/goods?${params.toString()}`)
     state.items = Array.isArray(pageData.items) ? pageData.items : []
     state.total = pageData.total || 0
     state.page = pageData.page || 0

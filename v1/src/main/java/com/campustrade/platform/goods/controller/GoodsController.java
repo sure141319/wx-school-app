@@ -49,7 +49,8 @@ public class GoodsController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) GoodsStatusEnum status,
             @RequestParam(defaultValue = "0")
-            @Min(value = 0, message = "页码不能小于0") int page,
+            @Min(value = 0, message = "页码不能小于0")
+            @Max(value = 100000, message = "页码不能超过100000") int page,
             @RequestParam(defaultValue = "10")
             @Min(value = 1, message = "每页数量不能小于1")
             @Max(value = 50, message = "每页数量不能超过50") int size) {
@@ -105,7 +106,8 @@ public class GoodsController {
     @GetMapping("/mine")
     public ApiResponse<PageResponse<MyGoodsListItemResponseDTO>> myGoods(
             @RequestParam(defaultValue = "0")
-            @Min(value = 0, message = "页码不能小于0") int page,
+            @Min(value = 0, message = "页码不能小于0")
+            @Max(value = 100000, message = "页码不能超过100000") int page,
             @RequestParam(defaultValue = "10")
             @Min(value = 1, message = "每页数量不能小于1")
             @Max(value = 50, message = "每页数量不能超过50") int size) {

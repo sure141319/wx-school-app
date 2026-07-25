@@ -2,6 +2,7 @@ import { getToken, redirectToLogin, request } from '../../utils/request'
 import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { hasContactMethod, validateContactDraft } from '../../utils/contact'
 import { COMMON_MESSAGES, actionFailed, isUserCancellation, loadFailed } from '../../utils/messages'
+import { updateStoredUser } from '../../utils/storage'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 
@@ -232,12 +233,8 @@ Component({
     chooseCategory(e: WechatMiniprogram.TouchEvent) {
       const id = String(e.currentTarget.dataset.id || '')
       if (this.data.form.categoryId === id) return
-      const cat = (this.data.categories as Category[]).find(c => String(c.id) === id)
-      const catName = cat?.name || ''
       this.setData({
         'form.categoryId': id,
-        'form.title': catName,
-        'form.description': catName,
         'errors.categoryId': ''
       }, () => {
         wx.pageScrollTo({ scrollTop: 0, duration: 220 })
@@ -387,16 +384,14 @@ Component({
           wechatId,
           qq
         }
-        const user = JSON.parse(wx.getStorageSync('user') || '{}')
-        wx.setStorageSync('user', JSON.stringify({
-          ...user,
+        updateStoredUser({
           nickname: profile.nickname,
           avatarUrl: profile.avatarUrl,
           avatarSource: profile.avatarSource,
           wechatOpenid: profile.wechatOpenid,
           wechatId: profile.wechatId,
           qq: profile.qq
-        }))
+        })
         this.setData({
           userProfile: profile,
           contactDraft: {

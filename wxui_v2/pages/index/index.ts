@@ -125,6 +125,8 @@ Component({
 
     async loadGoods(resetPage = false, append = false) {
       const nextPage = resetPage ? 0 : this.data.page
+      const requestSequence = ((this as any)._goodsRequestSequence || 0) + 1
+      ;(this as any)._goodsRequestSequence = requestSequence
 
       if (resetPage) {
         this.setData({ loading: true, hasMore: true, total: 0, statusText: '', page: 0 })
@@ -148,6 +150,7 @@ Component({
           method: 'GET',
           data: params
         })
+        if (requestSequence !== (this as any)._goodsRequestSequence) return
         if (!res.data?.success) {
           this.setData({
             statusText: res.data?.message || loadFailed('商品'),
@@ -191,7 +194,7 @@ Component({
         }
         ;(this as any)._lastLoadTime = Date.now()
       } catch (_err) {
-        if (!append) {
+        if (requestSequence === (this as any)._goodsRequestSequence && !append) {
           this.setData({
             statusText: COMMON_MESSAGES.NETWORK_ERROR,
             total: 0,
@@ -201,7 +204,9 @@ Component({
           })
         }
       } finally {
-        this.setData({ loading: false, loadingMore: false })
+        if (requestSequence === (this as any)._goodsRequestSequence) {
+          this.setData({ loading: false, loadingMore: false })
+        }
       }
     }
   }

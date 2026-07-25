@@ -69,7 +69,7 @@ class GoodsServiceVisibilityTest {
         GoodsListItemResponseDTO item = new GoodsListItemResponseDTO(
                 10L, "Mac", null, null, null, GoodsStatusEnum.ON_SALE, null, null, null, null
         );
-        when(goodsMapper.searchList(List.of("mac"), null, GoodsStatusEnum.ON_SALE, 10, 0)).thenReturn(List.of(goods));
+        when(goodsMapper.searchList(List.of("mac"), null, GoodsStatusEnum.ON_SALE, 10, 0L)).thenReturn(List.of(goods));
         when(goodsMapper.countSearch(List.of("mac"), null, GoodsStatusEnum.ON_SALE)).thenReturn(1L);
         when(goodsMapper.findCoverImagesByGoodsIds(List.of(10L))).thenReturn(List.of());
         when(goodsAssembler.toListItemResponse(goods)).thenReturn(item);
@@ -78,7 +78,7 @@ class GoodsServiceVisibilityTest {
 
         assertEquals(1L, response.total());
         assertSame(item, response.items().get(0));
-        verify(goodsMapper).searchList(List.of("mac"), null, GoodsStatusEnum.ON_SALE, 10, 0);
+        verify(goodsMapper).searchList(List.of("mac"), null, GoodsStatusEnum.ON_SALE, 10, 0L);
         verify(goodsMapper).countSearch(List.of("mac"), null, GoodsStatusEnum.ON_SALE);
     }
 
@@ -89,7 +89,7 @@ class GoodsServiceVisibilityTest {
                 null,
                 GoodsStatusEnum.ON_SALE,
                 10,
-                0
+                0L
         )).thenReturn(List.of());
         when(goodsMapper.countSearch(
                 List.of("高数教材", "高等数学教材"),
@@ -104,7 +104,7 @@ class GoodsServiceVisibilityTest {
                 null,
                 GoodsStatusEnum.ON_SALE,
                 10,
-                0
+                0L
         );
         verify(goodsMapper).countSearch(
                 List.of("高数教材", "高等数学教材"),
@@ -122,6 +122,55 @@ class GoodsServiceVisibilityTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verifyNoInteractions(goodsMapper);
+    }
+
+    @Test
+    void reviewerListCanQueryAllStatuses() {
+        when(goodsMapper.searchList(List.of(), null, null, 20, 0L)).thenReturn(List.of());
+        when(goodsMapper.countSearch(List.of(), null, null)).thenReturn(0L);
+
+        var response = goodsService.listForReviewer(1L, null, null, null, 0, 20);
+
+        assertEquals(0L, response.total());
+        verify(goodsMapper).searchList(List.of(), null, null, 20, 0L);
+        verify(goodsMapper).countSearch(List.of(), null, null);
+    }
+
+    @Test
+    void nonReviewerCannotUseManagementList() {
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> goodsService.listForReviewer(2L, null, null, null, 0, 20)
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verifyNoInteractions(goodsMapper);
+    }
+
+    @Test
+    void searchEscapesSqlLikeWildcardsAsLiteralCharacters() {
+        when(goodsMapper.searchList(
+                List.of("九成新!%!_!!"),
+                null,
+                GoodsStatusEnum.ON_SALE,
+                10,
+                0L
+        )).thenReturn(List.of());
+        when(goodsMapper.countSearch(
+                List.of("九成新!%!_!!"),
+                null,
+                GoodsStatusEnum.ON_SALE
+        )).thenReturn(0L);
+
+        goodsService.list("九成新%_!", null, null, 0, 10);
+
+        verify(goodsMapper).searchList(
+                List.of("九成新!%!_!!"),
+                null,
+                GoodsStatusEnum.ON_SALE,
+                10,
+                0L
+        );
     }
 
     @Test

@@ -46,6 +46,52 @@ class GoodsSearchRankingTest {
         );
     }
 
+    @Test
+    void escapedLikeWildcardMatchesLiteralPercentOnly() {
+        Long sellerId = insertSeller();
+        LocalDateTime baseTime = LocalDateTime.of(2026, 7, 1, 12, 0);
+        insertGoods(sellerId, "九成新教材", "普通描述", baseTime);
+        insertGoods(sellerId, "教材 100% 无笔记", "普通描述", baseTime.plusDays(1));
+
+        List<GoodsDO> result = goodsMapper.searchList(
+                List.of("!%"),
+                null,
+                GoodsStatusEnum.ON_SALE,
+                10,
+                0
+        );
+
+        assertEquals(
+                List.of("教材 100% 无笔记"),
+                result.stream().map(GoodsDO::getTitle).toList()
+        );
+    }
+
+    @Test
+    void reviewerQueryCanLeaveStatusUnfiltered() {
+        Long sellerId = insertSeller();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 7, 1, 12, 0);
+        insertGoods(sellerId, "在售教材", "普通描述", createdAt);
+        jdbcTemplate.update(
+                "UPDATE goods_do SET status = ? WHERE title = ?",
+                GoodsStatusEnum.OFF_SHELF.name(),
+                "在售教材"
+        );
+
+        List<GoodsDO> result = goodsMapper.searchList(
+                List.of(),
+                null,
+                null,
+                10,
+                0
+        );
+
+        assertEquals(
+                List.of(GoodsStatusEnum.OFF_SHELF),
+                result.stream().map(GoodsDO::getStatus).toList()
+        );
+    }
+
     private Long insertSeller() {
         jdbcTemplate.update("""
                 INSERT INTO users (email, password_hash, nickname, failed_login_count, created_at, updated_at)

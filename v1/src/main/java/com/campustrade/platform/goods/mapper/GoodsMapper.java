@@ -34,7 +34,7 @@ public interface GoodsMapper {
                              @Param("categoryId") Long categoryId,
                              @Param("status") GoodsStatusEnum status,
                              @Param("limit") int limit,
-                             @Param("offset") int offset);
+                             @Param("offset") long offset);
 
     long countSearch(@Param("keywords") List<String> keywords,
                      @Param("categoryId") Long categoryId,

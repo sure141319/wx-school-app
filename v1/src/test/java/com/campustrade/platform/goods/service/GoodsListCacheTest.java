@@ -111,7 +111,7 @@ class GoodsListCacheTest {
         goods.setId(1L);
         goods.setTitle("MacBook Air");
 
-        when(goodsMapper.searchList(eq(List.of("mac")), eq(2L), eq(GoodsStatusEnum.ON_SALE), eq(10), eq(0)))
+        when(goodsMapper.searchList(eq(List.of("mac")), eq(2L), eq(GoodsStatusEnum.ON_SALE), eq(10), eq(0L)))
                 .thenReturn(List.of(goods));
         when(goodsMapper.countSearch(List.of("mac"), 2L, GoodsStatusEnum.ON_SALE)).thenReturn(1L);
         when(goodsMapper.findCoverImagesByGoodsIds(anyList())).thenReturn(List.of());
@@ -121,7 +121,7 @@ class GoodsListCacheTest {
         PageResponse<GoodsListItemResponseDTO> second = goodsService.list("mac", 2L, GoodsStatusEnum.ON_SALE, 0, 10);
 
         assertSame(first, second);
-        verify(goodsMapper, times(1)).searchList(List.of("mac"), 2L, GoodsStatusEnum.ON_SALE, 10, 0);
+        verify(goodsMapper, times(1)).searchList(List.of("mac"), 2L, GoodsStatusEnum.ON_SALE, 10, 0L);
         verify(goodsMapper, times(1)).countSearch(List.of("mac"), 2L, GoodsStatusEnum.ON_SALE);
         verify(goodsMapper, times(1)).findCoverImagesByGoodsIds(anyList());
         verify(goodsAssembler, times(1)).toListItemResponse(goods);
