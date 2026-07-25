@@ -23,8 +23,19 @@ campus_app/
 ├── v1/                    # Spring Boot 后端
 ├── wxui_v2/               # 微信小程序前端
 ├── checkui/               # 图片审核、商品与公告管理后台
+├── scripts/verify.ps1      # 后端与小程序统一质量门禁
 └── CLAUDE.md              # AI 辅助开发指南
 ```
+
+## 统一质量门禁
+
+在仓库根目录执行：
+
+```powershell
+powershell -NoProfile -File .\scripts\verify.ps1
+```
+
+该命令会依次运行后端 Maven 测试、小程序 TypeScript 严格检查、回归脚本和 CSS 生成物漂移检查。GitHub Actions 会在每次 push 和 pull request 时执行同一套门禁。
 
 ## 快速开始
 
@@ -58,7 +69,15 @@ jdbc:mysql://localhost:3306/campus_trade?useSSL=false&connectionTimeZone=%2B08:0
 
 ### 小程序 (wxui_v2/)
 
-使用微信开发者工具打开 `wxui_v2/` 目录。无需构建步骤，原生小程序项目直接运行。
+使用微信开发者工具打开 `wxui_v2/` 目录。原生小程序 TypeScript 由微信开发者工具编译；首次拉取代码后安装本地质量检查与样式构建依赖：
+
+```bash
+cd wxui_v2
+npm ci
+npm run verify       # 类型检查、回归脚本和 CSS 漂移检查
+npm run build:css    # 一次性重新生成 app.wxss
+npm run dev:css      # 开发时持续监听并生成 app.wxss
+```
 
 环境切换：编辑 `config/env.ts`，修改 `ENV.current` 为 `'dev'` 或 `'prod'`。
 
