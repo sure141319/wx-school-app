@@ -6,20 +6,35 @@ import { updateStoredUser } from '../../utils/storage'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 
-const CONDITION_OPTIONS = ['全新', '9成新', '8成新', '7成新', '6成新及以下']
-const LOCATION_OPTIONS = ['本部', '东校区']
-const PRICE_INPUT_MIN_WIDTH = 104
-const PRICE_INPUT_MAX_WIDTH = 248
-const PRICE_GLYPH_WIDTH = 27
+const CONDITION_MIN = 1
+const CONDITION_MAX = 10
+const CONDITION_DEFAULT = 9
+const CONDITION_SCALE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '新']
+const CONDITION_MARKS = [2, 3, 4, 5, 6, 7, 8, 9]
+const LOCATION_VALUES = ['本部', '东校区']
 const PROFILE_DATA_DIRTY_KEY = 'profileDataDirty'
 const GOODS_LIST_DIRTY_KEY = 'goodsListDirty'
 
-function getPriceInputWidth(value: string) {
-  const displayValue = value || '0.00'
-  return Math.min(
-    PRICE_INPUT_MAX_WIDTH,
-    Math.max(PRICE_INPUT_MIN_WIDTH, displayValue.length * PRICE_GLYPH_WIDTH)
-  )
+interface LocationOption {
+  value: string
+  label: string
+  icon: string
+}
+
+const LOCATION_OPTIONS: LocationOption[] = LOCATION_VALUES.map(value => ({
+  value,
+  label: value,
+  icon: 'location'
+}))
+
+function getConditionLevel(value: number) {
+  return value >= CONDITION_MAX ? '全新' : `${value}成新`
+}
+
+function getConditionValue(level: string) {
+  if (level === '全新') return CONDITION_MAX
+  const match = /^([1-9])成新/.exec(level)
+  return match ? Number(match[1]) : CONDITION_DEFAULT
 }
 
 interface PublishPageData {
@@ -36,9 +51,11 @@ interface PublishPageData {
     qq: string
   }
   categories: Category[]
-  conditionOptions: string[]
-  locationOptions: string[]
-  priceInputWidth: number
+  conditionValue: number
+  conditionScale: string[]
+  conditionMarks: number[]
+  conditionReady: boolean
+  locationOptions: LocationOption[]
   form: PublishForm
   errors: Record<string, string>
 }
@@ -58,15 +75,17 @@ Component({
       qq: ''
     },
     categories: [],
-    conditionOptions: CONDITION_OPTIONS,
+    conditionValue: CONDITION_DEFAULT,
+    conditionScale: CONDITION_SCALE,
+    conditionMarks: CONDITION_MARKS,
+    conditionReady: true,
     locationOptions: LOCATION_OPTIONS,
-    priceInputWidth: getPriceInputWidth(''),
     form: {
       title: '',
       description: '',
       price: '',
-      conditionLevel: CONDITION_OPTIONS[1],
-      campusLocation: LOCATION_OPTIONS[0],
+      conditionLevel: getConditionLevel(CONDITION_DEFAULT),
+      campusLocation: LOCATION_VALUES[0],
       categoryId: '',
       photos: []
     },
@@ -75,13 +94,17 @@ Component({
 
   methods: {
     onLoad(options: Record<string, string | undefined>) {
+      const goodsId = options.id || ''
       ;(this as any)._skipNextOnShow = true
+      this.setData({
+        goodsId,
+        conditionReady: !goodsId
+      })
       this.checkToken().then(valid => {
         if (!valid) return
-        this.setData({ goodsId: options.id || '' })
         this.loadCategories()
-        if (options.id) {
-          this.loadGoods(options.id)
+        if (goodsId) {
+          this.loadGoods(goodsId)
         }
       })
     },
@@ -96,7 +119,10 @@ Component({
         const editId = wx.getStorageSync('editGoodsId')
         if (editId) {
           wx.removeStorageSync('editGoodsId')
-          this.setData({ goodsId: editId })
+          this.setData({
+            goodsId: editId,
+            conditionReady: false
+          })
           this.loadGoods(editId)
         }
       })
@@ -169,27 +195,38 @@ Component({
     },
 
     async loadGoods(id: string) {
-      this.setData({ loading: true })
+      this.setData({
+        loading: true,
+        conditionReady: false
+      })
       try {
         const res = await request<ApiResponse<GoodsDetail>>({
           url: `${app.globalData.baseUrl}/goods/${id}`,
           method: 'GET'
         })
         if (!res.data?.success) {
-          this.setData({ info: res.data?.message || loadFailed('商品信息') })
+          this.setData({
+            info: res.data?.message || loadFailed('商品信息'),
+            conditionReady: true
+          })
           return
         }
         const goods = res.data?.data
-        if (!goods) return
+        if (!goods) {
+          this.setData({ conditionReady: true })
+          return
+        }
         const price = String(goods.price || '')
+        const conditionLevel = goods.conditionLevel || getConditionLevel(CONDITION_DEFAULT)
         this.setData({
-          priceInputWidth: getPriceInputWidth(price),
+          conditionValue: getConditionValue(conditionLevel),
+          conditionReady: true,
           form: {
             title: goods.title || '',
             description: goods.description || '',
             price,
-            conditionLevel: goods.conditionLevel || CONDITION_OPTIONS[1],
-            campusLocation: goods.campusLocation || LOCATION_OPTIONS[0],
+            conditionLevel,
+            campusLocation: goods.campusLocation || LOCATION_VALUES[0],
             categoryId: String(goods.category?.id || ''),
             photos: (goods.imageUrls || []).map((url, i) => ({
               url,
@@ -199,17 +236,26 @@ Component({
           }
         })
       } catch (_err) {
-        this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
+        this.setData({
+          info: COMMON_MESSAGES.NETWORK_ERROR,
+          conditionReady: true
+        })
       } finally {
         this.setData({ loading: false })
       }
     },
 
-    onPriceInput(e: WechatMiniprogram.InputEvent) {
-      const price = e.detail.value
+    onPriceInput(e: WechatMiniprogram.CustomEvent<{ value: string }>) {
+      const price = String(e.detail.value || '')
       this.setData({
         'form.price': price,
-        priceInputWidth: getPriceInputWidth(price),
+        'errors.price': ''
+      })
+    },
+
+    onPriceClear() {
+      this.setData({
+        'form.price': '',
         'errors.price': ''
       })
     },
@@ -222,22 +268,41 @@ Component({
       this.setData({ 'form.description': e.detail.value, 'errors.description': '' })
     },
 
-    chooseCondition(e: WechatMiniprogram.TouchEvent) {
-      this.setData({ 'form.conditionLevel': e.currentTarget.dataset.value as string })
+    onConditionSliderChange(e: { detail: { value: number } }) {
+      const value = Math.min(
+        CONDITION_MAX,
+        Math.max(CONDITION_MIN, Math.round(Number(e.detail.value)))
+      )
+      if (
+        this.data.conditionValue === value &&
+        this.data.form.conditionLevel === getConditionLevel(value)
+      ) {
+        return
+      }
+      this.setData({
+        conditionValue: value,
+        'form.conditionLevel': getConditionLevel(value)
+      })
     },
 
-    chooseLocation(e: WechatMiniprogram.TouchEvent) {
-      this.setData({ 'form.campusLocation': e.currentTarget.dataset.value as string })
+    chooseLocation(e: WechatMiniprogram.CustomEvent<{ value: string | number }>) {
+      const value = String(e.detail.value || '')
+      if (this.data.form.campusLocation === value) return
+      this.setData({ 'form.campusLocation': value })
     },
 
-    chooseCategory(e: WechatMiniprogram.TouchEvent) {
+    chooseCategory(e: WechatMiniprogram.CustomEvent<{ checked: boolean }>) {
+      if (!e.detail.checked) return
       const id = String(e.currentTarget.dataset.id || '')
       if (this.data.form.categoryId === id) return
+      const shouldScrollToPhoto = !this.data.form.categoryId
       this.setData({
         'form.categoryId': id,
         'errors.categoryId': ''
       }, () => {
-        wx.pageScrollTo({ scrollTop: 0, duration: 220 })
+        if (shouldScrollToPhoto) {
+          wx.pageScrollTo({ scrollTop: 0, duration: 220 })
+        }
       })
     },
 
@@ -413,16 +478,17 @@ Component({
       this.setData({
         goodsId: '',
         info: '',
-        priceInputWidth: getPriceInputWidth(''),
         form: {
           title: '',
           description: '',
           price: '',
-          conditionLevel: CONDITION_OPTIONS[1],
-          campusLocation: LOCATION_OPTIONS[0],
+          conditionLevel: getConditionLevel(CONDITION_DEFAULT),
+          campusLocation: LOCATION_VALUES[0],
           categoryId: '',
           photos: []
         },
+        conditionValue: CONDITION_DEFAULT,
+        conditionReady: true,
         errors: {}
       })
     },

@@ -36,33 +36,80 @@
     </view>
 
     <view class="publish-card publish-price-card">
-      <view class="publish-price-row {{errors.price ? 'publish-field-error' : ''}}">
-        <view class="publish-price-cluster">
-          <text class="publish-price-label">价格</text>
-          <view class="publish-price-input-wrap">
-            <image class="publish-price-symbol" src="/static/icon-price-yuan.svg" mode="aspectFit" aria-hidden="true" />
-            <input class="publish-price-input" style="width: {{priceInputWidth}}rpx;" type="digit" maxlength="9" placeholder="0.00" value="{{form.price}}" bindinput="onPriceInput" />
-          </view>
-        </view>
+      <view class="publish-price-row">
+        <text class="publish-price-label">价格</text>
+        <t-input
+          class="publish-price-input-component"
+          t-class="publish-price-input-shell"
+          t-class-label="publish-price-input-a11y-label"
+          t-class-input="publish-price-td-input"
+          t-class-clearable="publish-price-clearable"
+          t-class-tips="publish-price-input-tips"
+          label="商品价格"
+          type="digit"
+          maxlength="9"
+          placeholder="0.00"
+          value="{{form.price}}"
+          borderless="{{true}}"
+          clearable="{{true}}"
+          clear-trigger="focus"
+          status="{{errors.price ? 'error' : 'default'}}"
+          tips="{{errors.price}}"
+          bind:change="onPriceInput"
+          bind:clear="onPriceClear"
+        >
+          <image slot="prefix-icon" class="publish-price-symbol" src="/static/icon-price-yuan.svg" mode="aspectFit" aria-hidden="true" />
+        </t-input>
       </view>
-      <text wx:if="{{errors.price}}" class="field-error publish-price-error">{{errors.price}}</text>
     </view>
 
     <view class="publish-card publish-condition-card">
       <text class="publish-card-title">成色</text>
-      <view class="publish-picker-grid condition-picker-grid">
-        <view wx:for="{{conditionOptions}}" wx:key="*this" class="publish-picker {{form.conditionLevel === item ? 'publish-picker-active' : ''}}" data-value="{{item}}" bindtap="chooseCondition">
-          {{item}}
+      <view class="publish-condition-control {{conditionReady ? 'publish-condition-control-ready' : ''}}">
+        <view class="publish-condition-readout" aria-live="polite">
+          <text wx:if="{{conditionValue < 10}}" class="publish-condition-number">{{conditionValue}}</text>
+          <text class="publish-condition-unit">{{conditionValue < 10 ? '成新' : '全新'}}</text>
+        </view>
+        <t-slider
+          class="publish-condition-slider"
+          t-class="publish-condition-slider-inner"
+          t-class-bar="publish-condition-slider-bar"
+          t-class-bar-active="publish-condition-slider-bar-active"
+          t-class-cursor="publish-condition-slider-cursor"
+          min="1"
+          max="10"
+          step="1"
+          value="{{conditionValue}}"
+          marks="{{conditionMarks}}"
+          label="{{false}}"
+          aria-label="商品成色，拖动选择一成新到全新"
+          bind:change="onConditionSliderChange"
+        />
+        <view class="publish-condition-scale" aria-hidden="true">
+          <text wx:for="{{conditionScale}}" wx:key="*this" class="{{index + 1 === conditionValue ? 'publish-condition-scale-active' : ''}}">{{item}}</text>
         </view>
       </view>
     </view>
 
     <view class="publish-card publish-category-card">
       <text class="publish-card-title">选择商品分类</text>
-      <view class="publish-picker-grid category-picker-grid">
-        <view wx:for="{{categories}}" wx:key="id" class="publish-picker {{form.categoryId == item.id ? 'publish-picker-active' : ''}}" data-id="{{item.id}}" bindtap="chooseCategory">
-          {{item.name}}
-        </view>
+      <view class="category-picker-grid" aria-role="radiogroup" aria-label="商品分类">
+        <t-check-tag
+          wx:for="{{categories}}"
+          wx:key="id"
+          class="publish-category-tag-host"
+          t-class="publish-category-tag"
+          checked="{{form.categoryId == item.id}}"
+          content="{{item.name}}"
+          variant="light-outline"
+          shape="square"
+          size="extra-large"
+          data-id="{{item.id}}"
+          aria-role="radio"
+          aria-checked="{{form.categoryId == item.id}}"
+          aria-label="{{item.name}}"
+          bind:change="chooseCategory"
+        />
       </view>
       <text wx:if="{{errors.categoryId}}" class="field-error">{{errors.categoryId}}</text>
     </view>
@@ -72,7 +119,7 @@
         <view class="publish-field">
           <view class="publish-field-inline">
             <text class="publish-field-label">标题</text>
-            <input class="publish-input" type="text" placeholder="例如：考研英语真题" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
+            <input class="publish-input" type="text" placeholder="例如：高等数学上册" value="{{form.title}}" maxlength="10" bindinput="onTitleInput" />
             <text class="char-count {{form.title.length >= 10 ? 'char-count-full' : ''}}">{{form.title.length}}/10</text>
           </view>
           <text wx:if="{{errors.title}}" class="field-error">{{errors.title}}</text>
@@ -81,7 +128,7 @@
         <view class="publish-field">
           <view class="publish-field-inline">
             <text class="publish-field-label">描述</text>
-            <textarea class="publish-textarea" placeholder="补充成色、配件和取货说明" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput"></textarea>
+            <textarea class="publish-textarea" placeholder="补全详细交易地点，商品信息等" value="{{form.description}}" maxlength="50" bindinput="onDescriptionInput"></textarea>
             <text class="char-count {{form.description.length >= 50 ? 'char-count-full' : ''}}">{{form.description.length}}/50</text>
           </view>
           <text wx:if="{{errors.description}}" class="field-error">{{errors.description}}</text>
@@ -91,12 +138,18 @@
 
     <view class="publish-card publish-location-card">
       <text class="publish-card-title">交易地点</text>
-      <view class="publish-location-row">
-        <view wx:for="{{locationOptions}}" wx:key="*this" class="publish-location {{form.campusLocation === item ? 'publish-location-active' : ''}}" data-value="{{item}}" bindtap="chooseLocation">
-          <image class="publish-location-icon" src="{{form.campusLocation === item ? '/static/icon-location-active.svg' : '/static/icon-location.svg'}}" mode="aspectFit" aria-hidden="true" />
-          <text>{{item}}</text>
-        </view>
-      </view>
+      <t-segmented
+        class="publish-location-segment {{conditionReady ? 'publish-location-segment-ready' : ''}}"
+        t-class="publish-location-segment-inner"
+        t-class-thumb="publish-location-segment-thumb"
+        t-class-item="publish-location-segment-item"
+        options="{{locationOptions}}"
+        value="{{form.campusLocation}}"
+        block="{{true}}"
+        aria-role="radiogroup"
+        aria-label="交易地点"
+        bind:change="chooseLocation"
+      />
     </view>
 
   </view>

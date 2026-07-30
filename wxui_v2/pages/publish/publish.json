@@ -2,6 +2,10 @@
   "navigationBarTitleText": "发布商品",
   "styleIsolation": "apply-shared",
   "usingComponents": {
-    "announcement-popup": "/components/announcement-popup/index"
+    "announcement-popup": "/components/announcement-popup/index",
+    "t-check-tag": "tdesign-miniprogram/check-tag/check-tag",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-segmented": "tdesign-miniprogram/segmented/segmented",
+    "t-slider": "tdesign-miniprogram/slider/slider"
   }
 }

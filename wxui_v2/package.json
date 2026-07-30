@@ -14,5 +14,8 @@
     "@types/wechat-miniprogram": "3.4.10",
     "tailwindcss": "^3.4.0",
     "typescript": "5.6.3"
+  },
+  "dependencies": {
+    "tdesign-miniprogram": "1.15.3"
   }
 }
