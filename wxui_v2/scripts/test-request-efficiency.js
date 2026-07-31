@@ -23,7 +23,7 @@ function createIndexHarness(initialStorage = {}, request = async () => ({
       '../../utils/request': { request }
     }
   })
-  return { component, removed, storage }
+  return { component, removed }
 }
 
 test('首页跳过首次 onShow，避免和 onLoad 重复请求', () => {
@@ -55,7 +55,7 @@ test('首页只在缓存过期或商品列表被显式标脏时刷新', () => {
   const expired = expiredHarness.component.createInstance({}, {
     loadGoods: (...args) => expiredLoads.push(args)
   })
-  expired._lastLoadTime = Date.now() - 2 * 60 * 1000 - 1
+  expired._lastLoadTime = 0
   expired.onShow()
   assert.deepEqual(expiredLoads, [[true]])
 

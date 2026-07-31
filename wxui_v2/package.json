@@ -6,7 +6,7 @@
     "build:css": "tailwindcss -i styles/global.css -o app.wxss",
     "dev:css": "tailwindcss -i styles/global.css -o app.wxss --watch",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-concurrency=1 scripts/test-*.js",
+    "test": "node --test scripts/test-*.js",
     "check:css": "node scripts/check-css-build.js",
     "verify": "node scripts/verify.js"
   },

@@ -27,7 +27,7 @@ function createUploadHarness(options = {}) {
       }
     }
   })
-  return { redirects, requestCalls, upload, wx }
+  return { redirects, requestCalls, upload }
 }
 
 test('头像上传按 1024px 压缩并传递 avatar 用途', async () => {

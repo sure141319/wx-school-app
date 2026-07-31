@@ -122,7 +122,7 @@ function loadComponent(relativePath, options = {}) {
       definition = value
     }
   }
-  const moduleExports = loadTsModule(relativePath, {
+  loadTsModule(relativePath, {
     ...options,
     globals
   })
@@ -131,7 +131,6 @@ function loadComponent(relativePath, options = {}) {
   }
   return {
     definition,
-    moduleExports,
     createInstance(dataOverrides, instanceOverrides) {
       return createComponentInstance(definition, dataOverrides, instanceOverrides)
     }
@@ -139,7 +138,6 @@ function loadComponent(relativePath, options = {}) {
 }
 
 module.exports = {
-  createComponentInstance,
   loadComponent,
   loadTsModule
 }

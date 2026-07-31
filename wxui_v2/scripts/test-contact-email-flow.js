@@ -10,7 +10,6 @@ function createDetailHarness(options = {}) {
     modals: [],
     navigations: [],
     requests: [],
-    storageWrites: [],
     toasts: []
   }
   const component = loadComponent('pages/goods/detail.ts', {
@@ -21,7 +20,6 @@ function createDetailHarness(options = {}) {
         getStorageSync: key => storage.get(key),
         setStorageSync(key, value) {
           storage.set(key, value)
-          calls.storageWrites.push({ key, value })
         },
         showModal: modal => calls.modals.push(modal),
         showToast: toast => calls.toasts.push(toast),
@@ -46,7 +44,7 @@ function createDetailHarness(options = {}) {
     goodsId: '42',
     isOwnGoods: Boolean(options.isOwnGoods)
   })
-  return { calls, component, instance, storage }
+  return { calls, instance }
 }
 
 test('自己的商品直接进入管理页，不请求联系接口', async () => {

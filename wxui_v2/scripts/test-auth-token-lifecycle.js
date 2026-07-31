@@ -8,7 +8,6 @@ function createRequestHarness(initialStorage = {}) {
     requests: [],
     redirects: [],
     removed: [],
-    storageWrites: [],
     toasts: []
   }
   const timers = []
@@ -16,7 +15,6 @@ function createRequestHarness(initialStorage = {}) {
     getStorageSync: key => storage.get(key),
     setStorageSync(key, value) {
       storage.set(key, value)
-      calls.storageWrites.push({ key, value })
     },
     removeStorageSync(key) {
       storage.delete(key)

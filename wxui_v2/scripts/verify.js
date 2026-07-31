@@ -12,7 +12,7 @@ const steps = [
   },
   {
     name: 'Mini program regression scripts',
-    args: ['--test', '--test-concurrency=1', 'scripts/test-*.js']
+    args: ['--test', 'scripts/test-*.js']
   },
   {
     name: 'Generated CSS drift check',
