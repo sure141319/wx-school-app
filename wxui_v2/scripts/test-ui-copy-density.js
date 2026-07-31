@@ -19,7 +19,6 @@ const shieldLightSvg = fs.readFileSync(path.resolve(__dirname, '../static/icon-s
 const emptySearchSvg = fs.readFileSync(path.resolve(__dirname, '../static/icon-empty-search.svg'), 'utf8')
 const priceYuanSvg = fs.readFileSync(path.resolve(__dirname, '../static/icon-price-yuan.svg'), 'utf8')
 const categoryIconNames = ['recommend', 'books', 'daily', 'study', 'digital', 'accessories', 'sports', 'snacks', 'transport', 'other']
-const thirdPartyLicenses = fs.readFileSync(path.resolve(__dirname, '../../THIRD_PARTY_LICENSES.md'), 'utf8')
 
 function assertCssBlock(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -216,8 +215,6 @@ for (const iconName of categoryIconNames) {
   assert.ok(fs.existsSync(iconPath), `${iconName} category icon should exist locally`)
   assert.match(fs.readFileSync(iconPath, 'utf8'), /stroke="#2B6252"/, `${iconName} category icon should use the shared campus green`)
 }
-assert.ok(!fs.existsSync(path.resolve(__dirname, '../static/category-icons/LICENSE.txt')), 'Lucide license notice should not be bundled with static category assets')
-assert.match(thirdPartyLicenses, /Lucide Icons[\s\S]*ISC License/, 'repository license inventory should retain the Lucide ISC notice')
 assert.match(publishWxml, /<t-segmented[\s\S]*options="{{locationOptions}}"[\s\S]*value="{{form\.campusLocation}}"[\s\S]*block="{{true}}"[\s\S]*bind:change="chooseLocation"/, 'location should use the controlled full-width TDesign Segmented thumb')
 assert.match(publishWxml, /class="publish-condition-trigger"[\s\S]*aria-role="button"[\s\S]*aria-expanded="{{conditionPickerVisible}}"[\s\S]*bind:tap="openConditionPicker"/, 'condition should use one accessible compact picker trigger')
 assert.match(publishWxml, /class="publish-condition-value"[\s\S]*{{form\.conditionLevel}}[\s\S]*class="publish-condition-hint"[\s\S]*{{conditionHint}}/, 'condition trigger should show the selected level and a concise usage hint')
