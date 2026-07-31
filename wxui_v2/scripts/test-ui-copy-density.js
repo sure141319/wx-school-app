@@ -12,17 +12,27 @@ const publishTs = fs.readFileSync(path.resolve(__dirname, '../pages/publish/publ
 const publishJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../pages/publish/publish.json'), 'utf8'))
 const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'))
 const globalCss = fs.readFileSync(path.resolve(__dirname, '../styles/global.css'), 'utf8')
+const categoryIconsTs = fs.readFileSync(path.resolve(__dirname, '../utils/category-icons.ts'), 'utf8')
 const tailwindConfig = fs.readFileSync(path.resolve(__dirname, '../tailwind.config.js'), 'utf8')
 const wxLoginSvg = fs.readFileSync(path.resolve(__dirname, '../static/wx-login.svg'), 'utf8')
 const shieldLightSvg = fs.readFileSync(path.resolve(__dirname, '../static/icon-shield-light.svg'), 'utf8')
 const emptySearchSvg = fs.readFileSync(path.resolve(__dirname, '../static/icon-empty-search.svg'), 'utf8')
 const priceYuanSvg = fs.readFileSync(path.resolve(__dirname, '../static/icon-price-yuan.svg'), 'utf8')
+const categoryIconNames = ['recommend', 'books', 'daily', 'study', 'digital', 'accessories', 'sports', 'snacks', 'transport', 'other']
+const thirdPartyLicenses = fs.readFileSync(path.resolve(__dirname, '../../THIRD_PARTY_LICENSES.md'), 'utf8')
 
 function assertCssBlock(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const match = globalCss.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, 'm'))
+  const match = globalCss.match(new RegExp(`^${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, 'm'))
   assert.ok(match, `${selector} style block should exist`)
   return match[1]
+}
+
+function assertLastCssBlock(selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const matches = Array.from(globalCss.matchAll(new RegExp(`^${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, 'gm')))
+  assert.ok(matches.length, `${selector} style block should exist`)
+  return matches[matches.length - 1][1]
 }
 
 assert.doesNotMatch(indexWxml, /Campus Trade/, 'home hero should remove placeholder English branding')
@@ -34,6 +44,10 @@ assert.match(indexWxml, /class="market-stamp-orbit"[\s\S]*class="market-stamp-ar
 assert.match(indexWxml, /<view class="trust-badge">\s*<view class="trust-dot"><\/view>\s*<text class="hero-note">图片审核后展示<\/text>\s*<\/view>\s*<button class="hero-publish-btn" bindtap="goToPublish">发布闲置<\/button>/, 'home footer should keep trust status and a direct publish action')
 assert.match(indexWxml, /<view class="home-search-section">[\s\S]*class="search-bar home-search-bar"/, 'home search should use a standalone full-width row')
 assert.match(indexWxml, /class="search-action" bindtap="onSearch">搜索<\/button>/, 'home search should use a clearly named action')
+assert.match(indexWxml, /class="cat-pill-icon" src="{{item\.icon}}"[\s\S]*class="cat-pill-label">{{item\.name}}/, 'home category filters should pair every label with its local svg icon')
+assert.match(indexTs, /categoryItems:\s*\[RECOMMEND_CATEGORY,\s*\.\.\.categories\.map\(withCategoryIcon\)\]/, 'home categories should reuse the shared icon mapping')
+assert.match(assertLastCssBlock('.cat-pill'), /display:\s*inline-flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*8rpx/, 'home category filters should keep icons and labels vertically aligned')
+assert.match(assertCssBlock('.cat-pill-icon'), /width:\s*24rpx[\s\S]*height:\s*24rpx/, 'home category icons should use one compact size')
 assert.doesNotMatch(indexWxml, /同校新上架|刚刚上架/, 'goods feed should remove the redundant listing heading')
 assert.doesNotMatch(globalCss, /\.goods-section-title|\.goods-section-kicker|\.goods-section-name/, 'removed listing heading should not leave unused styles')
 assert.match(indexWxml, /wx:if="{{total > 0}}" class="goods-count">{{total}} 件可逛/, 'goods count should display the server total instead of only loaded items')
@@ -193,6 +207,17 @@ assert.match(publishWxml, /<t-input[\s\S]*label="商品价格"[\s\S]*type="digit
 assert.match(publishWxml, /<image slot="prefix-icon" class="publish-price-symbol" src="\/static\/icon-price-yuan\.svg"/, 'price input should retain the local red yuan icon as its prefix')
 assert.doesNotMatch(publishWxml, /<input class="publish-price-input"/, 'price should no longer use the hand-sized native input')
 assert.match(publishWxml, /<t-check-tag[\s\S]*checked="{{form\.categoryId == item\.id}}"[\s\S]*variant="light-outline"[\s\S]*bind:change="chooseCategory"/, 'categories should use controlled single-select TDesign CheckTags')
+assert.match(publishWxml, /checked="{{form\.categoryId == item\.id}}"\s*content=""\s*variant="light-outline"/, 'category tags should pass an empty content prop so TDesign does not render its null default beside the custom slot')
+assert.match(publishWxml, /slot="icon"[\s\S]*class="publish-category-icon"[\s\S]*src="{{item\.icon}}"[\s\S]*slot="content" class="publish-category-name"/, 'category tags should pair each label with its local svg icon')
+assert.match(categoryIconsTs, /const CATEGORY_ICON_BY_NAME:[\s\S]*二手书:[\s\S]*日常用品:[\s\S]*学习用品:[\s\S]*数码产品:[\s\S]*电子配件:[\s\S]*体育运动:[\s\S]*食品零食:[\s\S]*代步工具:[\s\S]*其他:/, 'all supported category names should have a deterministic icon mapping')
+assert.match(publishTs, /\.map\(withCategoryIcon\)/, 'server categories should be enriched with icon paths before rendering')
+for (const iconName of categoryIconNames) {
+  const iconPath = path.resolve(__dirname, `../static/category-icons/${iconName}.svg`)
+  assert.ok(fs.existsSync(iconPath), `${iconName} category icon should exist locally`)
+  assert.match(fs.readFileSync(iconPath, 'utf8'), /stroke="#2B6252"/, `${iconName} category icon should use the shared campus green`)
+}
+assert.ok(!fs.existsSync(path.resolve(__dirname, '../static/category-icons/LICENSE.txt')), 'Lucide license notice should not be bundled with static category assets')
+assert.match(thirdPartyLicenses, /Lucide Icons[\s\S]*ISC License/, 'repository license inventory should retain the Lucide ISC notice')
 assert.match(publishWxml, /<t-segmented[\s\S]*options="{{locationOptions}}"[\s\S]*value="{{form\.campusLocation}}"[\s\S]*block="{{true}}"[\s\S]*bind:change="chooseLocation"/, 'location should use the controlled full-width TDesign Segmented thumb')
 assert.match(publishWxml, /class="publish-condition-trigger"[\s\S]*aria-role="button"[\s\S]*aria-expanded="{{conditionPickerVisible}}"[\s\S]*bind:tap="openConditionPicker"/, 'condition should use one accessible compact picker trigger')
 assert.match(publishWxml, /class="publish-condition-value"[\s\S]*{{form\.conditionLevel}}[\s\S]*class="publish-condition-hint"[\s\S]*{{conditionHint}}/, 'condition trigger should show the selected level and a concise usage hint')
@@ -217,7 +242,10 @@ assert.match(globalCss, /\.publish-category-tag-host:nth-child\(3n\)\s*\{[\s\S]*
 assert.match(assertCssBlock('.publish-category-tag'), /--td-tag-default-color:\s*var\(--color-text-secondary\)/, 'unselected category tags should use the TDesign token that applies to light-outline tags')
 assert.match(assertCssBlock('.publish-category-tag'), /--td-tag-primary-light-color:\s*var\(--color-primary-soft\)/, 'selected category tags should use the campus soft-green TDesign token')
 assert.match(assertCssBlock('.publish-category-tag'), /min-height:\s*80rpx/, 'category tags should retain comfortable mobile touch height')
+assert.match(assertCssBlock('.publish-category-tag'), /--td-tag-extra-large-padding:\s*12rpx[\s\S]*justify-content:\s*flex-start/, 'category tags should keep every icon and label on the same left-aligned grid')
 assert.match(assertCssBlock('.publish-category-tag'), /opacity 100ms ease/, 'category tags should provide immediate press feedback without layout movement')
+assert.match(assertCssBlock('.publish-category-icon-wrap'), /width:\s*42rpx[\s\S]*background:\s*rgba\(228, 236, 229, 0\.82\)/, 'category icons should sit in a consistent soft-green visual container')
+assert.match(assertCssBlock('.publish-category-icon'), /width:\s*28rpx[\s\S]*height:\s*28rpx/, 'category icon glyphs should use one consistent size')
 assert.match(assertCssBlock('.publish-location-segment'), /width:\s*320rpx/, 'location should remain a compact two-segment control')
 assert.match(assertCssBlock('.publish-location-segment-inner'), /--td-segmented-transition:\s*transform 240ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/, 'location thumb should use the approved transform-only motion')
 assert.match(assertCssBlock('.publish-location-segment-thumb'), /border:\s*2rpx solid var\(--color-primary\)/, 'location thumb should retain the campus paper-outline treatment')

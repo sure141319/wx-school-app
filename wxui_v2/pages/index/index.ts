@@ -1,5 +1,6 @@
 import { request } from '../../utils/request'
 import { COMMON_MESSAGES, loadFailed } from '../../utils/messages'
+import { CategoryWithIcon, RECOMMEND_CATEGORY, withCategoryIcon } from '../../utils/category-icons'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 const GOODS_LIST_DIRTY_KEY = 'goodsListDirty'
@@ -18,7 +19,7 @@ interface IndexPageData {
   categoryId: string
   page: number
   size: number
-  categoryItems: Category[]
+  categoryItems: CategoryWithIcon[]
 }
 
 Component({
@@ -35,7 +36,7 @@ Component({
     categoryId: '',
     page: 0,
     size: 8,
-    categoryItems: [{ id: '', name: '推荐' }]
+    categoryItems: [RECOMMEND_CATEGORY]
   } as IndexPageData,
 
   methods: {
@@ -116,7 +117,7 @@ Component({
         }
         const categories = (res.data?.data as unknown as Category[]) || []
         this.setData({
-          categoryItems: [{ id: '', name: '推荐' }, ...categories]
+          categoryItems: [RECOMMEND_CATEGORY, ...categories.map(withCategoryIcon)]
         })
       } catch (_err) {
         this.setData({ statusText: COMMON_MESSAGES.NETWORK_ERROR })

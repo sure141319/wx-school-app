@@ -113,7 +113,7 @@
           class="publish-category-tag-host"
           t-class="publish-category-tag"
           checked="{{form.categoryId == item.id}}"
-          content="{{item.name}}"
+          content=""
           variant="light-outline"
           shape="square"
           size="extra-large"
@@ -122,7 +122,20 @@
           aria-checked="{{form.categoryId == item.id}}"
           aria-label="{{item.name}}"
           bind:change="chooseCategory"
-        />
+        >
+          <view
+            slot="icon"
+            class="publish-category-icon-wrap {{form.categoryId == item.id ? 'publish-category-icon-wrap-selected' : ''}}"
+          >
+            <image
+              class="publish-category-icon"
+              src="{{item.icon}}"
+              mode="aspectFit"
+              aria-hidden="true"
+            />
+          </view>
+          <text slot="content" class="publish-category-name">{{item.name}}</text>
+        </t-check-tag>
       </view>
       <text wx:if="{{errors.categoryId}}" class="field-error">{{errors.categoryId}}</text>
     </view>

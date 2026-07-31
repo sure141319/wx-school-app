@@ -3,6 +3,7 @@ import { deleteStagedImage, uploadImage } from '../../utils/upload'
 import { hasContactMethod, validateContactDraft } from '../../utils/contact'
 import { COMMON_MESSAGES, actionFailed, isUserCancellation, loadFailed } from '../../utils/messages'
 import { updateStoredUser } from '../../utils/storage'
+import { CategoryWithIcon, withCategoryIcon } from '../../utils/category-icons'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 
@@ -65,7 +66,7 @@ interface PublishPageData {
     wechatId: string
     qq: string
   }
-  categories: Category[]
+  categories: CategoryWithIcon[]
   conditionOptions: typeof CONDITION_OPTIONS
   conditionPickerValue: string[]
   conditionPickerVisible: boolean
@@ -204,7 +205,7 @@ Component({
           this.setData({ info: res.data?.message || loadFailed('分类') })
           return
         }
-        const categories = (res.data?.data as unknown as Category[]) || []
+        const categories = ((res.data?.data as unknown as Category[]) || []).map(withCategoryIcon)
         this.setData({ categories })
       } catch (_err) {
         this.setData({ info: COMMON_MESSAGES.NETWORK_ERROR })
