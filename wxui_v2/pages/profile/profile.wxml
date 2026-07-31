@@ -321,7 +321,7 @@
   <view class="modal-dialog campus-other-modal" wx:if="{{showCampusOtherModal}}">
     <view class="modal-title">校内小程序</view>
     <view class="modal-body campus-other-body">
-      <text class="modal-text campus-other-text">安工大校内小程序，长按可识别前往/转发给校友</text>
+      <text class="modal-text campus-other-text">安工大校内小程序，长按可前往/转发给校友</text>
       <view class="campus-other-code-list">
         <image class="campus-other-code" src="/static/ahut-campus-miniprogram-code.jpg" mode="aspectFit" show-menu-by-longpress="true" data-src="/static/ahut-campus-miniprogram-code.jpg" bindtap="previewCampusOtherCode" />
         <image class="campus-other-code" src="/static/ahut-other-miniprogram-code.jpg" mode="aspectFit" show-menu-by-longpress="true" data-src="/static/ahut-other-miniprogram-code.jpg" bindtap="previewCampusOtherCode" />
