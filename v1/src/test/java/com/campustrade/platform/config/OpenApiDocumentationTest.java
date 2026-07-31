@@ -40,12 +40,16 @@ class OpenApiDocumentationTest {
     }
 
     @Test
-    void swaggerUiEntryAndAssetsArePublic() throws Exception {
+    void swaggerUiEntryAssetsAndRemoteConfigArePublic() throws Exception {
         mockMvc.perform(get("/api/v1/docs"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/api/v1/swagger-ui/index.html"));
 
         mockMvc.perform(get("/api/v1/swagger-ui/index.html"))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/openapi.json/swagger-config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url", is("/api/v1/openapi.json")));
     }
 }
