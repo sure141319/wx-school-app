@@ -1,35 +1,87 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+const { test } = require('node:test')
+const { loadComponent, loadTsModule } = require('./test-support/runtime')
 
-const miniProgramRoot = path.resolve(__dirname, '..')
-const repositoryRoot = path.resolve(miniProgramRoot, '..')
+function loadStorage(valueOrError) {
+  const writes = []
+  const storage = loadTsModule('utils/storage.ts', {
+    globals: {
+      wx: {
+        getStorageSync() {
+          if (valueOrError instanceof Error) throw valueOrError
+          return valueOrError
+        },
+        setStorageSync: (key, value) => writes.push({ key, value })
+      }
+    }
+  })
+  return { storage, writes }
+}
 
-const read = (...segments) => fs.readFileSync(path.join(...segments), 'utf8')
-const publishTs = read(miniProgramRoot, 'pages', 'publish', 'publish.ts')
-const indexTs = read(miniProgramRoot, 'pages', 'index', 'index.ts')
-const profileTs = read(miniProgramRoot, 'pages', 'profile', 'profile.ts')
-const storageTs = read(miniProgramRoot, 'utils', 'storage.ts')
-const adminGoodsJs = read(repositoryRoot, 'checkui', 'js', 'goods.js')
-const applicationYaml = read(repositoryRoot, 'v1', 'src', 'main', 'resources', 'application.yml')
+test('损坏或异常的用户缓存安全降级为空资料', () => {
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(loadStorage('{broken').storage.readStoredUser())),
+    {}
+  )
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(loadStorage(['unexpected']).storage.readStoredUser())),
+    {}
+  )
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(loadStorage(new Error('storage failed')).storage.readStoredUser())),
+    {}
+  )
+})
 
-const chooseCategoryBlock = publishTs.match(
-  /chooseCategory\(e:[\s\S]*?\n\s*chooseImages\(\)/
-)?.[0] || ''
+test('更新用户缓存会合并已有字段，不覆盖未修改资料', () => {
+  const harness = loadStorage(JSON.stringify({
+    id: 7,
+    nickname: '原昵称',
+    qq: '123456'
+  }))
 
-assert.match(adminGoodsJs, /request\(`\/audit\/goods\?\$\{params\.toString\(\)\}`\)/)
-assert.doesNotMatch(adminGoodsJs, /request\(`\/goods\?\$\{params\.toString\(\)\}`,\s*\{\s*auth:\s*false\s*\}\)/)
+  harness.storage.updateStoredUser({ nickname: '新昵称' })
 
-assert.ok(chooseCategoryBlock, 'publish page should keep a category selection handler')
-assert.doesNotMatch(chooseCategoryBlock, /'form\.(title|description)'/)
+  const written = JSON.parse(harness.writes[0].value)
+  assert.deepEqual(written, {
+    id: 7,
+    nickname: '新昵称',
+    qq: '123456'
+  })
+})
 
-assert.match(indexTs, /_goodsRequestSequence/)
-assert.match(indexTs, /requestSequence !== \(this as any\)\._goodsRequestSequence/)
-assert.match(profileTs, /_profileRequestSequence/)
-assert.match(profileTs, /_goodsRequestSequence/)
+test('选择商品分类只更新分类，不清空已填写标题和描述', () => {
+  const scrolls = []
+  const component = loadComponent('pages/publish/publish.ts', {
+    globals: {
+      getApp: () => ({ globalData: { baseUrl: 'https://api.example.test' } }),
+      wx: {
+        pageScrollTo: options => scrolls.push(options)
+      }
+    },
+    mocks: {
+      '../../utils/request': {
+        getToken: () => 'token-1',
+        redirectToLogin: () => {},
+        request: async () => ({ statusCode: 200, data: { success: true } })
+      },
+      '../../utils/upload': {
+        uploadImage: async () => ({}),
+        deleteStagedImage: async () => {}
+      }
+    }
+  })
+  const instance = component.createInstance()
+  instance.data.form.title = '高等数学教材'
+  instance.data.form.description = '同济版，上册'
 
-assert.match(storageTs, /try\s*\{[\s\S]*JSON\.parse/)
-assert.match(storageTs, /catch\s*\(_error\)\s*\{\s*return \{\}/)
-assert.match(applicationYaml, /connection-init-sql:\s*"\$\{DB_CONNECTION_INIT_SQL:SET time_zone = '\+08:00'\}"/)
+  instance.chooseCategory({
+    detail: { checked: true },
+    currentTarget: { dataset: { id: '3' } }
+  })
 
-console.log('Medium-priority regression checks passed')
+  assert.equal(instance.data.form.categoryId, '3')
+  assert.equal(instance.data.form.title, '高等数学教材')
+  assert.equal(instance.data.form.description, '同济版，上册')
+  assert.equal(scrolls.length, 1)
+})

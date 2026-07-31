@@ -1,76 +1,191 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+const { test } = require('node:test')
+const { loadComponent } = require('./test-support/runtime')
 
-const detailTs = fs.readFileSync(path.resolve(__dirname, '../pages/goods/detail.ts'), 'utf8')
-const detailWxml = fs.readFileSync(path.resolve(__dirname, '../pages/goods/detail.wxml'), 'utf8')
+const rewardStorageKey = 'contactEmailAdReward:adunit-6fbfdd44c8cbdc8b'
 
-assert.match(
-  detailTs,
-  /\/goods\/\$\{this\.data\.goodsId\}\/contact-email-eligibility/,
-  'detail page should check both email bindings before showing the ad'
-)
-assert.match(detailTs, /title: '请绑定邮箱'/, 'buyer without email should receive the requested bind email prompt')
-assert.match(detailTs, /content: '卖家未绑定邮箱，无法发送'/, 'seller without email should block sending with the requested prompt')
-assert.match(
-  detailTs,
-  /CONTACT_EMAIL_AD_REWARD_TTL = 24 \* 60 \* 60 \* 1000/,
-  'completed ad reward should remain valid for exactly 24 hours'
-)
-assert.match(
-  detailTs,
-  /CONTACT_EMAIL_AD_UNIT_ID = 'adunit-6fbfdd44c8cbdc8b'/,
-  'contact email flow should use the configured rewarded video ad unit'
-)
-assert.match(
-  detailTs,
-  /content: '观看广告后可开启此功能（1天内有效），感谢支持。'[\s\S]*?confirmText: '是'[\s\S]*?cancelText: '否'/,
-  'first use should ask whether to watch the ad with the requested copy and choices'
-)
-assert.match(
-  detailTs,
-  /CONTACT_EMAIL_AD_REWARD_STORAGE_KEY = `contactEmailAdReward:\$\{CONTACT_EMAIL_AD_UNIT_ID\}`/,
-  'reward cache should be scoped to the active ad unit so stale rewards do not skip confirmation'
-)
-assert.match(
-  detailTs,
-  /if \(!res \|\| res\.isEnded\) \{[\s\S]*?saveContactEmailAdReward\(\)[\s\S]*?sendContactEmail\(\)/,
-  'only a completed rewarded video should grant the reward and trigger sending'
-)
-assert.match(
-  detailTs,
-  /hasValidContactEmailAdReward\(\)[\s\S]*?reward\.userId === userId[\s\S]*?Number\(reward\.validUntil\) > Date\.now\(\)/,
-  'ad reward should be isolated by current account and expiry time'
-)
-assert.match(
-  detailTs,
-  /isCurrentUsersGoods\(goods\?: GoodsDetail\)[\s\S]*?userId === String\(sellerId\)/,
-  'detail page should identify goods published by the current account'
-)
-assert.match(
-  detailTs,
-  /if \(eligibility\.ownGoods\) \{[\s\S]*?isOwnGoods: true[\s\S]*?这是你发布的商品/,
-  'server eligibility should provide a fallback own-goods guard'
-)
-assert.match(
-  detailTs,
-  /\/goods\/\$\{this\.data\.goodsId\}\/contact-email`[\s\S]*?method: 'POST'/,
-  'completed flow should call the authenticated contact email endpoint'
-)
-assert.match(
-  detailWxml,
-  /class="detail-contact-dock"[\s\S]*?一键发邮件通知卖家[\s\S]*?bindtap="contactSellerByEmail"/,
-  'persistent bottom action should be replaced with one-tap seller email'
-)
-assert.doesNotMatch(
-  detailWxml,
-  /<view wx:if="{{goods\.seller\.wechatId \|\| goods\.seller\.qq}}" class="detail-contact-dock">/,
-  'email action should stay visible so missing seller email can be explained on tap'
-)
-assert.match(
-  detailWxml,
-  /wx:if="{{isOwnGoods}}"[\s\S]*?bindtap="goMyGoods"[\s\S]*?<text>去管理<\/text>[\s\S]*?wx:else[\s\S]*?bindtap="contactSellerByEmail"/,
-  'own goods should replace the email action with a management action'
-)
+function createDetailHarness(options = {}) {
+  const storage = new Map(Object.entries(options.storage || {}))
+  const calls = {
+    modals: [],
+    navigations: [],
+    requests: [],
+    storageWrites: [],
+    toasts: []
+  }
+  const component = loadComponent('pages/goods/detail.ts', {
+    globals: {
+      getApp: () => ({ globalData: { baseUrl: 'https://api.example.test' } }),
+      getCurrentPages: () => [{}],
+      wx: {
+        getStorageSync: key => storage.get(key),
+        setStorageSync(key, value) {
+          storage.set(key, value)
+          calls.storageWrites.push({ key, value })
+        },
+        showModal: modal => calls.modals.push(modal),
+        showToast: toast => calls.toasts.push(toast),
+        showLoading: () => {},
+        hideLoading: () => {},
+        switchTab: navigation => calls.navigations.push(navigation),
+        navigateTo: navigation => calls.navigations.push(navigation)
+      }
+    },
+    mocks: {
+      '../../utils/request': {
+        request: async requestOptions => {
+          calls.requests.push(requestOptions)
+          return options.request
+            ? options.request(requestOptions)
+            : { statusCode: 200, data: { success: true } }
+        }
+      }
+    }
+  })
+  const instance = component.createInstance({
+    goodsId: '42',
+    isOwnGoods: Boolean(options.isOwnGoods)
+  })
+  return { calls, component, instance, storage }
+}
 
-console.log('contact email flow tests passed')
+test('自己的商品直接进入管理页，不请求联系接口', async () => {
+  const harness = createDetailHarness({
+    isOwnGoods: true,
+    storage: { token: 'token-1' }
+  })
+
+  await harness.instance.contactSellerByEmail()
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(harness.calls.navigations)),
+    [{ url: '/pages/profile/profile' }]
+  )
+  assert.equal(harness.calls.requests.length, 0)
+})
+
+test('匿名访客收到登录说明，不会请求邮箱资格', async () => {
+  const harness = createDetailHarness()
+
+  await harness.instance.contactSellerByEmail()
+
+  assert.equal(harness.calls.requests.length, 0)
+  assert.equal(harness.calls.modals[0].title, '请先登录')
+  assert.match(harness.calls.modals[0].content, /登录并绑定邮箱/)
+})
+
+test('买家或卖家未绑定邮箱时给出对应提示', async (t) => {
+  await t.test('买家未绑定', async () => {
+    const harness = createDetailHarness({
+      storage: { token: 'token-1' },
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: { ownGoods: false, buyerEmailBound: false, sellerEmailBound: true }
+        }
+      })
+    })
+    await harness.instance.contactSellerByEmail()
+    assert.equal(harness.calls.modals[0].title, '请绑定邮箱')
+  })
+
+  await t.test('卖家未绑定', async () => {
+    const harness = createDetailHarness({
+      storage: { token: 'token-1' },
+      request: async () => ({
+        statusCode: 200,
+        data: {
+          success: true,
+          data: { ownGoods: false, buyerEmailBound: true, sellerEmailBound: false }
+        }
+      })
+    })
+    await harness.instance.contactSellerByEmail()
+    assert.equal(harness.calls.modals[0].content, '卖家未绑定邮箱，无法发送')
+  })
+})
+
+test('有效广告奖励按当前账号复用并直接发送邮件', async () => {
+  const harness = createDetailHarness({
+    storage: {
+      token: 'token-1',
+      user: JSON.stringify({ id: 9 }),
+      [rewardStorageKey]: {
+        userId: '9',
+        validUntil: Date.now() + 60_000
+      }
+    },
+    request: async requestOptions => {
+      if (requestOptions.method === 'POST') {
+        return { statusCode: 200, data: { success: true } }
+      }
+      return {
+        statusCode: 200,
+        data: {
+          success: true,
+          data: { ownGoods: false, buyerEmailBound: true, sellerEmailBound: true }
+        }
+      }
+    }
+  })
+
+  await harness.instance.contactSellerByEmail()
+  await new Promise(resolve => setImmediate(resolve))
+
+  assert.equal(harness.calls.requests.length, 2)
+  assert.equal(harness.calls.requests[1].method, 'POST')
+  assert.equal(
+    harness.calls.requests[1].url,
+    'https://api.example.test/goods/42/contact-email'
+  )
+  assert.equal(harness.calls.modals.length, 0)
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(harness.calls.toasts.at(-1))),
+    { title: '已通知卖家', icon: 'success' }
+  )
+})
+
+test('其他账号的广告奖励不会被复用', async () => {
+  const harness = createDetailHarness({
+    storage: {
+      token: 'token-1',
+      user: JSON.stringify({ id: 9 }),
+      [rewardStorageKey]: {
+        userId: '8',
+        validUntil: Date.now() + 60_000
+      }
+    },
+    request: async () => ({
+      statusCode: 200,
+      data: {
+        success: true,
+        data: { ownGoods: false, buyerEmailBound: true, sellerEmailBound: true }
+      }
+    })
+  })
+
+  await harness.instance.contactSellerByEmail()
+
+  assert.equal(harness.calls.requests.length, 1)
+  assert.match(harness.calls.modals[0].content, /观看广告后可开启此功能/)
+})
+
+test('服务端判定为自己的商品时更新页面状态并阻止发送', async () => {
+  const harness = createDetailHarness({
+    storage: { token: 'token-1' },
+    request: async () => ({
+      statusCode: 200,
+      data: {
+        success: true,
+        data: { ownGoods: true, buyerEmailBound: true, sellerEmailBound: true }
+      }
+    })
+  })
+
+  await harness.instance.contactSellerByEmail()
+
+  assert.equal(harness.instance.data.isOwnGoods, true)
+  assert.equal(harness.calls.requests.length, 1)
+  assert.equal(harness.calls.toasts[0].title, '这是你发布的商品')
+})

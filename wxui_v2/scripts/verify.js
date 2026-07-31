@@ -5,18 +5,18 @@ const projectRoot = path.resolve(__dirname, '..')
 const steps = [
   {
     name: 'TypeScript strict check',
-    script: require.resolve('typescript/lib/tsc.js', { paths: [projectRoot] }),
-    args: ['--noEmit']
+    args: [
+      require.resolve('typescript/lib/tsc.js', { paths: [projectRoot] }),
+      '--noEmit'
+    ]
   },
   {
     name: 'Mini program regression scripts',
-    script: path.join(__dirname, 'run-tests.js'),
-    args: []
+    args: ['--test', '--test-concurrency=1', 'scripts/test-*.js']
   },
   {
     name: 'Generated CSS drift check',
-    script: path.join(__dirname, 'check-css-build.js'),
-    args: []
+    args: [path.join(__dirname, 'check-css-build.js')]
   }
 ]
 
@@ -24,7 +24,7 @@ for (const step of steps) {
   console.log(`\n== ${step.name} ==`)
   const result = spawnSync(
     process.execPath,
-    [step.script, ...step.args],
+    step.args,
     {
       cwd: projectRoot,
       stdio: 'inherit'

@@ -1,36 +1,121 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+const { test } = require('node:test')
+const { loadComponent, loadTsModule } = require('./test-support/runtime')
 
-const root = path.join(__dirname, '..')
-const appTs = fs.readFileSync(path.join(root, 'app.ts'), 'utf8')
-const appJson = fs.readFileSync(path.join(root, 'app.json'), 'utf8')
-const popupTs = fs.readFileSync(path.join(root, 'components/announcement-popup/index.ts'), 'utf8')
-const popupWxml = fs.readFileSync(path.join(root, 'components/announcement-popup/index.wxml'), 'utf8')
-const popupWxss = fs.readFileSync(path.join(root, 'components/announcement-popup/index.wxss'), 'utf8')
+test('公告组件打开后展示内容，忽略操作只回调一次', () => {
+  const component = loadComponent('components/announcement-popup/index.ts')
+  const instance = component.createInstance()
+  let ignored = 0
 
-assert.match(appTs, /onShow\(\)[\s\S]*checkAndShowAnnouncement/)
-assert.doesNotMatch(appTs, /wx\.showModal/)
-assert.match(appTs, /waitForAnnouncementPopup\(\)/)
-assert.match(appTs, /onIgnore:\s*\(\) => \{\s*announcementModalVisible = false/)
-assert.match(appTs, /onRead:\s*\(\) => \{[\s\S]*wx\.setStorageSync/)
-assert.match(appTs, /readState\.date === today && readState\.revision === announcement\.revision/)
-assert.match(appTs, /BEIJING_UTC_OFFSET_MINUTES/)
-assert.match(appTs, /catch \(_error\)[\s\S]*公告加载失败不应阻塞小程序/)
-assert.doesNotMatch(appJson, /"announcement-popup":\s*"\/components\/announcement-popup\/index"/, 'announcement popup should not be registered globally')
-assert.match(popupTs, /handleIgnore\(\)[\s\S]*action\?\.\(\)/)
-assert.match(popupTs, /handleRead\(\)[\s\S]*action\?\.\(\)/)
-assert.match(popupWxml, /bindtap="handleIgnore"[\s\S]*>忽略<\/button>/)
-assert.match(popupWxml, /bindtap="handleRead"[\s\S]*>已读<\/button>/)
-assert.match(popupWxml, /scroll-view[\s\S]*\{\{content\}\}/)
-assert.match(popupWxml, /show-scrollbar="\{\{true\}\}"/)
-assert.match(popupWxss, /\.announcement-panel[\s\S]*background:\s*#fffdfb/)
+  instance.open({
+    title: '维护通知',
+    content: '今晚进行维护',
+    onIgnore: () => { ignored += 1 },
+    onRead: () => {}
+  })
+  assert.deepEqual(
+    { visible: instance.data.visible, title: instance.data.title, content: instance.data.content },
+    { visible: true, title: '维护通知', content: '今晚进行维护' }
+  )
 
-for (const page of ['index/index', 'auth/auth', 'goods/detail', 'publish/publish', 'profile/profile', 'about/about']) {
-  const wxml = fs.readFileSync(path.join(root, 'pages', `${page}.wxml`), 'utf8')
-  const pageJson = fs.readFileSync(path.join(root, 'pages', `${page}.json`), 'utf8')
-  assert.match(wxml, /<announcement-popup id="announcementPopup" \/>/, `${page} should mount the announcement popup`)
-  assert.match(pageJson, /"announcement-popup":\s*"\/components\/announcement-popup\/index"/, `${page} should register the announcement popup locally`)
-}
+  instance.handleIgnore()
+  instance.handleIgnore()
+  assert.equal(instance.data.visible, false)
+  assert.equal(ignored, 1)
+})
 
-console.log('announcement flow checks passed')
+test('点击已读记录北京时间日期和公告版本', async () => {
+  const storageWrites = []
+  let appDefinition
+  let popupOptions
+  class FakeDate extends Date {
+    constructor(...args) {
+      super(args.length ? args[0] : '2025-12-31T16:00:00Z')
+    }
+  }
+
+  loadTsModule('app.ts', {
+    globals: {
+      App(value) {
+        appDefinition = value
+      },
+      Date: FakeDate,
+      getCurrentPages: () => [{
+        selectComponent: () => ({
+          open(options) {
+            popupOptions = options
+          }
+        })
+      }],
+      wx: {
+        getStorageSync: () => undefined,
+        setStorageSync: (key, value) => storageWrites.push({ key, value })
+      }
+    },
+    mocks: {
+      './config/env': { getBaseUrl: () => 'https://api.example.test' },
+      './utils/request': {
+        request: async () => ({
+          statusCode: 200,
+          data: {
+            success: true,
+            data: { title: '维护通知', content: '今晚进行维护', revision: 7 }
+          }
+        })
+      }
+    }
+  })
+
+  appDefinition.onShow.call(appDefinition)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(popupOptions.title, '维护通知')
+  assert.equal(popupOptions.content, '今晚进行维护')
+
+  popupOptions.onRead()
+  assert.deepEqual(JSON.parse(JSON.stringify(storageWrites)), [{
+    key: 'announcementReadState',
+    value: { date: '2026-01-01', revision: 7 }
+  }])
+})
+
+test('当天已读同版本公告不会再次打开', async () => {
+  let appDefinition
+  let opened = false
+  class FakeDate extends Date {
+    constructor(...args) {
+      super(args.length ? args[0] : '2025-12-31T16:00:00Z')
+    }
+  }
+
+  loadTsModule('app.ts', {
+    globals: {
+      App(value) {
+        appDefinition = value
+      },
+      Date: FakeDate,
+      getCurrentPages: () => [{
+        selectComponent: () => ({ open: () => { opened = true } })
+      }],
+      wx: {
+        getStorageSync: () => ({ date: '2026-01-01', revision: 7 }),
+        setStorageSync: () => {}
+      }
+    },
+    mocks: {
+      './config/env': { getBaseUrl: () => 'https://api.example.test' },
+      './utils/request': {
+        request: async () => ({
+          statusCode: 200,
+          data: {
+            success: true,
+            data: { title: '维护通知', content: '今晚进行维护', revision: 7 }
+          }
+        })
+      }
+    }
+  })
+
+  appDefinition.onShow.call(appDefinition)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(opened, false)
+})

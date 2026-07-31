@@ -1,53 +1,158 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+const { test } = require('node:test')
+const { loadComponent } = require('./test-support/runtime')
 
-const profileTs = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.ts'), 'utf8')
-const profileApiTs = fs.readFileSync(path.resolve(__dirname, '../services/profile-api.ts'), 'utf8')
-const profileWxml = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.wxml'), 'utf8')
-const appWxss = fs.readFileSync(path.resolve(__dirname, '../app.wxss'), 'utf8')
+function createProfileHarness() {
+  const calls = {
+    cleared: 0,
+    modals: [],
+    relaunched: [],
+    storedProfiles: [],
+    toasts: [],
+    unbindEmail: 0,
+    unbindWechat: 0
+  }
+  const component = loadComponent('pages/profile/profile.ts', {
+    globals: {
+      getApp: () => ({ globalData: { baseUrl: 'https://api.example.test' } }),
+      wx: {
+        showModal: options => calls.modals.push(options),
+        showToast: options => calls.toasts.push(options),
+        reLaunch: options => calls.relaunched.push(options.url)
+      }
+    },
+    mocks: {
+      '../../utils/request': {
+        clearToken: () => { calls.cleared += 1 }
+      },
+      '../../utils/upload': {
+        uploadImage: async () => ({}),
+        deleteStagedImage: async () => {}
+      },
+      '../../utils/storage': {
+        updateStoredUser: profile => calls.storedProfiles.push(profile)
+      },
+      '../../services/profile-api': {
+        unbindWechatAccount: async () => {
+          calls.unbindWechat += 1
+          return {
+            id: 1,
+            nickname: '同学',
+            email: 'student@qq.com',
+            wechatOpenid: '',
+            avatarUrl: '',
+            wechatId: '',
+            qq: '123456'
+          }
+        },
+        unbindEmailAccount: async () => {
+          calls.unbindEmail += 1
+          return {
+            id: 1,
+            nickname: '同学',
+            email: '',
+            wechatOpenid: 'openid-1',
+            avatarUrl: '',
+            wechatId: '',
+            qq: '123456'
+          }
+        }
+      }
+    }
+  })
+  return { calls, component }
+}
 
-assert.match(
-  profileTs,
-  /confirmUnbindWechat\(\)[\s\S]*?if \(!this\.data\.profile\.email\)[\s\S]*?请先绑定QQ邮箱/,
-  'WeChat unbind should require email login to remain available'
-)
-assert.match(
-  profileApiTs,
-  /\/users\/me\/wechat-bind`[\s\S]*?method: 'DELETE'/,
-  'profile API service should call the authenticated WeChat unbind endpoint'
-)
-assert.match(
-  profileTs,
-  /confirmUnbindEmail\(\)[\s\S]*?if \(!this\.data\.profile\.wechatOpenid\)[\s\S]*?请先绑定微信/,
-  'email unbind should require WeChat login to remain available'
-)
-assert.match(
-  profileApiTs,
-  /\/users\/me\/email-bind`[\s\S]*?method: 'DELETE'/,
-  'profile API service should call the authenticated email unbind endpoint'
-)
-assert.match(profileWxml, /bindtap="confirmUnbindWechat"/, 'bound WeChat row should expose unbind')
-assert.match(profileWxml, /bindtap="confirmUnbindEmail"/, 'bound email row should expose unbind')
-assert.match(
-  profileWxml,
-  /wx:else class="account-bind-state-actions"[\s\S]*?未绑定[\s\S]*?bindtap="toggleBindEmailForm"[\s\S]*?showBindEmailForm \? '收起' : '去绑定'/,
-  'unbound email should render a compact state with an explicit expand action'
-)
-assert.match(
-  profileWxml,
-  /<block wx:elif="{{showBindEmailForm}}">[\s\S]*?绑定QQ邮箱[\s\S]*?<text wx:else class="wechat-bind-desc account-bind-empty-desc">/,
-  'email binding fields should render only after the compact state is expanded'
-)
-assert.match(
-  profileTs,
-  /unbindEmail\(\)[\s\S]*?showBindEmailForm: false/,
-  'successful email unbind should return to the compact state'
-)
-assert.match(
-  appWxss,
-  /\.account-unbind-button,\s*\.account-bind-toggle-button\s*\{[\s\S]*?display:\s*inline-flex[\s\S]*?height:\s*54rpx[\s\S]*?align-items:\s*center[\s\S]*?justify-content:\s*center[\s\S]*?line-height:\s*1\.2/,
-  'account action button labels should be vertically centered with explicit flex geometry'
-)
+test('解绑微信前必须保留邮箱登录方式', () => {
+  const harness = createProfileHarness()
+  const instance = harness.component.createInstance({
+    profile: {
+      nickname: '同学',
+      email: '',
+      wechatOpenid: 'openid-1',
+      avatarUrl: '',
+      wechatId: '',
+      qq: ''
+    }
+  })
 
-console.log('profile account unbind tests passed')
+  instance.confirmUnbindWechat()
+
+  assert.equal(harness.calls.modals[0].title, '暂不可解绑')
+  assert.match(harness.calls.modals[0].content, /请先绑定QQ邮箱/)
+  assert.equal(harness.calls.unbindWechat, 0)
+})
+
+test('解绑邮箱前必须保留微信登录方式', () => {
+  const harness = createProfileHarness()
+  const instance = harness.component.createInstance({
+    profile: {
+      nickname: '同学',
+      email: 'student@qq.com',
+      wechatOpenid: '',
+      avatarUrl: '',
+      wechatId: '',
+      qq: ''
+    }
+  })
+
+  instance.confirmUnbindEmail()
+
+  assert.equal(harness.calls.modals[0].title, '暂不可解绑')
+  assert.match(harness.calls.modals[0].content, /请先绑定微信/)
+  assert.equal(harness.calls.unbindEmail, 0)
+})
+
+test('用户确认后才执行解绑，成功结果同步页面与本地资料', async () => {
+  const harness = createProfileHarness()
+  const instance = harness.component.createInstance({
+    profile: {
+      nickname: '同学',
+      email: 'student@qq.com',
+      wechatOpenid: 'openid-1',
+      avatarUrl: '',
+      wechatId: '',
+      qq: '123456'
+    },
+    showBindEmailForm: true
+  })
+
+  instance.confirmUnbindWechat()
+  harness.calls.modals[0].success({ confirm: false })
+  assert.equal(harness.calls.unbindWechat, 0)
+  harness.calls.modals[0].success({ confirm: true })
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(harness.calls.unbindWechat, 1)
+  assert.equal(instance.data.profile.wechatOpenid, '')
+  assert.equal(instance.data.unbindingWechat, false)
+
+  const emailInstance = harness.component.createInstance({
+    profile: {
+      nickname: '同学',
+      email: 'student@qq.com',
+      wechatOpenid: 'openid-1',
+      avatarUrl: '',
+      wechatId: '',
+      qq: '123456'
+    },
+    showBindEmailForm: true
+  })
+  emailInstance.confirmUnbindEmail()
+  harness.calls.modals[1].success({ confirm: true })
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(harness.calls.unbindEmail, 1)
+  assert.equal(emailInstance.data.profile.email, '')
+  assert.equal(emailInstance.data.showBindEmailForm, false)
+  assert.equal(emailInstance.data.unbindingEmail, false)
+  assert.equal(harness.calls.storedProfiles.length, 2)
+})
+
+test('退出登录调用共享清理并返回首页', () => {
+  const harness = createProfileHarness()
+  const instance = harness.component.createInstance()
+
+  instance.logout()
+
+  assert.equal(harness.calls.cleared, 1)
+  assert.deepEqual(harness.calls.relaunched, ['/pages/index/index'])
+})

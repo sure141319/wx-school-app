@@ -1,8 +1,8 @@
 import { getBaseUrl } from './config/env'
 import { request } from './utils/request'
+import { beijingDateKey } from './utils/time'
 
 const ANNOUNCEMENT_READ_STORAGE_KEY = 'announcementReadState'
-const BEIJING_UTC_OFFSET_MINUTES = 8 * 60
 
 interface AnnouncementPublic {
   title: string
@@ -52,7 +52,7 @@ async function checkAndShowAnnouncement(baseUrl: string): Promise<void> {
     if (response.statusCode !== 200 || !payload || !payload.success || !payload.data) return
 
     const announcement = payload.data
-    const today = localDateKey(new Date())
+    const today = beijingDateKey(new Date())
     const readState = wx.getStorageSync(ANNOUNCEMENT_READ_STORAGE_KEY) as AnnouncementReadState | null
     if (readState && readState.date === today && readState.revision === announcement.revision) return
 
@@ -82,14 +82,6 @@ async function checkAndShowAnnouncement(baseUrl: string): Promise<void> {
   } finally {
     announcementChecking = false
   }
-}
-
-function localDateKey(date: Date): string {
-  const beijingDate = new Date(date.getTime() + BEIJING_UTC_OFFSET_MINUTES * 60 * 1000)
-  const year = beijingDate.getUTCFullYear()
-  const month = String(beijingDate.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(beijingDate.getUTCDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 async function waitForAnnouncementPopup(): Promise<AnnouncementPopupInstance | null> {

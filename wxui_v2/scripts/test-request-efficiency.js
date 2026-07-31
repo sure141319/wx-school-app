@@ -1,21 +1,103 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+const { test } = require('node:test')
+const { loadComponent } = require('./test-support/runtime')
 
-const indexTs = fs.readFileSync(path.resolve(__dirname, '../pages/index/index.ts'), 'utf8')
-const publishTs = fs.readFileSync(path.resolve(__dirname, '../pages/publish/publish.ts'), 'utf8')
-const profileTs = fs.readFileSync(path.resolve(__dirname, '../pages/profile/profile.ts'), 'utf8')
+function createIndexHarness(initialStorage = {}, request = async () => ({
+  statusCode: 200,
+  data: { success: true, data: { items: [], total: 0 } }
+})) {
+  const storage = new Map(Object.entries(initialStorage))
+  const removed = []
+  const component = loadComponent('pages/index/index.ts', {
+    globals: {
+      getApp: () => ({ globalData: { baseUrl: 'https://api.example.test' } }),
+      wx: {
+        getStorageSync: key => storage.get(key),
+        removeStorageSync(key) {
+          storage.delete(key)
+          removed.push(key)
+        }
+      }
+    },
+    mocks: {
+      '../../utils/request': { request }
+    }
+  })
+  return { component, removed, storage }
+}
 
-assert.match(indexTs, /_skipNextOnShow\s*=\s*true/, 'index should mark its first onShow for skipping')
-assert.match(indexTs, /if \(\(this as any\)\._skipNextOnShow\)/, 'index should skip the first onShow refresh')
-assert.match(indexTs, /GOODS_LIST_CACHE_TTL_MS\s*=\s*2 \* 60 \* 1000/, 'index should use a short cache TTL')
+test('首页跳过首次 onShow，避免和 onLoad 重复请求', () => {
+  const harness = createIndexHarness()
+  const loads = []
+  const instance = harness.component.createInstance({}, {
+    loadGoods: (...args) => loads.push(args)
+  })
+  instance._skipNextOnShow = true
 
-assert.match(publishTs, /_skipNextOnShow\s*=\s*true/, 'publish should mark its first onShow for skipping')
-assert.match(publishTs, /if \(\(this as any\)\._skipNextOnShow\)/, 'publish should skip duplicate first token validation')
-assert.match(publishTs, /setStorageSync\(PROFILE_DATA_DIRTY_KEY, true\)/, 'publishing should invalidate profile data')
+  instance.onShow()
 
-assert.match(profileTs, /PROFILE_CACHE_TTL_MS\s*=\s*2 \* 60 \* 1000/, 'profile should use a two-minute cache TTL')
-assert.match(profileTs, /const dirty = Boolean\(wx\.getStorageSync\(PROFILE_DATA_DIRTY_KEY\)\)/, 'profile should honor explicit invalidation')
-assert.doesNotMatch(profileTs, /imageUrls:\s*item\.imageUrls/, 'profile should not normalize unused image arrays')
+  assert.equal(instance._skipNextOnShow, false)
+  assert.equal(loads.length, 0)
+})
 
-console.log('request efficiency tests passed')
+test('首页只在缓存过期或商品列表被显式标脏时刷新', () => {
+  const freshHarness = createIndexHarness()
+  const freshLoads = []
+  const fresh = freshHarness.component.createInstance({}, {
+    loadGoods: (...args) => freshLoads.push(args)
+  })
+  fresh._lastLoadTime = Date.now()
+  fresh.onShow()
+  assert.equal(freshLoads.length, 0)
+
+  const expiredHarness = createIndexHarness()
+  const expiredLoads = []
+  const expired = expiredHarness.component.createInstance({}, {
+    loadGoods: (...args) => expiredLoads.push(args)
+  })
+  expired._lastLoadTime = Date.now() - 2 * 60 * 1000 - 1
+  expired.onShow()
+  assert.deepEqual(expiredLoads, [[true]])
+
+  const dirtyHarness = createIndexHarness({ goodsListDirty: true })
+  const dirtyLoads = []
+  const dirty = dirtyHarness.component.createInstance({}, {
+    loadGoods: (...args) => dirtyLoads.push(args)
+  })
+  dirty._lastLoadTime = Date.now()
+  dirty.onShow()
+  assert.deepEqual(dirtyLoads, [[true]])
+  assert.deepEqual(dirtyHarness.removed, ['goodsListDirty'])
+})
+
+test('较早发出的商品请求晚返回时不会覆盖最新结果', async () => {
+  const pending = []
+  const harness = createIndexHarness({}, () => new Promise(resolve => pending.push(resolve)))
+  const instance = harness.component.createInstance()
+
+  const firstLoad = instance.loadGoods(true)
+  const secondLoad = instance.loadGoods(true)
+  assert.equal(pending.length, 2)
+
+  pending[1]({
+    statusCode: 200,
+    data: {
+      success: true,
+      data: { items: [{ id: 2, title: '新结果' }], total: 1 }
+    }
+  })
+  await secondLoad
+
+  pending[0]({
+    statusCode: 200,
+    data: {
+      success: true,
+      data: { items: [{ id: 1, title: '旧结果' }], total: 1 }
+    }
+  })
+  await firstLoad
+
+  assert.equal(instance.data.goodsItems.length, 1)
+  assert.equal(instance.data.goodsItems[0].id, 2)
+  assert.equal(instance.data.total, 1)
+})

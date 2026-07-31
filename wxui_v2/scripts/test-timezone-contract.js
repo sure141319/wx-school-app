@@ -1,20 +1,28 @@
 const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
+const { test } = require('node:test')
+const { loadTsModule } = require('./test-support/runtime')
 
-const root = path.join(__dirname, '..')
-const appTs = fs.readFileSync(path.join(root, 'app.ts'), 'utf8')
-const detailTs = fs.readFileSync(path.join(root, 'pages/goods/detail.ts'), 'utf8')
+const {
+  beijingDateKey,
+  formatBeijingDisplayTime
+} = loadTsModule('utils/time.ts')
 
-assert.match(appTs, /BEIJING_UTC_OFFSET_MINUTES\s*=\s*8\s*\*\s*60/)
-assert.match(appTs, /getUTCFullYear\(\)/)
-assert.match(appTs, /getUTCMonth\(\)/)
-assert.match(appTs, /getUTCDate\(\)/)
+test('北京时间自然日以 UTC+8 为边界', () => {
+  assert.equal(beijingDateKey(new Date('2025-12-31T15:59:59Z')), '2025-12-31')
+  assert.equal(beijingDateKey(new Date('2025-12-31T16:00:00Z')), '2026-01-01')
+})
 
-assert.match(detailTs, /localDateTime\s*=\s*text\.match/)
-assert.match(detailTs, /BEIJING_UTC_OFFSET_MILLISECONDS/)
-assert.match(detailTs, /getUTCMonth\(\)/)
-assert.match(detailTs, /getUTCHours\(\)/)
-assert.doesNotMatch(detailTs, /date\.getHours\(\)/)
+test('无时区 LocalDateTime 按北京时间墙上时间展示', () => {
+  assert.equal(formatBeijingDisplayTime('2026-01-02T03:04:05'), '01-02 03:04')
+  assert.equal(formatBeijingDisplayTime('2026-01-02 03:04'), '01-02 03:04')
+})
 
-console.log('timezone contract checks passed')
+test('带时区绝对时刻转换为北京时间展示', () => {
+  assert.equal(formatBeijingDisplayTime('2026-01-01T16:05:00Z'), '01-02 00:05')
+  assert.equal(formatBeijingDisplayTime('2026-01-02T08:05:00+08:00'), '01-02 08:05')
+})
+
+test('空值与不可解析值安全降级', () => {
+  assert.equal(formatBeijingDisplayTime(), '')
+  assert.equal(formatBeijingDisplayTime('not-a-date'), 'not-a-date')
+})
