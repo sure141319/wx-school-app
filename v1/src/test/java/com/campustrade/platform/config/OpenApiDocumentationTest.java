@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -36,5 +37,15 @@ class OpenApiDocumentationTest {
                 .andExpect(jsonPath("$.paths['/api/v1/messages/conversations']").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/v1/messages/conversations/{conversationId}/messages']")
                         .doesNotExist());
+    }
+
+    @Test
+    void swaggerUiEntryAndAssetsArePublic() throws Exception {
+        mockMvc.perform(get("/api/v1/docs"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/api/v1/swagger-ui/index.html"));
+
+        mockMvc.perform(get("/api/v1/swagger-ui/index.html"))
+                .andExpect(status().isOk());
     }
 }

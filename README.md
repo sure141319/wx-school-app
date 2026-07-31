@@ -5,7 +5,8 @@
 ## 产品边界
 
 - 平台负责闲置信息的发布、结构化展示、搜索与筛选，核心目标是让用户更快找到校内闲置物品。
-- 所有人均可浏览商品；卖家填写的 QQ 会公开给包括未登录访客在内的所有访问者，双方在平台外自行联系。
+- 所有人均可浏览商品；卖家填写的微信号和 QQ 会公开给包括未登录访客在内的所有访问者。
+- 平台可为符合条件的登录用户代发一次联系提醒邮件，但不公开卖家邮箱或建立站内会话，双方后续仍在平台外自行联系。
 - 平台不提供站内聊天、订单、支付、担保、物流、退款或纠纷调解，也不按多学校平台设计。
 - 长期产品事实、技术决策边界和运营优先级以 [`AGENTS.md`](AGENTS.md) 为准。
 
@@ -57,7 +58,7 @@ mvn test -Dtest=ClassName                      # 运行单个测试类
 java -jar target/backend-0.0.1-SNAPSHOT.jar   # 运行打包好的 JAR
 ```
 
-需要配置以下环境变量 (见 `application.yml`):
+以下是运行和部署时最常用的环境变量；完整清单及默认值见 [`v1/src/main/resources/application.yml`](v1/src/main/resources/application.yml)：
 
 | 变量 | 说明 | 默认值 |
 |---|---|---|
@@ -67,6 +68,9 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar   # 运行打包好的 JAR
 | `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM` | QQ 邮箱 SMTP 配置 | — |
 | `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | MinIO 配置 | — |
 | `MINIO_PUBLIC_BASE_URL` | 可公开访问的对象存储或 CDN 基础地址，配置后小程序图片 URL 直接走该地址 | — |
+| `API_BASE_URL` | 后端公开基础地址，用于生成图片代理等外部 URL | `http://localhost:8080` |
+| `IMAGE_AUDIT_REVIEWER_USER_IDS` | 具备图片审核权限的用户 ID 列表 | 空（无人具备审核权限） |
+| `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | 微信登录和账号绑定配置 | 空（相关能力不可用） |
 
 生产环境的 `DB_URL` 必须显式要求 Connector/J 把 MySQL 会话固定为 UTC+8，例如：
 
@@ -108,6 +112,6 @@ python -m http.server 5173     # 启动静态文件服务
 
 ## 线上环境
 
-- 项目地址：`https://www.ahut-campus.site`
+- API 基础地址：`https://www.ahut-campus.site/api/v1`
 - Swagger UI：`https://www.ahut-campus.site/api/v1/docs`
 - OpenAPI JSON：`https://www.ahut-campus.site/api/v1/openapi.json`

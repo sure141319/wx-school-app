@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/api/v1/openapi.json",
                                 "/api/v1/docs",
                                 "/api/v1/docs/**",
+                                "/api/v1/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"

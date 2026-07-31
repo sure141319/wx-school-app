@@ -14,12 +14,19 @@
 ## 产品与权限边界
 
 - 商品浏览、分类查询、当前公告和图片代理允许匿名访问。
-- 商品详情中的卖家 QQ 属于公开联系方式，未登录访客也可以查看和复制。
+- 商品详情中的卖家微信号和 QQ 属于公开联系方式，未登录访客也可以查看和复制。
 - 发布、编辑、上下架、删除、个人资料和上传操作需要登录。
 - `/api/v1/audit/**` 用于最低限度的内容治理，只向具备审核权限的账号开放。
-- 平台只提供闲置信息展示、搜索与筛选，不提供聊天、订单、支付、担保、物流、退款或纠纷处理接口。
+- 平台以闲置信息展示、搜索与筛选为主，也可代发一次联系提醒邮件；不提供聊天、订单、支付、担保、物流、退款或纠纷处理接口。
+- 联系提醒不返回卖家邮箱、不建立站内会话，后续沟通仍由双方在平台外完成。
 
 具体授权规则以 `SecurityConfig` 和各业务服务中的资源归属校验共同为准。
+
+### 联系提醒边界
+
+- `GET /api/v1/goods/{id}/contact-email-eligibility` 和 `POST /api/v1/goods/{id}/contact-email` 均需要登录。
+- 资格查询只返回当前用户和商品是否满足发送条件；发送接口只代发一次提醒，不暴露卖家邮箱，并受商品状态、单商品冷却和用户发送频率限制。
+- 小程序中的激励视频只控制客户端便捷入口和本地激励时效，不是服务端授权或安全校验。服务端始终以 JWT、资源状态和限流规则约束直接 API 请求，不接收或信任客户端广告观看结果。
 
 ## 统一响应
 
@@ -77,7 +84,7 @@ Authorization: Bearer <token>
 | `campusLocation` | string | 校内地点 |
 | `status` | string | 商品状态 |
 | `category` | object/null | 分类公开信息；未归类时为 `null` |
-| `seller` | object | 卖家公开信息，包含 `id`、昵称、头像、微信号和 QQ |
+| `seller` | object | 卖家公开信息，包含 `id`、`nickname`、`avatarUrl`、`avatarSource`、`wechatId` 和 `qq` |
 | `imageUrls` | string[] | 可展示的图片代理地址 |
 | `imageKeys` | string[] | 所有者或审核人员用于编辑的对象键；其他访问者固定为空数组 |
 | `auditRemark` | string/null | 所有者或审核人员可见的审核备注；其他访问者为 `null` |
@@ -90,7 +97,7 @@ Authorization: Bearer <token>
 OpenAPI 中按以下业务前缀组织接口：
 
 - `/api/v1/auth`：注册、登录、验证码和账号认证。
-- `/api/v1/goods`：商品搜索、详情、发布与个人商品管理。
+- `/api/v1/goods`：商品搜索、详情、发布、个人商品管理与联系提醒。
 - `/api/v1/categories`：分类查询。
 - `/api/v1/users`：个人资料及账号绑定。
 - `/api/v1/uploads`、`/api/v1/images`：图片上传与公开代理。
