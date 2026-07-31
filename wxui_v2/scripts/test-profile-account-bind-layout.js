@@ -105,7 +105,7 @@ assert.match(
 
 assert.match(
   profileWxml,
-  /wx:if="{{showCampusOtherModal}}"[\s\S]*?<view class="modal-title">校内小程序<\/view>[\s\S]*?安工大校内小程序，长按可识别前往\/转发给校友[\s\S]*?src="\/static\/ahut-campus-miniprogram-code\.jpg"[\s\S]*?src="\/static\/ahut-other-miniprogram-code\.jpg"/,
+  /wx:if="{{showCampusOtherModal}}"[\s\S]*?<view class="modal-title">校内小程序<\/view>[\s\S]*?安工大校内小程序，长按可前往\/转发给校友[\s\S]*?src="\/static\/ahut-campus-miniprogram-code\.jpg"[\s\S]*?src="\/static\/ahut-other-miniprogram-code\.jpg"/,
   'campus mini program modal should display both mini program codes and the requested explanation'
 )
 
