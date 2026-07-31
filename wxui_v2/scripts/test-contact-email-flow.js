@@ -1,8 +1,31 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { loadComponent } = require('./test-support/runtime')
+const { flushPromises, loadComponent } = require('./test-support/runtime')
 
 const rewardStorageKey = 'contactEmailAdReward:adunit-6fbfdd44c8cbdc8b'
+const rewardTtl = 24 * 60 * 60 * 1000
+
+function createVideoAdHarness() {
+  const callbacks = {}
+  const videoAd = {
+    destroy() {},
+    load: async () => {},
+    offClose() {},
+    offError() {},
+    offLoad() {},
+    onClose(callback) {
+      callbacks.close = callback
+    },
+    onError(callback) {
+      callbacks.error = callback
+    },
+    onLoad(callback) {
+      callbacks.load = callback
+    },
+    show: async () => {}
+  }
+  return { callbacks, videoAd }
+}
 
 function createDetailHarness(options = {}) {
   const storage = new Map(Object.entries(options.storage || {}))
@@ -26,7 +49,8 @@ function createDetailHarness(options = {}) {
         showLoading: () => {},
         hideLoading: () => {},
         switchTab: navigation => calls.navigations.push(navigation),
-        navigateTo: navigation => calls.navigations.push(navigation)
+        navigateTo: navigation => calls.navigations.push(navigation),
+        ...options.wx
       }
     },
     mocks: {
@@ -44,7 +68,7 @@ function createDetailHarness(options = {}) {
     goodsId: '42',
     isOwnGoods: Boolean(options.isOwnGoods)
   })
-  return { calls, instance }
+  return { calls, instance, storage }
 }
 
 test('自己的商品直接进入管理页，不请求联系接口', async () => {
@@ -129,7 +153,7 @@ test('有效广告奖励按当前账号复用并直接发送邮件', async () =>
   })
 
   await harness.instance.contactSellerByEmail()
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
 
   assert.equal(harness.calls.requests.length, 2)
   assert.equal(harness.calls.requests[1].method, 'POST')
@@ -144,29 +168,92 @@ test('有效广告奖励按当前账号复用并直接发送邮件', async () =>
   )
 })
 
-test('其他账号的广告奖励不会被复用', async () => {
-  const harness = createDetailHarness({
-    storage: {
-      token: 'token-1',
-      user: JSON.stringify({ id: 9 }),
-      [rewardStorageKey]: {
-        userId: '8',
-        validUntil: Date.now() + 60_000
-      }
+test('其他账号或已过期的广告奖励不会被复用', async (t) => {
+  for (const scenario of [
+    {
+      name: '其他账号',
+      reward: { userId: '8', validUntil: Date.now() + 60_000 }
     },
-    request: async () => ({
-      statusCode: 200,
-      data: {
-        success: true,
-        data: { ownGoods: false, buyerEmailBound: true, sellerEmailBound: true }
-      }
+    {
+      name: '已过期',
+      reward: { userId: '9', validUntil: Date.now() - 1 }
+    }
+  ]) {
+    await t.test(scenario.name, async () => {
+      const harness = createDetailHarness({
+        storage: {
+          token: 'token-1',
+          user: JSON.stringify({ id: 9 }),
+          [rewardStorageKey]: scenario.reward
+        },
+        request: async () => ({
+          statusCode: 200,
+          data: {
+            success: true,
+            data: { ownGoods: false, buyerEmailBound: true, sellerEmailBound: true }
+          }
+        })
+      })
+
+      await harness.instance.contactSellerByEmail()
+
+      assert.equal(harness.calls.requests.length, 1)
+      assert.match(harness.calls.modals[0].content, /观看广告后可开启此功能/)
     })
+  }
+})
+
+test('看完广告才保存奖励并发送邮件，中途退出只提示', async (t) => {
+  await t.test('完整观看', async () => {
+    const { callbacks, videoAd } = createVideoAdHarness()
+    const harness = createDetailHarness({
+      storage: {
+        token: 'token-1',
+        user: JSON.stringify({ id: 9 })
+      },
+      wx: {
+        createRewardedVideoAd: () => videoAd
+      },
+      request: async () => ({
+        statusCode: 200,
+        data: { success: true }
+      })
+    })
+    harness.instance.initContactEmailVideoAd()
+
+    const beforeClose = Date.now()
+    callbacks.close({ isEnded: true })
+    await flushPromises()
+    const afterClose = Date.now()
+
+    const reward = harness.storage.get(rewardStorageKey)
+    assert.equal(reward.userId, '9')
+    assert.ok(reward.validUntil >= beforeClose + rewardTtl)
+    assert.ok(reward.validUntil <= afterClose + rewardTtl)
+    assert.equal(harness.calls.requests.length, 1)
+    assert.equal(harness.calls.requests[0].method, 'POST')
   })
 
-  await harness.instance.contactSellerByEmail()
+  await t.test('中途退出', async () => {
+    const { callbacks, videoAd } = createVideoAdHarness()
+    const harness = createDetailHarness({
+      storage: {
+        token: 'token-1',
+        user: JSON.stringify({ id: 9 })
+      },
+      wx: {
+        createRewardedVideoAd: () => videoAd
+      }
+    })
+    harness.instance.initContactEmailVideoAd()
 
-  assert.equal(harness.calls.requests.length, 1)
-  assert.match(harness.calls.modals[0].content, /观看广告后可开启此功能/)
+    callbacks.close({ isEnded: false })
+    await flushPromises()
+
+    assert.equal(harness.storage.has(rewardStorageKey), false)
+    assert.equal(harness.calls.requests.length, 0)
+    assert.equal(harness.calls.toasts[0].title, '看完广告后才能发送')
+  })
 })
 
 test('服务端判定为自己的商品时更新页面状态并阻止发送', async () => {

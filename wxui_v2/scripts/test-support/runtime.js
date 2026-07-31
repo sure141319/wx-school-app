@@ -5,6 +5,12 @@ const ts = require('typescript')
 
 const projectRoot = path.resolve(__dirname, '../..')
 
+// This harness executes TypeScript methods with lightweight wx/Component mocks.
+// It does not render WXML or emulate observers, lifetimes, or the WeChat runtime.
+function flushPromises() {
+  return new Promise(resolve => setImmediate(resolve))
+}
+
 function loadTsModule(relativePath, options = {}) {
   const mocks = options.mocks || {}
   const moduleCache = new Map()
@@ -138,6 +144,7 @@ function loadComponent(relativePath, options = {}) {
 }
 
 module.exports = {
+  flushPromises,
   loadComponent,
   loadTsModule
 }

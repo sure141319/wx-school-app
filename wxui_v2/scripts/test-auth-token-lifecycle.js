@@ -1,6 +1,10 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { loadComponent, loadTsModule } = require('./test-support/runtime')
+const {
+  flushPromises,
+  loadComponent,
+  loadTsModule
+} = require('./test-support/runtime')
 
 function createRequestHarness(initialStorage = {}) {
   const storage = new Map(Object.entries(initialStorage))
@@ -121,6 +125,32 @@ test('旧请求迟到的 401 不会清除新登录令牌', async () => {
   assert.equal(harness.calls.redirects.length, 0)
 })
 
+test('并发 401 只提示并跳转一次', async () => {
+  const harness = createRequestHarness({ token: 'token-1', user: 'profile' })
+  const first = harness.api.request({ url: 'https://api.example.test/goods' })
+  const second = harness.api.request({ url: 'https://api.example.test/categories' })
+  const rejections = [
+    assert.rejects(first, /登录已过期，请重新登录/),
+    assert.rejects(second, /登录已过期，请重新登录/)
+  ]
+
+  for (const request of harness.calls.requests) {
+    request.success({
+      statusCode: 401,
+      data: { code: 'AUTH_TOKEN_EXPIRED' }
+    })
+  }
+  await Promise.all(rejections)
+
+  assert.deepEqual(harness.calls.removed, ['token', 'user'])
+  assert.equal(harness.calls.toasts.length, 1)
+  assert.equal(harness.calls.redirects.length, 0)
+
+  harness.runTimer(800)
+  assert.equal(harness.calls.redirects.length, 1)
+  assert.equal(harness.calls.redirects[0].url, '/pages/auth/auth')
+})
+
 test('认证接口自行处理 401，普通 403 不会被误判为登录过期', async () => {
   const harness = createRequestHarness({ token: 'token-1' })
 
@@ -188,9 +218,9 @@ test('邮箱登录、注册和微信登录成功后都写入共享令牌并返�
   })
 
   instance.handleLogin()
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
   instance.handleRegister()
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
   await instance.handleWechatLogin()
 
   assert.deepEqual(setTokenCalls, ['login-token', 'register-token', 'wechat-token'])

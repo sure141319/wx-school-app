@@ -1,6 +1,10 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { loadComponent, loadTsModule } = require('./test-support/runtime')
+const {
+  flushPromises,
+  loadComponent,
+  loadTsModule
+} = require('./test-support/runtime')
 
 test('公告组件打开后展示内容，忽略操作只回调一次', () => {
   const component = loadComponent('components/announcement-popup/index.ts')
@@ -67,7 +71,7 @@ test('点击已读记录北京时间日期和公告版本', async () => {
   })
 
   appDefinition.onShow.call(appDefinition)
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
   assert.equal(popupOptions.title, '维护通知')
   assert.equal(popupOptions.content, '今晚进行维护')
 
@@ -116,6 +120,58 @@ test('当天已读同版本公告不会再次打开', async () => {
   })
 
   appDefinition.onShow.call(appDefinition)
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
   assert.equal(opened, false)
+})
+
+test('公告请求失败后会解除检查锁并允许下次重试', async () => {
+  let appDefinition
+  let opened = false
+  let requestCount = 0
+
+  loadTsModule('app.ts', {
+    globals: {
+      App(value) {
+        appDefinition = value
+      },
+      getCurrentPages: () => [{
+        selectComponent: () => ({
+          open() {
+            opened = true
+          }
+        })
+      }],
+      wx: {
+        getStorageSync: () => undefined,
+        setStorageSync: () => {}
+      }
+    },
+    mocks: {
+      './config/env': { getBaseUrl: () => 'https://api.example.test' },
+      './utils/request': {
+        request: async () => {
+          requestCount += 1
+          if (requestCount === 1) {
+            throw new Error('network unavailable')
+          }
+          return {
+            statusCode: 200,
+            data: {
+              success: true,
+              data: { title: '恢复通知', content: '服务已恢复', revision: 8 }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  appDefinition.onShow.call(appDefinition)
+  await flushPromises()
+  assert.equal(opened, false)
+
+  appDefinition.onShow.call(appDefinition)
+  await flushPromises()
+  assert.equal(requestCount, 2)
+  assert.equal(opened, true)
 })

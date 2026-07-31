@@ -1,10 +1,6 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { loadComponent } = require('./test-support/runtime')
-
-function flushPromises() {
-  return new Promise(resolve => setImmediate(resolve))
-}
+const { flushPromises, loadComponent } = require('./test-support/runtime')
 
 function loadPublishComponent(uploadImage, deleteStagedImage, wxOverrides = {}) {
   return loadComponent('pages/publish/publish.ts', {

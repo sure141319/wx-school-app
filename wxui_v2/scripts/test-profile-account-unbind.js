@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict')
 const { test } = require('node:test')
-const { loadComponent } = require('./test-support/runtime')
+const { flushPromises, loadComponent } = require('./test-support/runtime')
 
 function createProfileHarness() {
   const calls = {
@@ -121,7 +121,7 @@ test('用户确认后才执行解绑，成功结果同步页面与本地资料',
   harness.calls.modals[0].success({ confirm: false })
   assert.equal(harness.calls.unbindWechat, 0)
   harness.calls.modals[0].success({ confirm: true })
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
   assert.equal(harness.calls.unbindWechat, 1)
   assert.equal(instance.data.profile.wechatOpenid, '')
   assert.equal(instance.data.unbindingWechat, false)
@@ -139,7 +139,7 @@ test('用户确认后才执行解绑，成功结果同步页面与本地资料',
   })
   emailInstance.confirmUnbindEmail()
   harness.calls.modals[1].success({ confirm: true })
-  await new Promise(resolve => setImmediate(resolve))
+  await flushPromises()
   assert.equal(harness.calls.unbindEmail, 1)
   assert.equal(emailInstance.data.profile.email, '')
   assert.equal(emailInstance.data.showBindEmailForm, false)

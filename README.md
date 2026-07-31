@@ -87,6 +87,8 @@ npm run build:css    # 一次性重新生成 app.wxss
 npm run dev:css      # 开发时持续监听并生成 app.wxss
 ```
 
+小程序测试分层和发布前人工冒烟步骤见 [`wxui_v2/TESTING.md`](wxui_v2/TESTING.md)。
+
 环境切换：编辑 `config/env.ts`，修改 `ENV.current` 为 `'dev'` 或 `'prod'`。
 
 ### 管理后台 (checkui/)
