@@ -31,8 +31,7 @@ campus_app/
 ├── wxui_v2/               # 微信小程序前端
 ├── checkui/               # 图片审核、商品与公告管理后台
 ├── scripts/verify.ps1      # 后端与小程序统一质量门禁
-├── AGENTS.md               # 产品事实与技术决策边界
-└── CLAUDE.md              # AI 辅助开发指南
+└── AGENTS.md               # 产品事实与技术决策边界
 ```
 
 ## 统一质量门禁
@@ -100,81 +99,15 @@ python -m http.server 5173     # 启动静态文件服务
 
 或使用任意静态文件服务器在 5173 端口提供 `checkui/` 目录。
 
-## 功能概览
+## 文档索引
 
-### 微信小程序 (6 个页面)
+- [`AGENTS.md`](AGENTS.md)：长期产品事实、技术决策边界和运营优先级的唯一来源。
+- [`v1/API_DOCUMENTATION.md`](v1/API_DOCUMENTATION.md)：稳定 API 契约、OpenAPI 入口和接口变更规则。
+- [`wxui_v2/TESTING.md`](wxui_v2/TESTING.md)：小程序自动化测试边界和发布前人工冒烟检查。
+- [`v1/HEIF_DEPLOYMENT.md`](v1/HEIF_DEPLOYMENT.md)：HEIC/HEIF 解码依赖、上线验证和回滚方式。
 
-| 页面 | 路径 | 功能 |
-|---|---|---|
-| 首页 | `pages/index/index` | 商品瀑布流浏览、分类筛选、关键词搜索、无限滚动 |
-| 登录 | `pages/auth/auth` | 邮箱注册/登录/密码重置 (限 QQ 邮箱)，发送验证码 |
-| 商品详情 | `pages/goods/detail` | 图片轮播、价格/成色/校区信息、卖家 QQ 一键复制 |
-| 发布商品 | `pages/publish/publish` | 发布/编辑商品、多图上传、分类选择 |
-| 个人中心 | `pages/profile/profile` | 个人资料编辑、我发布的商品管理 (编辑/上下架/删除) |
-| 平台说明 | `pages/about/about` | 平台定位、联系方式公开范围与风险提示 |
+## 线上环境
 
-**交互特点：**
-- 未登录访客也可以查看并复制卖家公开的 QQ，买卖双方在平台外自行联系
-- 新发布或修改的商品自动进入审核状态 (`PENDING_REVIEW`)
-- 审核中的商品图片在前端显示为占位图
-
-### 后端 API
-
-运行中的后端通过 OpenAPI 提供唯一、可执行的接口清单：
-
-- Swagger UI：`GET /api/v1/docs`
-- OpenAPI JSON：`GET /api/v1/openapi.json`
-
-所有业务接口使用 `ApiResponse<T>`（`{ success, code, message, data }`）；分页数据使用 `PageResponse<T>`（`{ items, total, page, size }`）。商品详情固定返回 `GoodsDetailResponseDTO`，不会再因访问者身份切换 DTO 类型；无权查看的管理字段使用空数组或 `null`。
-
-契约约定与维护方式见 [`v1/API_DOCUMENTATION.md`](v1/API_DOCUMENTATION.md)。接口新增或修改应同步更新控制器/DTO、OpenAPI 输出和契约测试，不再手工维护容易失真的接口数量。
-
-### 管理后台 (3 个页面)
-
-| 页面 | 文件 | 功能 |
-|---|---|---|
-| 图片审核台 | `checkui/html/index.html` | 商品图片/用户头像的审核队列，支持通过/驳回操作 |
-| 商品管理 | `checkui/html/goods.html` | 商品列表管理，支持搜索筛选、单/批量删除 |
-| 公告管理 | `checkui/html/announcement.html` | 编辑公告标题、正文和启用状态，内容变化时自动递增版本 |
-
-三个页面共享同一套认证 Session (localStorage)，登录状态跨页面互通。
-
-## 核心数据库表结构 (6 张表)
-
-| 表名 | 用途 | 关键字段 |
-|---|---|---|
-| `users` | 用户 | email (唯一), password_hash, nickname, avatar_url, 登录失败锁定 |
-| `category_do` | 商品分类 | name, sort_order, enabled |
-| `goods_do` | 商品 | seller_id, category_id, title, price, condition_level, campus_location, status |
-| `goods_image_do` | 商品图片 | goods_id, image_url, sort_order, audit_status (审核状态) |
-| `upload_object_do` | 上传对象生命周期 | user_id, object_key, status, bound_type, expires_at |
-| `announcement_config` | 单条公告配置 | title, content, enabled, revision, updated_at |
-
-**商品状态流转：** `PENDING_REVIEW` → (审核通过) → `ON_SALE` ⇄ `OFF_SHELF`，审核驳回 → `REJECTED`
-
-**图片审核状态：** 每张商品图片和头像均有独立审核状态 `PENDING` / `APPROVED` / `REJECTED`，商品全部图片通过后才上架。
-
-## 安全设计
-
-- **无状态 JWT 认证**：每次请求携带 `Authorization: Bearer <token>`，24 小时过期
-- **密码加密**：BCrypt 哈希存储
-- **登录保护**：连续失败 5 次锁定 15 分钟
-- **验证码限制**：60 秒冷却、每小时 6 次发送上限，单个验证码最多错误 5 次
-- **邮箱限制**：仅允许 QQ 邮箱 (`@qq.com`)
-- **审核权限**：仅配置的审核员用户 ID 可访问审核接口
-- **XSS 防护**：管理后台对渲染内容进行 HTML 转义
-- **文件上传安全**：限制 10MB、仅允许 jpg/jpeg/png/webp/heic/heif 格式，并校验 MIME 与文件头
-
-## 部署
-
-生产环境地址: `https://www.ahut-campus.site`
-
-- **后端**: `https://www.ahut-campus.site/api/v1`
-- **管理后台**: 静态文件部署，连接同一 API
-- **图片存储**: MinIO (生产 bucket: `campus-trade`)；生产建议配置 `MINIO_PUBLIC_BASE_URL` 指向对象存储公开域名或 CDN，减少后端图片代理流量
-- **数据库**: MySQL (Flyway 自动迁移)
-- **小程序**: 微信审核发布
-
-## 项目决策记录
-
-- **暂不新增业务索引 / 搜索索引**：当前应用预期用户量约 500-1000，商品和审核队列规模较小，现阶段不为商品列表、审核列表或关键字搜索新增额外索引。后续如果出现明显慢查询、数据量增长或运营侧批量管理压力，再通过 Flyway 迁移补充复合索引或全文索引。
+- 项目地址：`https://www.ahut-campus.site`
+- Swagger UI：`https://www.ahut-campus.site/api/v1/docs`
+- OpenAPI JSON：`https://www.ahut-campus.site/api/v1/openapi.json`
