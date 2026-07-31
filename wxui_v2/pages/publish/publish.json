@@ -5,7 +5,8 @@
     "announcement-popup": "/components/announcement-popup/index",
     "t-check-tag": "tdesign-miniprogram/check-tag/check-tag",
     "t-input": "tdesign-miniprogram/input/input",
-    "t-segmented": "tdesign-miniprogram/segmented/segmented",
-    "t-slider": "tdesign-miniprogram/slider/slider"
+    "t-picker": "tdesign-miniprogram/picker/picker",
+    "t-picker-item": "tdesign-miniprogram/picker-item/picker-item",
+    "t-segmented": "tdesign-miniprogram/segmented/segmented"
   }
 }

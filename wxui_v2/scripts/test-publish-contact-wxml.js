@@ -6,7 +6,7 @@ const wxml = fs.readFileSync(path.resolve(__dirname, '../pages/publish/publish.w
 
 assert.match(
   wxml,
-  /<view wx:if="{{form\.categoryId}}" class="publish-card publish-photo-card">[\s\S]*?publish-price-card[\s\S]*?publish-condition-card[\s\S]*?publish-category-card[\s\S]*?publish-fields-card[\s\S]*?publish-location-card/,
+  /<view wx:if="{{form\.categoryId}}" class="publish-card publish-photo-card">[\s\S]*?publish-price-card[\s\S]*?publish-condition-control[\s\S]*?publish-category-card[\s\S]*?publish-fields-card[\s\S]*?publish-location-card/,
   'publish page should restore separate cards in the original product-photo-first order'
 )
 

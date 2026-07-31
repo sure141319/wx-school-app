@@ -6,11 +6,9 @@ import { updateStoredUser } from '../../utils/storage'
 
 const app = getApp<{ globalData: { baseUrl: string } }>()
 
-const CONDITION_MIN = 1
-const CONDITION_MAX = 10
-const CONDITION_DEFAULT = 9
-const CONDITION_SCALE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '新']
-const CONDITION_MARKS = [2, 3, 4, 5, 6, 7, 8, 9]
+const CONDITION_DEFAULT = '9成新'
+const CONDITION_LOWEST = '5成新及以下'
+const CONDITION_LEVELS = ['全新', '9成新', '8成新', '7成新', '6成新', CONDITION_LOWEST]
 const LOCATION_VALUES = ['本部', '东校区']
 const PROFILE_DATA_DIRTY_KEY = 'profileDataDirty'
 const GOODS_LIST_DIRTY_KEY = 'goodsListDirty'
@@ -21,20 +19,37 @@ interface LocationOption {
   icon: string
 }
 
+const CONDITION_OPTIONS = CONDITION_LEVELS.map(value => ({
+  value,
+  label: value
+}))
+
+const CONDITION_HINTS: Record<string, string> = {
+  全新: '未使用或基本未拆封',
+  '9成新': '仅有轻微使用痕迹',
+  '8成新': '有正常使用痕迹',
+  '7成新': '有较明显使用痕迹',
+  '6成新': '使用痕迹较多',
+  [CONDITION_LOWEST]: '成色一般，以实拍图为准'
+}
+
 const LOCATION_OPTIONS: LocationOption[] = LOCATION_VALUES.map(value => ({
   value,
   label: value,
   icon: 'location'
 }))
 
-function getConditionLevel(value: number) {
-  return value >= CONDITION_MAX ? '全新' : `${value}成新`
+function normalizeConditionLevel(level: string) {
+  const normalized = String(level || '').trim()
+  if (CONDITION_LEVELS.indexOf(normalized) >= 0) return normalized
+  if (normalized === '10成新') return '全新'
+  const match = /^([1-9])成新/.exec(normalized)
+  if (match) return Number(match[1]) <= 5 ? CONDITION_LOWEST : `${match[1]}成新`
+  return CONDITION_DEFAULT
 }
 
-function getConditionValue(level: string) {
-  if (level === '全新') return CONDITION_MAX
-  const match = /^([1-9])成新/.exec(level)
-  return match ? Number(match[1]) : CONDITION_DEFAULT
+function getConditionHint(level: string) {
+  return CONDITION_HINTS[normalizeConditionLevel(level)]
 }
 
 interface PublishPageData {
@@ -51,9 +66,10 @@ interface PublishPageData {
     qq: string
   }
   categories: Category[]
-  conditionValue: number
-  conditionScale: string[]
-  conditionMarks: number[]
+  conditionOptions: typeof CONDITION_OPTIONS
+  conditionPickerValue: string[]
+  conditionPickerVisible: boolean
+  conditionHint: string
   conditionReady: boolean
   locationOptions: LocationOption[]
   form: PublishForm
@@ -75,16 +91,17 @@ Component({
       qq: ''
     },
     categories: [],
-    conditionValue: CONDITION_DEFAULT,
-    conditionScale: CONDITION_SCALE,
-    conditionMarks: CONDITION_MARKS,
+    conditionOptions: CONDITION_OPTIONS,
+    conditionPickerValue: [CONDITION_DEFAULT],
+    conditionPickerVisible: false,
+    conditionHint: getConditionHint(CONDITION_DEFAULT),
     conditionReady: true,
     locationOptions: LOCATION_OPTIONS,
     form: {
       title: '',
       description: '',
       price: '',
-      conditionLevel: getConditionLevel(CONDITION_DEFAULT),
+      conditionLevel: CONDITION_DEFAULT,
       campusLocation: LOCATION_VALUES[0],
       categoryId: '',
       photos: []
@@ -195,10 +212,7 @@ Component({
     },
 
     async loadGoods(id: string) {
-      this.setData({
-        loading: true,
-        conditionReady: false
-      })
+      this.setData({ loading: true })
       try {
         const res = await request<ApiResponse<GoodsDetail>>({
           url: `${app.globalData.baseUrl}/goods/${id}`,
@@ -217,9 +231,10 @@ Component({
           return
         }
         const price = String(goods.price || '')
-        const conditionLevel = goods.conditionLevel || getConditionLevel(CONDITION_DEFAULT)
+        const conditionLevel = normalizeConditionLevel(goods.conditionLevel || CONDITION_DEFAULT)
         this.setData({
-          conditionValue: getConditionValue(conditionLevel),
+          conditionPickerVisible: false,
+          conditionHint: getConditionHint(conditionLevel),
           conditionReady: true,
           form: {
             title: goods.title || '',
@@ -268,21 +283,36 @@ Component({
       this.setData({ 'form.description': e.detail.value, 'errors.description': '' })
     },
 
-    onConditionSliderChange(e: { detail: { value: number } }) {
-      const value = Math.min(
-        CONDITION_MAX,
-        Math.max(CONDITION_MIN, Math.round(Number(e.detail.value)))
-      )
-      if (
-        this.data.conditionValue === value &&
-        this.data.form.conditionLevel === getConditionLevel(value)
-      ) {
-        return
-      }
+    openConditionPicker() {
+      if (!this.data.conditionReady || this.data.conditionPickerVisible) return
       this.setData({
-        conditionValue: value,
-        'form.conditionLevel': getConditionLevel(value)
+        conditionPickerValue: [normalizeConditionLevel(this.data.form.conditionLevel)],
+        conditionPickerVisible: true
       })
+    },
+
+    onConditionPickerConfirm(
+      e: WechatMiniprogram.CustomEvent<{ value: string[] }>
+    ) {
+      const values = e.detail && Array.isArray(e.detail.value) ? e.detail.value : []
+      const conditionLevel = normalizeConditionLevel(values[0] || this.data.form.conditionLevel)
+      this.setData({
+        conditionPickerVisible: false,
+        conditionHint: getConditionHint(conditionLevel),
+        'form.conditionLevel': conditionLevel
+      })
+    },
+
+    onConditionPickerCancel() {
+      this.setData({ conditionPickerVisible: false })
+    },
+
+    onConditionPickerVisibleChange(
+      e: WechatMiniprogram.CustomEvent<{ visible: boolean }>
+    ) {
+      const visible = Boolean(e.detail && e.detail.visible)
+      if (visible === this.data.conditionPickerVisible) return
+      this.setData({ conditionPickerVisible: visible })
     },
 
     chooseLocation(e: WechatMiniprogram.CustomEvent<{ value: string | number }>) {
@@ -482,12 +512,14 @@ Component({
           title: '',
           description: '',
           price: '',
-          conditionLevel: getConditionLevel(CONDITION_DEFAULT),
+          conditionLevel: CONDITION_DEFAULT,
           campusLocation: LOCATION_VALUES[0],
           categoryId: '',
           photos: []
         },
-        conditionValue: CONDITION_DEFAULT,
+        conditionPickerValue: [CONDITION_DEFAULT],
+        conditionPickerVisible: false,
+        conditionHint: getConditionHint(CONDITION_DEFAULT),
         conditionReady: true,
         errors: {}
       })

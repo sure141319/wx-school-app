@@ -63,32 +63,45 @@
       </view>
     </view>
 
-    <view class="publish-card publish-condition-card">
+    <view class="publish-card">
       <text class="publish-card-title">成色</text>
       <view class="publish-condition-control {{conditionReady ? 'publish-condition-control-ready' : ''}}">
-        <view class="publish-condition-readout" aria-live="polite">
-          <text wx:if="{{conditionValue < 10}}" class="publish-condition-number">{{conditionValue}}</text>
-          <text class="publish-condition-unit">{{conditionValue < 10 ? '成新' : '全新'}}</text>
-        </view>
-        <t-slider
-          class="publish-condition-slider"
-          t-class="publish-condition-slider-inner"
-          t-class-bar="publish-condition-slider-bar"
-          t-class-bar-active="publish-condition-slider-bar-active"
-          t-class-cursor="publish-condition-slider-cursor"
-          min="1"
-          max="10"
-          step="1"
-          value="{{conditionValue}}"
-          marks="{{conditionMarks}}"
-          label="{{false}}"
-          aria-label="商品成色，拖动选择一成新到全新"
-          bind:change="onConditionSliderChange"
-        />
-        <view class="publish-condition-scale" aria-hidden="true">
-          <text wx:for="{{conditionScale}}" wx:key="*this" class="{{index + 1 === conditionValue ? 'publish-condition-scale-active' : ''}}">{{item}}</text>
+        <view
+          class="publish-condition-trigger"
+          hover-class="publish-condition-trigger-pressed"
+          hover-stay-time="100"
+          aria-role="button"
+          aria-expanded="{{conditionPickerVisible}}"
+          aria-label="商品成色，当前{{form.conditionLevel}}，点击打开滚轮选择"
+          bind:tap="openConditionPicker"
+        >
+          <view class="publish-condition-copy">
+            <text class="publish-condition-value" aria-live="polite">{{form.conditionLevel}}</text>
+            <text class="publish-condition-hint">{{conditionHint}}</text>
+          </view>
+          <image
+            class="publish-condition-chevron"
+            src="/static/icon-chevron-right.svg"
+            mode="aspectFit"
+            aria-hidden="true"
+          />
         </view>
       </view>
+      <t-picker
+        t-class="publish-condition-picker"
+        t-class-confirm="publish-condition-picker-confirm"
+        visible="{{conditionPickerVisible}}"
+        value="{{conditionPickerValue}}"
+        title="选择成色"
+        cancel-btn="取消"
+        confirm-btn="确定"
+        item-height="{{48}}"
+        bind:confirm="onConditionPickerConfirm"
+        bind:cancel="onConditionPickerCancel"
+        bind:visible-change="onConditionPickerVisibleChange"
+      >
+        <t-picker-item options="{{conditionOptions}}" />
+      </t-picker>
     </view>
 
     <view class="publish-card publish-category-card">
