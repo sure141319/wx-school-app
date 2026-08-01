@@ -7,12 +7,22 @@
 
   <view class="auth-title-block">
     <view class="auth-title-content">
-      <text class="auth-eyebrow">校园闲置平台</text>
+      <view class="auth-brand-lockup" aria-label="安工大闲置，校内闲置信息平台">
+        <text class="auth-brand-kicker" aria-hidden="true">AHUT CAMPUS MARKET</text>
+        <view class="auth-brand-wordmark" aria-hidden="true">
+          <text class="auth-brand-campus">安工大</text>
+          <text class="auth-brand-market">闲置</text>
+        </view>
+        <view class="auth-brand-meta" aria-hidden="true">
+          <view class="auth-brand-meta-rule"></view>
+          <text class="auth-brand-tagline">校内闲置信息平台</text>
+        </view>
+      </view>
       <text class="display-title auth-title-main">
         {{mode === 'login' ? '欢迎回来' : mode === 'register' ? '创建账号' : '重置密码'}}
       </text>
-      <text class="helper-text auth-title-desc">
-        {{mode === 'login' ? 'QQ 邮箱登录，或使用微信快捷进入' : mode === 'register' ? '仅支持 QQ 邮箱注册，便于校内联系' : '通过 QQ 邮箱验证码重置密码'}}
+      <text wx:if="{{mode !== 'login'}}" class="helper-text auth-title-desc">
+        {{mode === 'register' ? '仅支持 QQ 邮箱注册，便于校内联系' : '通过 QQ 邮箱验证码重置密码'}}
       </text>
     </view>
   </view>
@@ -22,7 +32,6 @@
       <image class="wechat-login-icon" src="/static/wx-login.svg" mode="aspectFit" aria-hidden="true" />
       <text>{{wechatLoading ? '微信登录中...' : '微信一键登录'}}</text>
     </button>
-    <text class="field-hint login-wechat-hint">首次微信快捷登录后，请补充联系方式。</text>
   </view>
 
   <view wx:if="{{mode === 'login'}}" class="auth-divider auth-divider-account">
@@ -35,7 +44,6 @@
         <text class="auth-login-field-label">QQ 邮箱</text>
         <view class="auth-input-wrap relative">
           <view class="auth-input-control {{loginForm.email && !loginEmailValid ? 'auth-input-control-error' : ''}}">
-            <t-icon name="mail" size="36rpx" color="var(--campus-pine-600)" aria-hidden="true" />
             <t-input
               t-class="auth-td-input"
               t-class-label="auth-input-a11y-label"
@@ -70,7 +78,6 @@
       <view class="auth-login-field">
         <text class="auth-login-field-label">密码</text>
         <view class="auth-input-control {{loginForm.password && !loginPasswordValid ? 'auth-input-control-error' : ''}}">
-          <t-icon name="lock-on" size="36rpx" color="var(--campus-pine-600)" aria-hidden="true" />
           <t-input
             t-class="auth-td-input"
             t-class-label="auth-input-a11y-label"
@@ -99,6 +106,8 @@
         </view>
       </view>
 
+    </view>
+    <view class="auth-login-actions">
       <button class="btn btn-primary btn-full auth-login-submit" disabled="{{loading || !isLoginFormValid}}" loading="{{loading}}" bindtap="handleLogin">
         {{loading ? '登录中...' : '登录'}}
       </button>
@@ -106,7 +115,6 @@
         <view class="text-link auth-login-link" bindtap="goToReset">
           <text>忘记密码？</text>
         </view>
-        <view class="auth-login-divider"></view>
         <view class="text-link auth-login-link" bindtap="switchMode">
           <text>去注册</text>
         </view>
@@ -124,26 +132,34 @@
             {{sendCodeCooldown > 0 ? sendCodeCooldown + 's' : '验证码'}}
           </button>
         </view>
-        <text wx:if="{{registerForm.email && !registerEmailValid}}" class="field-error">请输入正确的 QQ 邮箱格式</text>
-        <text wx:if="{{registerEmailValid && registerForm.email}}" class="field-hint">验证码将发送到该邮箱。</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{registerForm.email && !registerEmailValid}}" class="field-error auth-field-message" aria-role="alert">请输入正确的 QQ 邮箱格式</text>
+          <text wx:if="{{registerEmailValid && registerForm.email}}" class="field-hint auth-field-message">验证码将发送到该邮箱。</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">验证码</text>
         <input class="input-field" value="{{registerForm.code}}" type="number" maxlength="6" placeholder="请输入 6 位验证码" bindinput="onRegisterCodeInput" />
-        <text wx:if="{{registerForm.code && !registerCodeValid}}" class="field-error">验证码为 6 位数字</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{registerForm.code && !registerCodeValid}}" class="field-error auth-field-message" aria-role="alert">验证码为 6 位数字</text>
+        </view>
       </view>
       
       <view class="form-row">
         <text class="form-label">密码</text>
         <input class="input-field" value="{{registerForm.password}}" password placeholder="至少 6 位" bindinput="onRegisterPasswordInput" />
-        <text wx:if="{{registerForm.password && !registerPasswordValid}}" class="field-error">密码至少 6 位</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{registerForm.password && !registerPasswordValid}}" class="field-error auth-field-message" aria-role="alert">密码至少 6 位</text>
+        </view>
       </view>
 
       <view class="form-row">
         <text class="form-label">昵称</text>
         <input class="input-field" value="{{registerForm.nickname}}" placeholder="如：软工-231" bindinput="onRegisterNicknameInput" maxlength="20" />
-        <text wx:if="{{!registerForm.nickname}}" class="field-hint">建议填写专业-班级，便于校内交易身份识别</text>
-        <text wx:if="{{registerForm.nickname && !registerNicknameValid}}" class="field-error">昵称需要 2-20 个字符</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{!registerForm.nickname}}" class="field-hint auth-field-message">建议填写专业-班级，便于校内交易身份识别</text>
+          <text wx:if="{{registerForm.nickname && !registerNicknameValid}}" class="field-error auth-field-message" aria-role="alert">昵称需要 2-20 个字符</text>
+        </view>
       </view>
       
       <button class="btn btn-primary btn-full" disabled="{{loading || !isRegisterFormValid}}" loading="{{loading}}" bindtap="handleRegister">
@@ -165,22 +181,30 @@
             {{resetCodeCooldown > 0 ? resetCodeCooldown + 's' : '验证码'}}
           </button>
         </view>
-        <text wx:if="{{resetForm.email && !resetEmailValid}}" class="field-error">请输入正确的 QQ 邮箱格式</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{resetForm.email && !resetEmailValid}}" class="field-error auth-field-message" aria-role="alert">请输入正确的 QQ 邮箱格式</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">验证码</text>
         <input class="input-field" value="{{resetForm.code}}" type="number" maxlength="6" placeholder="请输入 6 位验证码" bindinput="onResetCodeInput" />
-        <text wx:if="{{resetForm.code && !resetCodeValid}}" class="field-error">验证码为 6 位数字</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{resetForm.code && !resetCodeValid}}" class="field-error auth-field-message" aria-role="alert">验证码为 6 位数字</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">新密码</text>
         <input class="input-field" value="{{resetForm.newPassword}}" password placeholder="至少 6 位" bindinput="onResetPasswordInput" />
-        <text wx:if="{{resetForm.newPassword && !resetPasswordValid}}" class="field-error">密码至少 6 位</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{resetForm.newPassword && !resetPasswordValid}}" class="field-error auth-field-message" aria-role="alert">密码至少 6 位</text>
+        </view>
       </view>
       <view class="form-row">
         <text class="form-label">确认密码</text>
         <input class="input-field" value="{{resetForm.confirmPassword}}" password placeholder="再次输入新密码" bindinput="onResetConfirmPasswordInput" />
-        <text wx:if="{{resetForm.confirmPassword && !resetConfirmPasswordValid}}" class="field-error">两次输入的密码不一致</text>
+        <view class="auth-field-message-slot">
+          <text wx:if="{{resetForm.confirmPassword && !resetConfirmPasswordValid}}" class="field-error auth-field-message" aria-role="alert">两次输入的密码不一致</text>
+        </view>
       </view>
       <button class="btn btn-primary btn-full" disabled="{{loading || !isResetFormValid}}" loading="{{loading}}" bindtap="handleReset">
         {{loading ? '提交中...' : '重置密码'}}
