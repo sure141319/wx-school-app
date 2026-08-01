@@ -1,13 +1,16 @@
 <view class="page-shell profile-shell">
-  <image class="profile-page-backdrop" src="/static/profile-campus-scene-v2.webp" mode="aspectFill" aria-hidden="true" />
-  <view class="profile-page-backdrop-overlay" aria-hidden="true"></view>
-  <view
-    class="profile-header"
-    bindtap="openProfileEditor"
-    hover-class="profile-header-active"
-    hover-stay-time="120"
-    aria-label="编辑个人资料与联系方式"
-  >
+  <view class="profile-scene">
+    <view class="profile-page-backdrop" aria-hidden="true">
+      <image src="/static/profile-campus-scene-portrait-v3.webp" mode="aspectFill" />
+    </view>
+    <view class="profile-page-backdrop-overlay" aria-hidden="true"></view>
+    <view
+      class="profile-header"
+      bindtap="openProfileEditor"
+      hover-class="profile-header-active"
+      hover-stay-time="120"
+      aria-label="编辑个人资料与联系方式"
+    >
     <view class="profile-summary">
       <view class="avatar-btn profile-summary-avatar">
         <image wx:if="{{displayAvatarUrl}}" src="{{displayAvatarUrl}}" mode="aspectFill" />
@@ -35,9 +38,9 @@
       </view>
       <text class="profile-public-note">联系方式公开展示</text>
     </view>
-  </view>
+    </view>
 
-  <text wx:if="{{info && !showProfileModal}}" class="profile-page-message status-text-error">{{info}}</text>
+    <text wx:if="{{info && !showProfileModal}}" class="profile-page-message status-text-error">{{info}}</text>
 
     <view class="profile-goods-panel">
     <view class="profile-section-head">
@@ -166,9 +169,13 @@
         <image class="chevron-icon" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
+    </view>
+    <view class="profile-account-actions">
+      <view class="profile-account-divider" aria-hidden="true"></view>
+      <button class="profile-logout" bindtap="logout" hover-class="profile-logout-active">退出当前账号</button>
+      <view class="profile-account-divider" aria-hidden="true"></view>
+    </view>
   </view>
-
-  <button class="profile-logout" bindtap="logout">退出当前账号</button>
 
   <view class="modal-mask" wx:if="{{showProfileModal}}" bindtap="closeProfileEditor"></view>
   <view class="modal-dialog profile-modal" wx:if="{{showProfileModal}}">
