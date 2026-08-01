@@ -52,8 +52,6 @@ page {
   --hero-action-background: var(--campus-ginkgo-400);
   --hero-action-active: #C9AA54;
   --hero-action-text: var(--campus-pine-900);
-  --profile-ticket-background: linear-gradient(118deg, #668D79 0%, #779783 68%, #84A088 100%);
-  --profile-ticket-border: #AAC4B5;
   --profile-route-line: rgba(255, 253, 245, 0.17);
   --profile-route-node: rgba(230, 212, 154, 0.84);
   --publish-intro-background: var(--hero-background);
@@ -2132,125 +2130,45 @@ input, textarea {
   background-size: 28rpx 28rpx, 100% 100%, 100% 100%, 100% 100%;
 }
 
-.profile-ticket {
+.profile-header {
   position: relative;
-  overflow: hidden;
-  border: 2rpx solid var(--profile-ticket-border);
-  border-radius: 36rpx;
-  background: var(--profile-ticket-background);
-  color: var(--hero-text);
-  box-shadow: 0 16rpx 38rpx rgba(33, 78, 66, 0.12);
+  padding: 18rpx 12rpx 30rpx;
+  transition: opacity 160ms ease-out;
 }
 
-.profile-ticket::before {
+.profile-header::before {
   position: absolute;
-  top: -126rpx;
-  right: -110rpx;
-  width: 350rpx;
-  height: 350rpx;
-  border: 2rpx dashed var(--profile-route-line);
-  border-radius: 999rpx;
-  box-shadow:
-    0 0 0 38rpx rgba(255, 253, 245, 0.03),
-    0 0 0 78rpx rgba(230, 212, 154, 0.04);
+  top: 22rpx;
+  right: 10rpx;
+  width: 72rpx;
+  height: 2rpx;
+  background: rgba(43, 98, 82, 0.24);
   content: "";
 }
 
-.profile-ticket::after {
+.profile-header::after {
   position: absolute;
-  top: 90rpx;
-  right: 188rpx;
+  top: 18rpx;
+  right: 92rpx;
   width: 10rpx;
   height: 10rpx;
   border-radius: 999rpx;
-  background: var(--profile-route-node);
-  box-shadow:
-    64rpx 48rpx 0 rgba(255, 253, 245, 0.34),
-    126rpx 106rpx 0 rgba(230, 212, 154, 0.42);
+  background: var(--campus-ginkgo-400);
   content: "";
 }
 
-.profile-ticket-topline,
-.profile-summary,
-.profile-ticket-footer {
-  position: relative;
-  z-index: 1;
-}
-
-.profile-ticket-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20rpx 26rpx 0;
-  color: var(--campus-ginkgo-300);
-  font-size: 20rpx;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.profile-flow-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 9rpx;
-}
-
-.profile-flow-cycle {
-  position: relative;
-  width: 34rpx;
-  height: 34rpx;
-  flex: 0 0 34rpx;
-  color: var(--campus-ginkgo-300);
-}
-
-.profile-flow-arrow {
-  position: absolute;
-  border-radius: 999rpx;
-}
-
-.profile-flow-arrow::after {
-  position: absolute;
-  width: 0;
-  height: 0;
-  content: "";
-}
-
-.profile-flow-arrow-forward {
-  inset: 0;
-  border-top: 3rpx solid currentColor;
-  border-right: 3rpx solid currentColor;
-  transform: rotate(-20deg);
-}
-
-.profile-flow-arrow-forward::after {
-  right: -3rpx;
-  bottom: 4rpx;
-  border-top: 4rpx solid transparent;
-  border-bottom: 4rpx solid transparent;
-  border-left: 7rpx solid currentColor;
-  transform: rotate(52deg);
-}
-
-.profile-flow-arrow-return {
-  inset: 7rpx;
-  border-bottom: 3rpx solid rgba(255, 253, 245, 0.88);
-  border-left: 3rpx solid rgba(255, 253, 245, 0.88);
-  transform: rotate(-20deg);
-}
-
-.profile-flow-arrow-return::after {
-  top: 1rpx;
-  left: -3rpx;
-  border-top: 4rpx solid transparent;
-  border-right: 7rpx solid rgba(255, 253, 245, 0.88);
-  border-bottom: 4rpx solid transparent;
-  transform: rotate(52deg);
+.profile-header-active {
+  opacity: 0.72;
 }
 
 .profile-summary {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  padding: 24rpx 26rpx 22rpx;
+  min-height: 150rpx;
+  gap: 24rpx;
+  padding: 20rpx 0 24rpx;
 }
 
 .avatar-btn {
@@ -2275,16 +2193,17 @@ input, textarea {
 }
 
 .profile-summary-avatar {
-  width: 112rpx;
-  height: 112rpx;
-  flex: 0 0 112rpx;
-  border-color: rgba(255, 253, 245, 0.92);
+  width: 120rpx;
+  height: 120rpx;
+  flex: 0 0 120rpx;
+  border-width: 4rpx;
+  border-color: rgba(255, 255, 255, 0.96);
   background: var(--color-surface-warm);
   color: var(--color-primary-dark);
-  font-size: 46rpx;
+  font-size: 48rpx;
   box-shadow:
-    0 0 0 3rpx rgba(216, 188, 106, 0.7),
-    0 10rpx 22rpx rgba(23, 60, 51, 0.25);
+    0 0 0 2rpx rgba(43, 98, 82, 0.16),
+    0 10rpx 24rpx rgba(33, 78, 66, 0.1);
 }
 
 .profile-summary-main {
@@ -2298,69 +2217,88 @@ input, textarea {
 .profile-summary-name {
   display: block;
   overflow: hidden;
-  color: var(--hero-text);
-  font-size: 35rpx;
+  color: var(--color-text-main);
+  font-size: 40rpx;
   font-weight: 800;
+  line-height: 1.22;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .profile-summary-caption {
-  color: var(--hero-text-muted);
-  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
+  line-height: 1.45;
 }
 
-.profile-ticket .settings-arrow {
-  border-color: rgba(255, 253, 245, 0.24);
-  background: rgba(255, 253, 245, 0.1);
-}
-
-.profile-ticket .chevron-icon {
-  opacity: 0.92;
-}
-
-.profile-ticket-footer {
+.profile-edit-entry {
   display: flex;
-  min-height: 66rpx;
+  min-height: 68rpx;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  gap: 4rpx;
+  padding-left: 12rpx;
+  color: var(--color-primary);
+  font-size: 21rpx;
+  font-weight: 700;
+}
+
+.profile-edit-chevron {
+  width: 22rpx;
+  height: 22rpx;
+}
+
+.profile-contact-overview {
+  display: flex;
+  min-height: 54rpx;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
-  padding: 14rpx 26rpx;
-  border-top: 2rpx dashed rgba(255, 253, 245, 0.18);
-  background: rgba(23, 60, 51, 0.13);
+  gap: 20rpx;
+  padding-top: 18rpx;
+  border-top: 2rpx solid rgba(43, 98, 82, 0.12);
 }
 
 .profile-contact-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10rpx;
-  min-height: 32rpx;
+  gap: 10rpx 22rpx;
+  min-width: 0;
 }
 
-.profile-contact-tag {
+.profile-contact-item {
   display: inline-flex;
   align-items: center;
-  min-height: 32rpx;
-  padding: 0 10rpx;
-  border: 2rpx solid rgba(230, 212, 154, 0.46);
-  border-radius: 999rpx;
-  background: rgba(230, 212, 154, 0.12);
-  color: var(--campus-ginkgo-300);
-  font-size: 19rpx;
+  min-height: 40rpx;
+  gap: 9rpx;
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
   font-weight: 600;
 }
 
-.profile-contact-empty {
-  color: var(--hero-text-muted);
-  font-size: 20rpx;
+.profile-contact-dot {
+  width: 10rpx;
+  height: 10rpx;
+  flex: 0 0 10rpx;
+  border-radius: 999rpx;
 }
 
-.profile-ticket-edit {
-  color: var(--campus-ginkgo-300);
-  font-size: 19rpx;
-  font-weight: 700;
-  letter-spacing: 0;
+.profile-contact-dot.is-ready {
+  background: var(--color-success);
+  box-shadow: 0 0 0 5rpx rgba(67, 128, 100, 0.1);
+}
+
+.profile-contact-dot.is-pending {
+  border: 2rpx solid var(--color-warning);
+  background: transparent;
+}
+
+.profile-public-note {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
+  white-space: nowrap;
 }
 
 .profile-page-message {
@@ -2387,7 +2325,7 @@ input, textarea {
 }
 
 .profile-goods-panel {
-  margin-top: 22rpx;
+  margin-top: 4rpx;
   padding: 22rpx 24rpx 16rpx;
   border: 2rpx solid #DADFE1;
   border-radius: 30rpx;

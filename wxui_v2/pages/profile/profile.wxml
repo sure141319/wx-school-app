@@ -1,16 +1,12 @@
 <view class="page-shell profile-shell">
-  <view class="profile-ticket">
-    <view class="profile-ticket-topline">
-      <text>校园卖家资料</text>
-      <view class="profile-flow-label">
-        <view class="profile-flow-cycle" aria-hidden="true">
-          <view class="profile-flow-arrow profile-flow-arrow-forward"></view>
-          <view class="profile-flow-arrow profile-flow-arrow-return"></view>
-        </view>
-        <text>校内流转</text>
-      </view>
-    </view>
-    <view class="profile-summary" bindtap="openProfileEditor">
+  <view
+    class="profile-header"
+    bindtap="openProfileEditor"
+    hover-class="profile-header-active"
+    hover-stay-time="120"
+    aria-label="编辑个人资料与联系方式"
+  >
+    <view class="profile-summary">
       <view class="avatar-btn profile-summary-avatar">
         <image wx:if="{{displayAvatarUrl}}" src="{{displayAvatarUrl}}" mode="aspectFill" />
         <text wx:else>{{profile.nickname[0] || '我'}}</text>
@@ -19,17 +15,23 @@
         <text class="profile-summary-name">{{profile.nickname || '微信用户'}}</text>
         <text class="profile-summary-caption">点此编辑资料与联系方式</text>
       </view>
-      <view class="settings-arrow">
-        <image class="chevron-icon profile-ticket-chevron" src="/static/icon-chevron-right-light.svg" mode="aspectFit" aria-hidden="true" />
+      <view class="profile-edit-entry">
+        <text>编辑资料</text>
+        <image class="profile-edit-chevron" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
-    <view class="profile-ticket-footer">
+    <view class="profile-contact-overview">
       <view class="profile-contact-row">
-        <text wx:if="{{profile.wechatId}}" class="profile-contact-tag">微信已填</text>
-        <text wx:if="{{profile.qq}}" class="profile-contact-tag">QQ 已填</text>
-        <text wx:if="{{!profile.wechatId && !profile.qq}}" class="profile-contact-empty">还没有填写联系方式</text>
+        <view class="profile-contact-item">
+          <view class="profile-contact-dot {{profile.wechatId ? 'is-ready' : 'is-pending'}}"></view>
+          <text>{{profile.wechatId ? '微信已填写' : '微信待补充'}}</text>
+        </view>
+        <view class="profile-contact-item">
+          <view class="profile-contact-dot {{profile.qq ? 'is-ready' : 'is-pending'}}"></view>
+          <text>{{profile.qq ? 'QQ 已填写' : 'QQ 待补充'}}</text>
+        </view>
       </view>
-      <text class="profile-ticket-edit">编辑资料</text>
+      <text class="profile-public-note">联系方式公开展示</text>
     </view>
   </view>
 
