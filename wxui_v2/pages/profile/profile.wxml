@@ -1,4 +1,6 @@
 <view class="page-shell profile-shell">
+  <image class="profile-page-backdrop" src="/static/profile-campus-scene-v2.webp" mode="aspectFill" aria-hidden="true" />
+  <view class="profile-page-backdrop-overlay" aria-hidden="true"></view>
   <view
     class="profile-header"
     bindtap="openProfileEditor"
@@ -17,7 +19,7 @@
       </view>
       <view class="profile-edit-entry">
         <text>编辑资料</text>
-        <image class="profile-edit-chevron" src="/static/icon-chevron-right.svg" mode="aspectFit" aria-hidden="true" />
+        <image class="profile-edit-chevron" src="/static/icon-chevron-right-light.svg" mode="aspectFit" aria-hidden="true" />
       </view>
     </view>
     <view class="profile-contact-overview">

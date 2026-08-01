@@ -2065,50 +2065,56 @@ input, textarea {
 
 /* ===== Profile ===== */
 .profile-shell {
+  position: relative;
+  overflow: hidden;
   padding: 24rpx 24rpx calc(130rpx + env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 14rpx 14rpx, rgba(53, 111, 93, 0.05) 2rpx, transparent 2rpx),
-    radial-gradient(680rpx 540rpx at 108% 2%, rgba(164, 196, 179, 0.38), transparent 72%),
+    radial-gradient(680rpx 540rpx at 108% 2%, rgba(153, 199, 188, 0.32), transparent 72%),
     radial-gradient(560rpx 500rpx at -12% 82%, rgba(229, 211, 155, 0.18), transparent 74%),
-    linear-gradient(180deg, #F8F7F1 0%, var(--color-app-background-cool) 52%, #F5F1E8 100%);
+    linear-gradient(180deg, #EDF6F1 0%, var(--color-app-background-cool) 52%, #F5F1E8 100%);
   background-repeat: repeat, no-repeat, no-repeat, no-repeat;
   background-size: 28rpx 28rpx, 100% 100%, 100% 100%, 100% 100%;
 }
 
+.profile-page-backdrop,
+.profile-page-backdrop-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: 100%;
+  height: 800rpx;
+  pointer-events: none;
+}
+
+.profile-page-backdrop {
+  z-index: 0;
+}
+
+.profile-page-backdrop-overlay {
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(237, 246, 241, 0) 0%, rgba(237, 246, 241, 0.04) 44%, rgba(237, 246, 241, 0.76) 73%, #EDF6F1 100%),
+    linear-gradient(90deg, rgba(8, 47, 58, 0.58) 0%, rgba(8, 47, 58, 0.34) 55%, rgba(8, 47, 58, 0.2) 100%);
+}
+
 .profile-header {
   position: relative;
-  padding: 18rpx 12rpx 30rpx;
+  z-index: 2;
+  min-height: 320rpx;
+  margin: -24rpx -24rpx 0;
+  padding: 26rpx 36rpx 34rpx;
   transition: opacity 160ms ease-out;
 }
 
-.profile-header::before {
-  position: absolute;
-  top: 22rpx;
-  right: 10rpx;
-  width: 72rpx;
-  height: 2rpx;
-  background: rgba(43, 98, 82, 0.24);
-  content: "";
-}
-
-.profile-header::after {
-  position: absolute;
-  top: 18rpx;
-  right: 92rpx;
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 999rpx;
-  background: var(--campus-ginkgo-400);
-  content: "";
-}
-
 .profile-header-active {
-  opacity: 0.72;
+  opacity: 0.82;
 }
 
 .profile-summary {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   min-height: 150rpx;
@@ -2147,8 +2153,8 @@ input, textarea {
   color: var(--color-primary-dark);
   font-size: 48rpx;
   box-shadow:
-    0 0 0 2rpx rgba(43, 98, 82, 0.16),
-    0 10rpx 24rpx rgba(33, 78, 66, 0.1);
+    0 0 0 3rpx rgba(255, 255, 255, 0.28),
+    0 12rpx 28rpx rgba(3, 30, 25, 0.26);
 }
 
 .profile-summary-main {
@@ -2162,18 +2168,20 @@ input, textarea {
 .profile-summary-name {
   display: block;
   overflow: hidden;
-  color: var(--color-text-main);
+  color: #FFFDF6;
   font-size: 40rpx;
   font-weight: 800;
   line-height: 1.22;
   text-overflow: ellipsis;
+  text-shadow: 0 2rpx 10rpx rgba(3, 30, 25, 0.32);
   white-space: nowrap;
 }
 
 .profile-summary-caption {
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 24rpx;
   line-height: 1.45;
+  text-shadow: 0 2rpx 8rpx rgba(3, 30, 35, 0.28);
 }
 
 .profile-edit-entry {
@@ -2182,9 +2190,12 @@ input, textarea {
   align-items: center;
   justify-content: flex-end;
   flex: 0 0 auto;
-  gap: 4rpx;
-  padding-left: 12rpx;
-  color: var(--color-primary);
+  gap: 6rpx;
+  padding: 0 14rpx 0 18rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.22);
+  border-radius: 999rpx;
+  background: rgba(4, 42, 34, 0.24);
+  color: #FFFFFF;
   font-size: 21rpx;
   font-weight: 700;
 }
@@ -2195,13 +2206,15 @@ input, textarea {
 }
 
 .profile-contact-overview {
+  position: relative;
+  z-index: 2;
   display: flex;
   min-height: 54rpx;
   align-items: center;
   justify-content: space-between;
   gap: 20rpx;
   padding-top: 18rpx;
-  border-top: 2rpx solid rgba(43, 98, 82, 0.12);
+  border-top: 2rpx solid rgba(255, 255, 255, 0.22);
 }
 
 .profile-contact-row {
@@ -2217,9 +2230,10 @@ input, textarea {
   align-items: center;
   min-height: 40rpx;
   gap: 9rpx;
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.88);
   font-size: 24rpx;
   font-weight: 600;
+  text-shadow: 0 2rpx 8rpx rgba(3, 30, 35, 0.28);
 }
 
 .profile-contact-dot {
@@ -2230,19 +2244,20 @@ input, textarea {
 }
 
 .profile-contact-dot.is-ready {
-  background: var(--color-success);
-  box-shadow: 0 0 0 5rpx rgba(67, 128, 100, 0.1);
+  background: #9FE3BF;
+  box-shadow: 0 0 0 5rpx rgba(159, 227, 191, 0.18);
 }
 
 .profile-contact-dot.is-pending {
-  border: 2rpx solid var(--color-warning);
+  border: 2rpx solid #F7C948;
   background: transparent;
 }
 
 .profile-public-note {
   flex: 0 0 auto;
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.74);
   font-size: 24rpx;
+  text-shadow: 0 2rpx 8rpx rgba(3, 30, 35, 0.28);
   white-space: nowrap;
 }
 
@@ -2270,11 +2285,14 @@ input, textarea {
 }
 
 .profile-goods-panel {
-  margin-top: 4rpx;
+  position: relative;
+  z-index: 3;
+  margin-top: 12rpx;
   padding: 22rpx 24rpx 16rpx;
-  border: 2rpx solid #DADFE1;
+  border: 2rpx solid rgba(255, 255, 255, 0.78);
   border-radius: 30rpx;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16rpx 36rpx rgba(22, 77, 67, 0.1);
 }
 
 .profile-section-head {
