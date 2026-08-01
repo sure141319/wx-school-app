@@ -2123,7 +2123,8 @@ input, textarea {
   overflow: hidden;
 }
 
-.profile-page-backdrop image {
+.profile-page-backdrop-image {
+  display: block;
   width: 100%;
   height: 100%;
 }

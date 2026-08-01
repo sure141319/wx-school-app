@@ -1,7 +1,7 @@
 <view class="page-shell profile-shell">
   <view class="profile-scene">
     <view class="profile-page-backdrop" aria-hidden="true">
-      <image src="/static/profile-campus-scene-portrait-v3.webp" mode="aspectFill" />
+      <image class="profile-page-backdrop-image" src="/static/profile-campus-scene-portrait-v3.jpg" mode="aspectFill" />
     </view>
     <view class="profile-page-backdrop-overlay" aria-hidden="true"></view>
     <view
