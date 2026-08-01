@@ -38,6 +38,7 @@ interface AuthPageData {
   showFeedbackModal: boolean
   savedEmails: string[]
   showEmailHistory: boolean
+  loginPasswordVisible: boolean
 }
 
 Component({
@@ -70,7 +71,8 @@ Component({
     redirect: '',
     showFeedbackModal: false,
     savedEmails: [] as string[],
-    showEmailHistory: false
+    showEmailHistory: false,
+    loginPasswordVisible: false
   } as AuthPageData,
 
   methods: {
@@ -127,7 +129,8 @@ Component({
         registerEmailValid: true,
         registerCodeValid: true,
         registerNicknameValid: true,
-        registerPasswordValid: true
+        registerPasswordValid: true,
+        loginPasswordVisible: false
       })
     },
 
@@ -138,7 +141,8 @@ Component({
         resetEmailValid: true,
         resetCodeValid: true,
         resetPasswordValid: true,
-        resetConfirmPasswordValid: true
+        resetConfirmPasswordValid: true,
+        loginPasswordVisible: false
       })
     },
 
@@ -147,7 +151,8 @@ Component({
         mode: 'login',
         message: '',
         loginEmailValid: true,
-        loginPasswordValid: true
+        loginPasswordValid: true,
+        loginPasswordVisible: false
       })
     },
 
@@ -189,6 +194,15 @@ Component({
       this.checkLoginFormValid()
     },
 
+    onLoginEmailClear() {
+      this.setData({
+        'loginForm.email': '',
+        loginEmailValid: true,
+        showEmailHistory: false
+      })
+      this.checkLoginFormValid()
+    },
+
     onLoginPasswordInput(e: WechatMiniprogram.InputEvent) {
       const password = e.detail.value
       this.setData({
@@ -196,6 +210,10 @@ Component({
         loginPasswordValid: !password || password.length >= MIN_PASSWORD_LENGTH
       })
       this.checkLoginFormValid()
+    },
+
+    toggleLoginPasswordVisibility() {
+      this.setData({ loginPasswordVisible: !this.data.loginPasswordVisible })
     },
 
     onRegisterEmailInput(e: WechatMiniprogram.InputEvent) {
