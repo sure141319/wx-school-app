@@ -1,0 +1,4 @@
+interface:
+  display_name: "Campus Trade 小程序"
+  short_description: "Campus Trade 项目专属微信小程序开发与发布检查"
+  default_prompt: "使用 $campus-trade-miniprogram 安全地修改并验证 Campus Trade 微信小程序。"
