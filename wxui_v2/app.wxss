@@ -1043,21 +1043,36 @@ input, textarea {
 
 .home-empty {
   display: flex;
-  min-height: 330rpx;
+  min-height: 360rpx;
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  padding: 42rpx 28rpx;
-  border: 2rpx dashed #CBD3D6;
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.64);
+  padding: 64rpx 28rpx 70rpx;
   text-align: center;
 }
 
 .home-empty-icon {
   width: 112rpx;
   height: 112rpx;
-  margin-bottom: 22rpx;
+  margin-bottom: 28rpx;
+}
+
+.home-empty .empty-title {
+  line-height: 1.45;
+  letter-spacing: 1rpx;
+}
+
+.home-empty .empty-desc {
+  max-width: 560rpx;
+  margin-top: 16rpx;
+  line-height: 1.7;
+}
+
+.home-empty .btn {
+  margin-top: 30rpx;
+  border: 0;
+  background: var(--campus-pine-600);
+  box-shadow: 0 8rpx 14rpx rgba(33, 78, 66, 0.2), inset 0 2rpx 0 rgba(255, 255, 255, 0.18);
 }
 
 /* ===== Detail & Seller ===== */

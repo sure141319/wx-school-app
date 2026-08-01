@@ -83,7 +83,7 @@
     <image class="home-empty-icon" src="/static/icon-empty-search.svg" mode="aspectFit" aria-hidden="true" />
     <text class="empty-title">这一栏暂时空着</text>
     <text class="empty-desc">换个关键词或分类，也可以发布你的第一件闲置。</text>
-    <button class="btn btn-primary btn-sm mt-16" bindtap="goToPublish">发布闲置</button>
+    <button class="btn btn-primary btn-sm" bindtap="goToPublish">发布闲置</button>
   </view>
 
   <view wx:if="{{loadingMore}}" class="loading-more">
