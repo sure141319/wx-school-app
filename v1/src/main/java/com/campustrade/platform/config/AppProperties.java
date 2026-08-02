@@ -1,5 +1,6 @@
 package com.campustrade.platform.config;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
@@ -21,12 +22,11 @@ public class AppProperties {
     @Min(1)
     private int jwtExpirationMinutes = 1440;
 
-    private String apiBaseUrl = "";
-
     private VerificationCode verificationCode = new VerificationCode();
     private Auth auth = new Auth();
     private ContactEmail contactEmail = new ContactEmail();
     private Mail mail = new Mail();
+    @Valid
     private Minio minio = new Minio();
     private Upload upload = new Upload();
     private Redis redis = new Redis();
@@ -105,7 +105,8 @@ public class AppProperties {
         private String secretKey;
         @NotBlank
         private String bucket;
-        private String publicBaseUrl = "";
+        @NotBlank
+        private String publicBaseUrl;
         private boolean secure = false;
         private boolean autoCreateBucket = true;
     }

@@ -21,14 +21,14 @@ class UserProfileAssemblerTest {
         UploadService uploadService = mock(UploadService.class);
         UserProfileAssembler assembler = new UserProfileAssembler(uploadService);
         UserDO user = user("软工-231", "123456", "images/2026/06/avatar.jpg", ImageAuditStatusEnum.APPROVED);
-        when(uploadService.getProxyUrl("images/2026/06/avatar.jpg"))
+        when(uploadService.resolvePublicUrl("images/2026/06/avatar.jpg"))
                 .thenReturn("https://cdn.example.com/avatar.jpg");
 
         UserProfileResponseDTO response = assembler.toResponse(user);
 
         assertEquals("https://cdn.example.com/avatar.jpg", response.avatarUrl());
         assertEquals("UPLOADED", response.avatarSource());
-        verify(uploadService).getProxyUrl("images/2026/06/avatar.jpg");
+        verify(uploadService).resolvePublicUrl("images/2026/06/avatar.jpg");
     }
 
     @Test
@@ -41,7 +41,7 @@ class UserProfileAssemblerTest {
 
         assertEquals("https://q1.qlogo.cn/g?b=qq&nk=123456&s=640", response.avatarUrl());
         assertEquals("QQ", response.avatarSource());
-        verify(uploadService, never()).getProxyUrl("images/2026/06/avatar.jpg");
+        verify(uploadService, never()).resolvePublicUrl("images/2026/06/avatar.jpg");
     }
 
     @Test

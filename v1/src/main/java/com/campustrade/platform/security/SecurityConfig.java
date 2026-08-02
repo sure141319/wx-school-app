@@ -74,7 +74,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/goods/*/contact-email-eligibility").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/goods/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/images/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -37,14 +37,14 @@ class GoodsAssemblerTest {
                 ImageAuditStatusEnum.APPROVED
         )));
 
-        when(uploadService.getProxyUrl("images/2026/06/thumbs/original.webp"))
+        when(uploadService.resolvePublicUrl("images/2026/06/thumbs/original.webp"))
                 .thenReturn("https://cdn.example.com/images/2026/06/thumbs/original.webp");
 
         GoodsListItemResponseDTO response = assembler.toListItemResponse(goods);
 
         assertEquals("https://cdn.example.com/images/2026/06/thumbs/original.webp", response.coverImageUrl());
-        verify(uploadService).getProxyUrl("images/2026/06/thumbs/original.webp");
-        verify(uploadService, never()).getProxyUrl("images/2026/06/original.jpg");
+        verify(uploadService).resolvePublicUrl("images/2026/06/thumbs/original.webp");
+        verify(uploadService, never()).resolvePublicUrl("images/2026/06/original.jpg");
     }
 
     @Test
@@ -57,13 +57,13 @@ class GoodsAssemblerTest {
                 ImageAuditStatusEnum.APPROVED
         )));
 
-        when(uploadService.getProxyUrl("images/2026/06/original.jpg"))
+        when(uploadService.resolvePublicUrl("images/2026/06/original.jpg"))
                 .thenReturn("https://cdn.example.com/images/2026/06/original.jpg");
 
         GoodsListItemResponseDTO response = assembler.toListItemResponse(goods);
 
         assertEquals("https://cdn.example.com/images/2026/06/original.jpg", response.coverImageUrl());
-        verify(uploadService).getProxyUrl("images/2026/06/original.jpg");
+        verify(uploadService).resolvePublicUrl("images/2026/06/original.jpg");
     }
 
     @Test
@@ -76,13 +76,13 @@ class GoodsAssemblerTest {
                 ImageAuditStatusEnum.PENDING
         )));
 
-        when(uploadService.getProxyUrl("images/2026/06/pending.jpg"))
+        when(uploadService.resolvePublicUrl("images/2026/06/pending.jpg"))
                 .thenReturn("https://cdn.example.com/images/2026/06/pending.jpg");
 
         GoodsListItemResponseDTO response = assembler.toListItemResponse(goods);
 
         assertEquals("https://cdn.example.com/images/2026/06/pending.jpg", response.coverImageUrl());
-        verify(uploadService).getProxyUrl("images/2026/06/pending.jpg");
+        verify(uploadService).resolvePublicUrl("images/2026/06/pending.jpg");
     }
 
     @Test
@@ -95,13 +95,13 @@ class GoodsAssemblerTest {
                 ImageAuditStatusEnum.REJECTED
         )));
 
-        when(uploadService.getProxyUrl("images/2026/06/rejected.jpg"))
+        when(uploadService.resolvePublicUrl("images/2026/06/rejected.jpg"))
                 .thenReturn("https://cdn.example.com/images/2026/06/rejected.jpg");
 
         GoodsListItemResponseDTO response = assembler.toListItemResponse(goods);
 
         assertEquals("https://cdn.example.com/images/2026/06/rejected.jpg", response.coverImageUrl());
-        verify(uploadService).getProxyUrl("images/2026/06/rejected.jpg");
+        verify(uploadService).resolvePublicUrl("images/2026/06/rejected.jpg");
     }
 
     @Test
@@ -115,7 +115,7 @@ class GoodsAssemblerTest {
         );
         image.setDisplayUrl("images/2026/06/display/original_display.webp");
         GoodsDO goods = goodsWithImages(List.of(image));
-        when(uploadService.getProxyUrl("images/2026/06/display/original_display.webp"))
+        when(uploadService.resolvePublicUrl("images/2026/06/display/original_display.webp"))
                 .thenReturn("https://cdn.example.com/images/2026/06/display/original_display.webp");
 
         GoodsResponseDTO response = assembler.toResponse(goods);
@@ -137,7 +137,7 @@ class GoodsAssemblerTest {
                 ImageAuditStatusEnum.APPROVED
         )));
         goods.setAuditRemark("请补充实拍图");
-        when(uploadService.getProxyUrl("images/2026/06/original.jpg"))
+        when(uploadService.resolvePublicUrl("images/2026/06/original.jpg"))
                 .thenReturn("https://cdn.example.com/images/2026/06/original.jpg");
 
         GoodsDetailResponseDTO response = assembler.toDetailResponse(goods, false);
@@ -157,7 +157,7 @@ class GoodsAssemblerTest {
                 ImageAuditStatusEnum.PENDING
         )));
         goods.setAuditRemark("请补充实拍图");
-        when(uploadService.getProxyUrl("images/2026/06/original.jpg"))
+        when(uploadService.resolvePublicUrl("images/2026/06/original.jpg"))
                 .thenReturn("https://cdn.example.com/images/2026/06/original.jpg");
 
         GoodsDetailResponseDTO response = assembler.toDetailResponse(goods, true);

@@ -58,16 +58,20 @@ class AuditImageServiceTest {
         record.setAuditStatus(ImageAuditStatusEnum.PENDING);
         when(auditImageMapper.search(ImageAuditStatusEnum.PENDING, 10, 0)).thenReturn(List.of(record));
         when(auditImageMapper.countSearch(ImageAuditStatusEnum.PENDING)).thenReturn(1L);
-        when(uploadService.getProxyUrl("images/original.jpg")).thenReturn("/api/v1/images/proxy/original.jpg");
-        when(uploadService.getProxyUrl("images/thumbs/original_thumb.webp"))
-                .thenReturn("/api/v1/images/proxy/original_thumb.webp");
+        when(uploadService.resolvePublicUrl("images/original.jpg"))
+                .thenReturn("https://cdn.example.com/campus-trade/images/original.jpg");
+        when(uploadService.resolvePublicUrl("images/thumbs/original_thumb.webp"))
+                .thenReturn("https://cdn.example.com/campus-trade/images/thumbs/original_thumb.webp");
 
         var response = service.list(1L, null, 0, 10);
 
         assertEquals(1, response.total());
         assertEquals("wx_seller_30", response.items().get(0).sellerWechatId());
         assertEquals("123456789", response.items().get(0).sellerQq());
-        assertEquals("/api/v1/images/proxy/original_thumb.webp", response.items().get(0).previewImageUrl());
+        assertEquals(
+                "https://cdn.example.com/campus-trade/images/thumbs/original_thumb.webp",
+                response.items().get(0).previewImageUrl()
+        );
     }
 
     @Test
@@ -81,7 +85,8 @@ class AuditImageServiceTest {
         record.setAvatarAuditStatus(ImageAuditStatusEnum.PENDING);
         when(auditImageMapper.searchAvatars(ImageAuditStatusEnum.PENDING, 10, 0)).thenReturn(List.of(record));
         when(auditImageMapper.countSearchAvatars(ImageAuditStatusEnum.PENDING)).thenReturn(1L);
-        when(uploadService.getProxyUrl("avatars/user.jpg")).thenReturn("/api/v1/images/proxy/avatar.jpg");
+        when(uploadService.resolvePublicUrl("avatars/user.jpg"))
+                .thenReturn("https://cdn.example.com/campus-trade/avatars/user.jpg");
 
         var response = service.listAvatars(1L, null, 0, 10);
 

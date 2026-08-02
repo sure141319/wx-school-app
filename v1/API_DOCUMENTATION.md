@@ -100,7 +100,7 @@ OpenAPI 中按以下业务前缀组织接口：
 - `/api/v1/goods`：商品搜索、详情、发布、个人商品管理与联系提醒。
 - `/api/v1/categories`：分类查询。
 - `/api/v1/users`：个人资料及账号绑定。
-- `/api/v1/uploads`、`/api/v1/images`：图片上传与公开代理。
+- `/api/v1/uploads`：图片上传；响应中的公开图片地址由 `MINIO_PUBLIC_BASE_URL` 生成，图片内容不经过后端转发。
 - `/api/v1/announcements`：当前公告。
 - `/api/v1/audit`：审核与最低限度的运营管理。
 

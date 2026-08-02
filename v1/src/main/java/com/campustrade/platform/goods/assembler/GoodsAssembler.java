@@ -112,13 +112,13 @@ public class GoodsAssembler {
         String coverKey = StringUtils.hasText(image.getThumbnailUrl())
                 ? image.getThumbnailUrl()
                 : (StringUtils.hasText(image.getDisplayUrl()) ? image.getDisplayUrl() : image.getImageUrl());
-        return uploadService.getProxyUrl(coverKey);
+        return uploadService.resolvePublicUrl(coverKey);
     }
 
     private String toVisibleImageUrl(GoodsImageDO image) {
         String displayKey = StringUtils.hasText(image.getDisplayUrl())
                 ? image.getDisplayUrl()
                 : image.getImageUrl();
-        return uploadService.getProxyUrl(displayKey);
+        return uploadService.resolvePublicUrl(displayKey);
     }
 }

@@ -46,17 +46,17 @@ class UserServiceTest {
     );
 
     @Test
-    void updateProfileDoesNotResubmitAvatarReviewWhenRequestUsesEquivalentProxyUrl() {
+    void updateProfileDoesNotResubmitAvatarReviewWhenRequestUsesEquivalentPublicUrl() {
         Long userId = 1L;
         String objectKey = "images/2026/06/avatar.jpg";
-        String proxyUrl = "http://localhost:8080/api/v1/images/2026/06/avatar.jpg";
+        String publicUrl = "https://cdn.example.com/campus-trade/images/2026/06/avatar.jpg";
         UserDO existingUser = user(userId, "old-name", objectKey);
         UserDO updatedUser = user(userId, "new-name", objectKey);
 
         when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
-        when(uploadService.extractObjectKey(proxyUrl)).thenReturn(objectKey);
+        when(uploadService.extractObjectKey(publicUrl)).thenReturn(objectKey);
 
-        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO(" new-name ", proxyUrl, null, null));
+        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO(" new-name ", publicUrl, null, null));
 
         assertEquals("new-name", result.getNickname());
         verify(userMapper).updateProfile(userId, "new-name", objectKey, null, null);
@@ -109,15 +109,15 @@ class UserServiceTest {
         Long userId = 1L;
         String oldObjectKey = "images/2026/06/avatar/avatar_u1_20260601010101_abc123.jpg";
         String newObjectKey = "images/2026/07/avatar/avatar_u1_20260712120000_a1b2c3.jpg";
-        String newProxyUrl = "http://localhost:8080/api/v1/images/2026/07/avatar/avatar_u1_20260712120000_a1b2c3.jpg";
+        String newPublicUrl = "https://cdn.example.com/campus-trade/images/2026/07/avatar/avatar_u1_20260712120000_a1b2c3.jpg";
         UserDO existingUser = user(userId, "old-name", oldObjectKey);
         UserDO updatedUser = user(userId, "new-name", newObjectKey);
 
         when(userMapper.findById(userId)).thenReturn(existingUser, updatedUser);
-        when(uploadService.extractObjectKey(newProxyUrl)).thenReturn(newObjectKey);
-        when(uploadService.validateUploadedImageReference(newProxyUrl, "avatar", userId)).thenReturn(newObjectKey);
+        when(uploadService.extractObjectKey(newPublicUrl)).thenReturn(newObjectKey);
+        when(uploadService.validateUploadedImageReference(newPublicUrl, "avatar", userId)).thenReturn(newObjectKey);
 
-        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO("new-name", newProxyUrl, null, null));
+        UserDO result = userService.updateProfile(userId, new UpdateProfileRequestDTO("new-name", newPublicUrl, null, null));
 
         assertEquals("new-name", result.getNickname());
         verify(userMapper).updateProfile(userId, "new-name", newObjectKey, null, null);

@@ -67,8 +67,7 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar   # 运行打包好的 JAR
 | `REDIS_HOST` / `REDIS_PORT` | Redis 连接 | localhost:6379 |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_FROM` | QQ 邮箱 SMTP 配置 | — |
 | `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | MinIO 配置 | — |
-| `MINIO_PUBLIC_BASE_URL` | 可公开访问的对象存储或 CDN 基础地址，配置后小程序图片 URL 直接走该地址 | — |
-| `API_BASE_URL` | 后端公开基础地址，用于生成图片代理等外部 URL | `http://localhost:8080` |
+| `MINIO_PUBLIC_BASE_URL` | 必填；可公开访问的 MinIO/Nginx 基础地址，图片 URL 直接由该地址生成 | — |
 | `IMAGE_AUDIT_REVIEWER_USER_IDS` | 具备图片审核权限的用户 ID 列表 | 空（无人具备审核权限） |
 | `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | 微信登录和账号绑定配置 | 空（相关能力不可用） |
 

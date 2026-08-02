@@ -135,11 +135,11 @@ class UploadServiceKeyTest {
 
     private static UploadService newService() {
         AppProperties properties = new AppProperties();
-        properties.setApiBaseUrl("https://www.ahut-campus.site");
         properties.getMinio().setEndpoint("http://127.0.0.1:9000");
         properties.getMinio().setAccessKey("access");
         properties.getMinio().setSecretKey("secret");
         properties.getMinio().setBucket("campus-trade");
+        properties.getMinio().setPublicBaseUrl("https://cdn.example.com/campus-trade");
         return new UploadService(mock(MinioClient.class), properties);
     }
 }

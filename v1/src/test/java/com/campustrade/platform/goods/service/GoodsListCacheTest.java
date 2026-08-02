@@ -151,7 +151,8 @@ class GoodsListCacheTest {
 
         when(goodsMapper.findImageById(3L)).thenReturn(image);
         when(auditImageMapper.findByImageId(3L)).thenReturn(updatedRecord);
-        when(uploadService.getProxyUrl("images/approved.jpg")).thenReturn("http://localhost/images/approved.jpg");
+        when(uploadService.resolvePublicUrl("images/approved.jpg"))
+                .thenReturn("http://localhost/images/approved.jpg");
 
         AuditImageResponseDTO response = auditImageService.approve(1L, 3L);
 

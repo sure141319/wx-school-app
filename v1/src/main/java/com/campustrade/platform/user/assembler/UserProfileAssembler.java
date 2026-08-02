@@ -64,7 +64,7 @@ public class UserProfileAssembler {
     private VisibleAvatar toVisibleAvatar(UserDO user) {
         if (user.getAvatarAuditStatus() == ImageAuditStatusEnum.APPROVED
                 && StringUtils.hasText(user.getAvatarUrl())) {
-            return new VisibleAvatar(uploadService.getProxyUrl(user.getAvatarUrl()), AVATAR_SOURCE_UPLOADED);
+            return new VisibleAvatar(uploadService.resolvePublicUrl(user.getAvatarUrl()), AVATAR_SOURCE_UPLOADED);
         }
 
         String qqAvatarUrl = qqAvatarUrl(user.getQq());

@@ -270,21 +270,21 @@ class GoodsServiceVisibilityTest {
     }
 
     @Test
-    void updateAllowsKeepingLegacyImagesAlreadyAttachedToGoods() {
-        String legacyKey = "images/2026/04/legacy.jpg";
-        String legacyProxyUrl = "https://www.ahut-campus.site/api/v1/images/2026/04/legacy.jpg";
+    void updateAllowsKeepingImagesAlreadyAttachedToGoods() {
+        String existingKey = "images/2026/04/existing.jpg";
+        String existingPublicUrl = "https://www.ahut-campus.site/minio/campus-trade/images/2026/04/existing.jpg";
         GoodsDO existing = goods(10L, 20L, GoodsStatusEnum.ON_SALE);
         GoodsDO updated = goods(10L, 20L, GoodsStatusEnum.PENDING_REVIEW);
-        GoodsImageDO legacyImage = image(5L, 10L, legacyKey, ImageAuditStatusEnum.APPROVED);
-        legacyImage.setThumbnailUrl("images/2026/04/legacy_thumb.webp");
-        legacyImage.setDisplayUrl("images/2026/04/legacy_display.webp");
-        legacyImage.setAuditThumbnailUrl("images/2026/04/legacy_audit.jpg");
+        GoodsImageDO existingImage = image(5L, 10L, existingKey, ImageAuditStatusEnum.APPROVED);
+        existingImage.setThumbnailUrl("images/2026/04/existing_thumb.webp");
+        existingImage.setDisplayUrl("images/2026/04/existing_display.webp");
+        existingImage.setAuditThumbnailUrl("images/2026/04/existing_audit.jpg");
         GoodsResponseDTO response = new GoodsResponseDTO(
                 10L, "Mac", null, null, null, null, GoodsStatusEnum.PENDING_REVIEW, null, null, List.of(), List.of(), null, null, null
         );
         when(goodsMapper.findById(10L)).thenReturn(existing, updated);
-        when(goodsMapper.findImagesByGoodsId(10L)).thenReturn(List.of(legacyImage), List.of(legacyImage), List.of(legacyImage));
-        when(uploadService.extractObjectKey(legacyProxyUrl)).thenReturn(legacyKey);
+        when(goodsMapper.findImagesByGoodsId(10L)).thenReturn(List.of(existingImage), List.of(existingImage), List.of(existingImage));
+        when(uploadService.extractObjectKey(existingPublicUrl)).thenReturn(existingKey);
         when(goodsMapper.countImagesByGoodsId(10L)).thenReturn(1);
         when(goodsMapper.countApprovedImagesByGoodsId(10L)).thenReturn(0);
         when(goodsAssembler.toResponse(updated)).thenReturn(response);
@@ -299,7 +299,7 @@ class GoodsServiceVisibilityTest {
                         "new",
                         "campus",
                         null,
-                        List.of(legacyProxyUrl),
+                        List.of(existingPublicUrl),
                         List.of("images/2026/04/foreign_thumb.webp"),
                         List.of("images/2026/04/foreign_display.webp"),
                         List.of("images/2026/04/foreign_audit.jpg")
@@ -307,7 +307,7 @@ class GoodsServiceVisibilityTest {
         );
 
         assertSame(response, result);
-        verify(uploadService, never()).validateUploadedImageReference(legacyProxyUrl, "goods", 20L);
+        verify(uploadService, never()).validateUploadedImageReference(existingPublicUrl, "goods", 20L);
         verify(uploadService, never()).validateUploadedThumbnailReference(any(), any(), any());
         verify(uploadService, never()).validateUploadedDisplayReference(any(), any(), any());
         verify(uploadService, never()).validateUploadedAuditThumbnailReference(any(), any(), any());

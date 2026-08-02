@@ -52,7 +52,7 @@ public class UploadService {
     private final UploadLifecycleService uploadLifecycleService;
     private final UploadImageProcessor imageProcessor;
     private final UploadImageValidator imageValidator;
-    private final String apiBaseUrl;
+    private final String publicBaseUrl;
     private volatile boolean bucketReady;
 
     public record ImageVariantKeys(
@@ -119,9 +119,10 @@ public class UploadService {
         this.uploadLifecycleService = uploadLifecycleService;
         this.imageProcessor = imageProcessor;
         this.imageValidator = imageValidator == null ? new UploadImageValidator(imageProcessor) : imageValidator;
-        this.apiBaseUrl = StringUtils.hasText(appProperties.getApiBaseUrl())
-                ? trimTrailingSlash(appProperties.getApiBaseUrl().trim())
-                : "";
+        if (!StringUtils.hasText(minioProperties.getPublicBaseUrl())) {
+            throw new IllegalArgumentException("app.minio.public-base-url must be configured");
+        }
+        this.publicBaseUrl = trimTrailingSlash(minioProperties.getPublicBaseUrl().trim());
     }
 
     public UploadService(MinioClient minioClient,
@@ -176,9 +177,7 @@ public class UploadService {
 
             ImageVariantKeys variants = preparedVariants.keys();
             lifecycle.markStaged(reservation.getId(), userId, file.getSize(), variants, totalSizeBytes);
-            String url = StringUtils.hasText(minioProperties.getPublicBaseUrl())
-                    ? buildPublicUrl(objectKey)
-                    : buildProxyUrl(objectKey);
+            String url = buildPublicUrl(objectKey);
             return new UploadResponseDTO(
                     url,
                     objectKey,
@@ -431,21 +430,7 @@ public class UploadService {
     }
 
     private String buildPublicUrl(String objectKey) {
-        String baseUrl = StringUtils.hasText(minioProperties.getPublicBaseUrl())
-                ? minioProperties.getPublicBaseUrl().trim()
-                : buildDefaultPublicBaseUrl();
-        return trimTrailingSlash(baseUrl) + "/" + objectKey;
-    }
-
-    private String buildDefaultPublicBaseUrl() {
-        String endpoint = minioProperties.getEndpoint().trim();
-        String normalizedEndpoint;
-        if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
-            normalizedEndpoint = endpoint;
-        } else {
-            normalizedEndpoint = (minioProperties.isSecure() ? "https://" : "http://") + endpoint;
-        }
-        return trimTrailingSlash(normalizedEndpoint) + "/" + minioProperties.getBucket();
+        return publicBaseUrl + "/" + objectKey;
     }
 
     private String trimTrailingSlash(String value) {
@@ -456,9 +441,7 @@ public class UploadService {
         if (!StringUtils.hasText(objectKey)) {
             return null;
         }
-        return StringUtils.hasText(minioProperties.getPublicBaseUrl())
-                ? buildPublicUrl(objectKey)
-                : buildProxyUrl(objectKey);
+        return buildPublicUrl(objectKey);
     }
 
     public String validateUploadedImageReference(String urlOrObjectKey, String usage, Long userId) {
@@ -538,37 +521,18 @@ public class UploadService {
         }
     }
 
-    public String getProxyUrl(String urlOrObjectKey) {
+    public String resolvePublicUrl(String urlOrObjectKey) {
         if (!StringUtils.hasText(urlOrObjectKey)) {
-            return urlOrObjectKey;
-        }
-        if (urlOrObjectKey.contains("/api/v1/images/")) {
             return urlOrObjectKey;
         }
         String objectKey = extractObjectKey(urlOrObjectKey);
         if (objectKey == null) {
             return urlOrObjectKey;
         }
-        if (StringUtils.hasText(minioProperties.getPublicBaseUrl())) {
-            return buildPublicUrl(objectKey);
-        }
-        return buildProxyUrl(objectKey);
+        return buildPublicUrl(objectKey);
     }
 
-    private String buildProxyUrl(String objectKey) {
-        String path = objectKey.startsWith("images/") ? objectKey.substring("images/".length()) : objectKey;
-        return apiBaseUrl + "/api/v1/images/" + path;
-    }
-
-    public String buildStaticAssetUrl(String path) {
-        if (!StringUtils.hasText(path)) {
-            return path;
-        }
-        String normalizedPath = path.startsWith("/") ? path : "/" + path;
-        return apiBaseUrl + normalizedPath;
-    }
-
-    public InputStream getImageStream(String objectKey) {
+    private InputStream getImageStream(String objectKey) {
         try {
             return minioClient.getObject(
                     GetObjectArgs.builder()
@@ -580,7 +544,7 @@ public class UploadService {
         }
     }
 
-    public StatObjectResponse getImageInfo(String objectKey) {
+    private StatObjectResponse getImageInfo(String objectKey) {
         try {
             return minioClient.statObject(
                     StatObjectArgs.builder()
@@ -608,35 +572,13 @@ public class UploadService {
             input = input.substring(0, fragmentIndex);
         }
 
-        String proxyMarker = "/api/v1/images/";
-        int proxyIndex = input.indexOf(proxyMarker);
-        if (proxyIndex >= 0) {
-            String relativePath = input.substring(proxyIndex + proxyMarker.length());
-            return "images/" + relativePath;
-        }
-
         if (!input.startsWith("http://") && !input.startsWith("https://")) {
             return input;
         }
 
-        String baseUrl = buildDefaultPublicBaseUrl();
-        String prefix = trimTrailingSlash(baseUrl) + "/";
-        if (input.startsWith(prefix)) {
-            return input.substring(prefix.length());
-        }
-
-        if (StringUtils.hasText(minioProperties.getPublicBaseUrl())) {
-            String publicPrefix = trimTrailingSlash(minioProperties.getPublicBaseUrl().trim()) + "/";
-            if (input.startsWith(publicPrefix)) {
-                return input.substring(publicPrefix.length());
-            }
-        }
-
-        String bucket = minioProperties.getBucket();
-        String bucketSegment = "/" + bucket + "/";
-        int bucketIndex = input.indexOf(bucketSegment);
-        if (bucketIndex >= 0) {
-            return input.substring(bucketIndex + bucketSegment.length());
+        String publicPrefix = publicBaseUrl + "/";
+        if (input.startsWith(publicPrefix)) {
+            return input.substring(publicPrefix.length());
         }
 
         return null;
