@@ -49,6 +49,22 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+  health:
+    diskspace:
+      threshold: ${HEALTH_DISKSPACE_THRESHOLD:1GB}
+    # 邮件服务短时不可用不会影响商品浏览和搜索，不应把整站判定为宕机。
+    mail:
+      enabled: false
+
 app:
   jwt-secret: ${JWT_SECRET}
   jwt-expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}

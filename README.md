@@ -108,9 +108,11 @@ python -m http.server 5173     # 启动静态文件服务
 - [`v1/API_DOCUMENTATION.md`](v1/API_DOCUMENTATION.md)：稳定 API 契约、OpenAPI 入口和接口变更规则。
 - [`wxui_v2/TESTING.md`](wxui_v2/TESTING.md)：小程序自动化测试边界和发布前人工冒烟检查。
 - [`v1/HEIF_DEPLOYMENT.md`](v1/HEIF_DEPLOYMENT.md)：HEIC/HEIF 解码依赖、上线验证和回滚方式。
+- [`v1/MONITORING_DEPLOYMENT.md`](v1/MONITORING_DEPLOYMENT.md)：Actuator 健康端点、Nginx 收口和外部故障告警。
 
 ## 线上环境
 
 - API 基础地址：`https://www.ahut-campus.site/api/v1`
+- 健康检查：`https://www.ahut-campus.site/actuator/health`
 - Swagger UI：`https://www.ahut-campus.site/api/v1/docs`
 - OpenAPI JSON：`https://www.ahut-campus.site/api/v1/openapi.json`
