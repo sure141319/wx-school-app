@@ -326,14 +326,15 @@ Component({
       if (!e.detail.checked) return
       const id = String(e.currentTarget.dataset.id || '')
       if (this.data.form.categoryId === id) return
-      const shouldScrollToPhoto = !this.data.form.categoryId
+      const category = this.data.categories.find(item => String(item.id) === id)
+      const categoryName = category?.name || ''
       this.setData({
         'form.categoryId': id,
-        'errors.categoryId': ''
-      }, () => {
-        if (shouldScrollToPhoto) {
-          wx.pageScrollTo({ scrollTop: 0, duration: 220 })
-        }
+        'form.title': categoryName,
+        'form.description': categoryName,
+        'errors.categoryId': '',
+        'errors.title': '',
+        'errors.description': ''
       })
     },
 

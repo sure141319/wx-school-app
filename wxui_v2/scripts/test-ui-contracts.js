@@ -94,6 +94,16 @@ test('关键联系、账号绑定和发布操作保持可触达', () => {
   ], 'publish flow')
 })
 
+test('发布页图片上传入口无需选择分类即可显示', () => {
+  const publishWxml = read('pages', 'publish', 'publish.wxml')
+
+  assert.ok(publishWxml.includes('<view class="publish-card publish-photo-card">'))
+  assert.equal(
+    publishWxml.includes('wx:if="{{form.categoryId}}" class="publish-card publish-photo-card"'),
+    false
+  )
+})
+
 test('分类和地点选择保留无障碍单选语义', () => {
   const indexWxml = read('pages', 'index', 'index.wxml')
   const publishWxml = read('pages', 'publish', 'publish.wxml')

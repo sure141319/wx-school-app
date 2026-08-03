@@ -13,7 +13,7 @@
   <view wx:if="{{loading}}" class="loading-text">正在加载商品信息...</view>
 
   <view class="publish-form">
-    <view wx:if="{{form.categoryId}}" class="publish-card publish-photo-card">
+    <view class="publish-card publish-photo-card">
       <view class="publish-card-head">
         <text class="publish-card-title">商品图片</text>
         <text class="publish-photo-count">{{form.photos.length}}/3</text>

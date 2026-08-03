@@ -50,14 +50,11 @@ test('更新用户缓存会合并已有字段，不覆盖未修改资料', () =>
   })
 })
 
-test('选择商品分类只更新分类，不清空已填写标题和描述', () => {
-  const scrolls = []
+test('选择商品分类会将标题和描述补齐为分类名', () => {
   const component = loadComponent('pages/publish/publish.ts', {
     globals: {
       getApp: () => ({ globalData: { baseUrl: 'https://api.example.test' } }),
-      wx: {
-        pageScrollTo: options => scrolls.push(options)
-      }
+      wx: {}
     },
     mocks: {
       '../../utils/request': {
@@ -72,8 +69,14 @@ test('选择商品分类只更新分类，不清空已填写标题和描述', ()
     }
   })
   const instance = component.createInstance()
+  instance.data.categories = [{ id: 3, name: '二手书', icon: '/static/category-icons/books.svg' }]
   instance.data.form.title = '高等数学教材'
   instance.data.form.description = '同济版，上册'
+  instance.data.errors = {
+    categoryId: '请选择商品分类',
+    title: '请输入标题',
+    description: '请输入描述'
+  }
 
   instance.chooseCategory({
     detail: { checked: true },
@@ -81,7 +84,9 @@ test('选择商品分类只更新分类，不清空已填写标题和描述', ()
   })
 
   assert.equal(instance.data.form.categoryId, '3')
-  assert.equal(instance.data.form.title, '高等数学教材')
-  assert.equal(instance.data.form.description, '同济版，上册')
-  assert.equal(scrolls.length, 1)
+  assert.equal(instance.data.form.title, '二手书')
+  assert.equal(instance.data.form.description, '二手书')
+  assert.equal(instance.data.errors.categoryId, '')
+  assert.equal(instance.data.errors.title, '')
+  assert.equal(instance.data.errors.description, '')
 })
